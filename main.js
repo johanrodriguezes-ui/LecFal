@@ -194,6 +194,7 @@ async function scanFolderWithSeries(folder) {
     const seriesId = db.upsertSeries({
       folder_id: folder.id,
       title: seriesData.title,
+      author: seriesData.author,
       path: seriesData.path,
       cover_path: seriesData.cover_path,
       chapter_count: seriesData.chapter_count,

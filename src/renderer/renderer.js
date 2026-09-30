@@ -73,6 +73,7 @@ const btnMarkAllText = document.getElementById('btnMarkAllText');
 const mangaHeroCoverImg = document.getElementById('mangaHeroCoverImg');
 const mangaHeroFormatBadge = document.getElementById('mangaHeroFormatBadge');
 const mangaHeroTitle = document.getElementById('mangaHeroTitle');
+const btnEditTitle = document.getElementById('btnEditTitle');
 const btnMangaFav = document.getElementById('btnMangaFav');
 
 const mangaHeroAuthor = document.getElementById('mangaHeroAuthor');
@@ -248,6 +249,12 @@ function setupEventListeners() {
     await window.lecfalAPI.markAllChaptersRead({ seriesId: activeSeries.id, isRead: hasUnread });
     await reloadActiveSeries();
     showToast(hasUnread ? 'Todos los capítulos marcados como leídos' : 'Capítulos marcados como no leídos');
+  });
+
+  // Edit title
+  btnEditTitle.addEventListener('click', () => {
+    if (!activeSeries) return;
+    openEditFieldModal('title', 'Renombrar Manga', 'Nuevo título para este manga:', activeSeries.title);
   });
 
   // Edit author
@@ -610,7 +617,17 @@ async function handleSaveEditField() {
   if (!activeSeries || !currentEditField) return;
   const val = editFieldInput.value.trim();
 
-  if (currentEditField === 'author') {
+  if (currentEditField === 'title') {
+    const finalTitle = val || activeSeries.title;
+    await window.lecfalAPI.updateSeriesMetadata({
+      seriesId: activeSeries.id,
+      title: finalTitle
+    });
+    activeSeries.title = finalTitle;
+    mangaHeroTitle.textContent = finalTitle;
+    showToast('Título del manga actualizado');
+    refreshSeries(false);
+  } else if (currentEditField === 'author') {
     const finalAuthor = val || 'Desconocido';
     await window.lecfalAPI.updateSeriesMetadata({
       seriesId: activeSeries.id,

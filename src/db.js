@@ -168,8 +168,8 @@ class DatabaseManager {
 
   // ==================== SERIES / MANGAS ====================
   upsertSeries(seriesData) {
-    // Check if series already exists
-    const checkStmt = this.db.prepare('SELECT id, cover_path, author, description, tags FROM series WHERE path = ?');
+    // Check if series already exists by unique folder path
+    const checkStmt = this.db.prepare('SELECT id, title, cover_path, author, description, tags FROM series WHERE path = ?');
     checkStmt.bind([seriesData.path]);
 
     let seriesId = null;
@@ -181,10 +181,15 @@ class DatabaseManager {
     checkStmt.free();
 
     if (existing) {
-      // Update without overwriting user custom author/description/tags if they were edited
+      // PRESERVE user custom title, author, description, or tags if they were edited
+      const titleToUse = existing.title || seriesData.title;
       const coverToUse = existing.cover_path || seriesData.cover_path;
-      const authorToUse = (existing.author && existing.author !== 'Desconocido') ? existing.author : (seriesData.author || existing.author || 'Desconocido');
-      const descToUse = (existing.description && existing.description !== 'Sin descripción') ? existing.description : (seriesData.description || existing.description || 'Sin descripción');
+      const authorToUse = (existing.author && existing.author !== 'Desconocido') 
+        ? existing.author 
+        : (seriesData.author && seriesData.author !== 'Desconocido' ? seriesData.author : existing.author || 'Desconocido');
+      const descToUse = (existing.description && existing.description !== 'Sin descripción') 
+        ? existing.description 
+        : (seriesData.description && seriesData.description !== 'Sin descripción' ? seriesData.description : existing.description || 'Sin descripción');
       const tagsToUse = existing.tags || seriesData.tags || '';
 
       const updateStmt = this.db.prepare(`
@@ -202,11 +207,11 @@ class DatabaseManager {
       `);
       updateStmt.run([
         seriesData.folder_id,
-        seriesData.title,
-        coverToUse,
-        authorToUse,
-        descToUse,
-        tagsToUse,
+        titleToUse || '',
+        coverToUse || null,
+        authorToUse || 'Desconocido',
+        descToUse || 'Sin descripción',
+        tagsToUse || '',
         seriesData.chapter_count || 0,
         seriesData.primary_format || 'cbz',
         seriesId
@@ -220,8 +225,8 @@ class DatabaseManager {
       `);
       insertStmt.run([
         seriesData.folder_id,
-        seriesData.title,
-        seriesData.path,
+        seriesData.title || '',
+        seriesData.path || '',
         seriesData.cover_path || null,
         seriesData.author || 'Desconocido',
         seriesData.description || 'Sin descripción',

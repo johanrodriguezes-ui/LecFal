@@ -43,6 +43,28 @@ class LibraryScanner {
     return baseName.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
+  parseTitleAndAuthor(rawName) {
+    let title = rawName;
+    let author = 'Desconocido';
+
+    // Pattern 1: [Author] Title or (Author) Title
+    const prefixMatch = rawName.match(/^[\[\(](.*?)[\]\)]\s*(.*)$/);
+    if (prefixMatch && prefixMatch[2].trim()) {
+      author = prefixMatch[1].trim();
+      title = prefixMatch[2].trim();
+    } else {
+      // Pattern 2: Title [Author] or Title (Author)
+      const suffixMatch = rawName.match(/^(.*?)\s*[\[\(](.*?)[\]\)]$/);
+      if (suffixMatch && suffixMatch[1].trim()) {
+        title = suffixMatch[1].trim();
+        author = suffixMatch[2].trim();
+      }
+    }
+
+    title = title.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
+    return { title: title || rawName, author };
+  }
+
   // Scan directory, group files into Manga Series, and extract first chapter cover
   async scanDirectory(dirPath, { onProgress = null, onSeries = null } = {}) {
     const startTime = Date.now();
@@ -90,24 +112,26 @@ class LibraryScanner {
 
       let seriesKey = '';
       let seriesPath = '';
-      let seriesTitle = '';
+      let rawFolderTitle = '';
 
       if (parts.length > 1) {
         // The file is inside a subfolder: the top subfolder is the Manga Series
         seriesKey = parts[0];
         seriesPath = path.join(dirPath, parts[0]);
-        seriesTitle = parts[0].replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
+        rawFolderTitle = parts[0];
       } else {
         // Standalone file in the root directory
         seriesKey = file.fullPath;
         seriesPath = file.fullPath;
-        const baseName = path.basename(file.fileName, path.extname(file.fileName));
-        seriesTitle = baseName.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
+        rawFolderTitle = path.basename(file.fileName, path.extname(file.fileName));
       }
+
+      const { title, author } = this.parseTitleAndAuthor(rawFolderTitle);
 
       if (!seriesGroups.has(seriesKey)) {
         seriesGroups.set(seriesKey, {
-          title: seriesTitle,
+          title,
+          author,
           path: seriesPath,
           files: []
         });
@@ -181,6 +205,7 @@ class LibraryScanner {
 
       const seriesData = {
         title: group.title,
+        author: group.author || 'Desconocido',
         path: group.path,
         cover_path: coverPath,
         chapter_count: chapters.length,
