@@ -57,12 +57,17 @@ const countFav = document.getElementById('countFav');
 const statusCount = document.getElementById('statusCount');
 const statusFolderCount = document.getElementById('statusFolderCount');
 
-// Scan Banner
+// Scan Banner & Controls
 const scanProgressBanner = document.getElementById('scanProgressBanner');
 const scanBannerTitle = document.getElementById('scanBannerTitle');
 const scanBannerFile = document.getElementById('scanBannerFile');
 const scanProgressBar = document.getElementById('scanProgressBar');
 const scanBannerCount = document.getElementById('scanBannerCount');
+const btnCancelScan = document.getElementById('btnCancelScan');
+const btnScanMenu = document.getElementById('btnScanMenu');
+const scanDropdownMenu = document.getElementById('scanDropdownMenu');
+const btnScanIncremental = document.getElementById('btnScanIncremental');
+const btnScanFull = document.getElementById('btnScanFull');
 
 // Manga View Elements
 const btnBackToLibrary = document.getElementById('btnBackToLibrary');
@@ -161,6 +166,41 @@ function setupEventListeners() {
   btnManageFolders.addEventListener('click', () => openFoldersModal());
   btnCloseModalFolders.addEventListener('click', () => closeFoldersModal());
   btnModalCloseDone.addEventListener('click', () => closeFoldersModal());
+
+  // Scan modes dropdown & cancel
+  if (btnScanMenu && scanDropdownMenu) {
+    btnScanMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = scanDropdownMenu.style.display === 'block';
+      scanDropdownMenu.style.display = isVisible ? 'none' : 'block';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (scanDropdownMenu && !scanDropdownMenu.contains(e.target) && e.target !== btnScanMenu) {
+        scanDropdownMenu.style.display = 'none';
+      }
+    });
+
+    btnScanIncremental?.addEventListener('click', () => {
+      scanDropdownMenu.style.display = 'none';
+      runAllScan('incremental');
+    });
+
+    btnScanFull?.addEventListener('click', () => {
+      scanDropdownMenu.style.display = 'none';
+      if (confirm('¿Deseas forzar el re-escaneo completo de todos los archivos y portadas?')) {
+        runAllScan('full');
+      }
+    });
+  }
+
+  btnCancelScan?.addEventListener('click', async () => {
+    if (isScanning) {
+      btnCancelScan.disabled = true;
+      btnCancelScan.innerHTML = '<span>Cancelando...</span>';
+      await window.lecfalAPI.cancelScan();
+    }
+  });
 
   // Search input
   searchInput.addEventListener('input', (e) => {
@@ -697,20 +737,36 @@ async function handleAddFolder() {
 
 async function handleRescan() {
   if (isScanning || folders.length === 0) return;
-  showToast('Iniciando re-escaneo de la biblioteca...');
-  await runAllScan();
+  await runAllScan('incremental');
 }
 
-async function runFolderScan(folderId) {
+async function runFolderScan(folderId, mode = 'incremental') {
   if (isScanning) return;
   isScanning = true;
   scanProgressBanner.style.display = 'block';
   btnRescan.classList.add('scanning');
   logIndicatorDot.classList.add('active');
 
+  if (btnCancelScan) {
+    btnCancelScan.disabled = false;
+    btnCancelScan.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+      <span>Cancelar</span>
+    `;
+  }
+
   try {
-    const result = await window.lecfalAPI.scanFolder(folderId);
-    showToast(`Escaneo completado: ${result.count} mangas organizados`);
+    const result = await window.lecfalAPI.scanFolder(folderId, { mode });
+    if (result.cancelled) {
+      showToast('Escaneo cancelado por el usuario');
+    } else if (result.newFiles > 0 || result.modifiedFiles > 0) {
+      showToast(`Escaneo finalizado: +${result.newFiles} nuevos, ${result.modifiedFiles} actualizados (${result.totalScanTime})`);
+    } else {
+      showToast(`Biblioteca al día: ${result.skippedFiles || result.count} archivos verificados (0 cambios)`);
+    }
     await refreshSeries();
   } catch (err) {
     console.error('Scan error:', err);
@@ -725,16 +781,36 @@ async function runFolderScan(folderId) {
   }
 }
 
-async function runAllScan() {
+async function runAllScan(mode = 'incremental') {
   if (isScanning) return;
   isScanning = true;
   scanProgressBanner.style.display = 'block';
   btnRescan.classList.add('scanning');
   logIndicatorDot.classList.add('active');
 
+  if (btnCancelScan) {
+    btnCancelScan.disabled = false;
+    btnCancelScan.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+      <span>Cancelar</span>
+    `;
+  }
+
+  const modeLabel = mode === 'full' ? 'completo' : 'incremental';
+  showToast(`Iniciando escaneo ${modeLabel}...`);
+
   try {
-    const result = await window.lecfalAPI.scanAll();
-    showToast(`Escaneo completado: ${result.totalScanned} mangas procesados`);
+    const result = await window.lecfalAPI.scanAll({ mode });
+    if (result.cancelled) {
+      showToast('Escaneo cancelado por el usuario');
+    } else if (result.newFiles > 0 || result.modifiedFiles > 0) {
+      showToast(`Escaneo finalizado: +${result.newFiles} nuevos, ${result.modifiedFiles} actualizados (${result.totalScanned} mangas)`);
+    } else {
+      showToast(`Biblioteca al día: ${result.skippedFiles || result.totalScanned} archivos verificados (0 cambios)`);
+    }
     await refreshSeries();
   } catch (err) {
     console.error('Scan all error:', err);

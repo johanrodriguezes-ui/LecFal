@@ -24,6 +24,7 @@
   "dependencies": {
     "adm-zip": "^0.6.1",
     "pdfjs-dist": "^6.3.289",
-    "sql.js": "^1.14.2"
+    "sql.js": "^1.14.2",
+    "yauzl": "^3.4.0"
   }
 }

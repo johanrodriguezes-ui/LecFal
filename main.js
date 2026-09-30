@@ -58,7 +58,8 @@ async function createWindow() {
     minWidth: 850,
     minHeight: 580,
     backgroundColor: '#0c0f17',
-    title: 'LecFal - Biblioteca de Mangas y Cómics',
+    title: 'LecFal - Tu biblioteca de mangas y comics',
+    icon: path.join(__dirname, 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'src', 'preload.js'),
       contextIsolation: true,
@@ -170,10 +171,13 @@ ipcMain.handle('library:remove-folder', async (event, folderId) => {
 });
 
 // Helper for scanning a folder and saving Series + Chapters with progressive UI updates
-async function scanFolderWithSeries(folder) {
-  logger.info('SCANNER', `Iniciando escaneo inteligente de carpeta "${folder.name}" (${folder.path})`);
+async function scanFolderWithSeries(folder, options = {}) {
+  const mode = options.mode || 'incremental';
+  logger.info('SCANNER', `Iniciando escaneo (${mode.toUpperCase()}) de carpeta "${folder.name}" (${folder.path})`);
 
-  let count = 0;
+  let changedSeriesCount = 0;
+  const registeredChapters = db.getRegisteredChaptersMap(folder.id);
+  const registeredSeries = db.getRegisteredSeriesMap(folder.id);
 
   const onProgress = (data) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -183,13 +187,20 @@ async function scanFolderWithSeries(folder) {
         file: `${data.seriesTitle} (${data.chapterCount} caps)`,
         current: data.current,
         total: data.total,
-        durationMs: data.durationMs
+        durationMs: data.durationMs,
+        hasChanges: data.hasChanges
       });
     }
   };
 
   const onSeries = (seriesData, current, total) => {
-    count++;
+    // In incremental mode, skip DB upserts if series and all its chapters are unchanged
+    if (!seriesData.hasChanges && seriesData.seriesId && mode !== 'full') {
+      return;
+    }
+
+    changedSeriesCount++;
+
     // Save series into DB
     const seriesId = db.upsertSeries({
       folder_id: folder.id,
@@ -201,22 +212,28 @@ async function scanFolderWithSeries(folder) {
       primary_format: seriesData.primary_format
     });
 
-    // Save its chapters
+    // Save its changed/new chapters
     for (const ch of seriesData.chapters) {
-      db.upsertChapter({
-        series_id: seriesId,
-        title: ch.title,
-        file_name: ch.file_name,
-        file_path: ch.file_path,
-        format: ch.format,
-        file_size: ch.file_size,
-        chapter_number: ch.chapter_number
-      });
+      if (mode === 'full' || ch.status !== 'unchanged') {
+        db.upsertChapter({
+          series_id: seriesId,
+          title: ch.title,
+          file_name: ch.file_name,
+          file_path: ch.file_path,
+          format: ch.format,
+          file_size: ch.file_size,
+          mtime_ms: ch.mtime_ms,
+          chapter_number: ch.chapter_number
+        });
+      }
     }
 
-    db.save();
+    // Batch save periodically to avoid disk thrashing
+    if (changedSeriesCount % 25 === 0) {
+      db.save();
+    }
 
-    // Stream live update to UI so the series card appears immediately
+    // Stream live update to UI so the series card appears/updates
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('library:series-batch', {
         seriesId,
@@ -227,35 +244,79 @@ async function scanFolderWithSeries(folder) {
     }
   };
 
-  const scannedResults = await scanner.scanDirectory(folder.path, { onProgress, onSeries });
+  const report = await scanner.scanDirectory(folder.path, {
+    mode,
+    registeredChapters,
+    registeredSeries,
+    onProgress,
+    onSeries
+  });
+
   db.updateFolderScanTime(folder.id);
   db.save();
 
-  logger.info('SCANNER', `Finalizado: ${scannedResults.length} series registradas en "${folder.name}".`);
-  return scannedResults.length;
+  logger.info('SCANNER', `Finalizado: ${report.totalSeries} series evaluadas en "${folder.name}" (${report.newFiles} nuevos, ${report.modifiedFiles} modificados, ${report.skippedFiles} omitidos).`);
+  return report;
 }
 
 // Scanning IPC
-ipcMain.handle('library:scan-folder', async (event, folderId) => {
+ipcMain.handle('library:scan-folder', async (event, folderId, options = {}) => {
   const folders = db.getFolders();
   const folder = folders.find(f => f.id === folderId);
   if (!folder) throw new Error('Carpeta no encontrada');
 
-  const count = await scanFolderWithSeries(folder);
-  return { count };
+  const report = await scanFolderWithSeries(folder, options);
+  return { count: report.totalSeries, ...report };
 });
 
-ipcMain.handle('library:scan-all', async () => {
+ipcMain.handle('library:scan-all', async (event, options = {}) => {
   const folders = db.getFolders();
   let totalScanned = 0;
+  let newFiles = 0;
+  let modifiedFiles = 0;
+  let skippedFiles = 0;
+  let failedFiles = 0;
+  let totalProcessed = 0;
+  let cancelled = false;
 
   logger.info('SCANNER', `Escaneando todas las carpetas (${folders.length} registradas)`);
   for (const folder of folders) {
-    const count = await scanFolderWithSeries(folder);
-    totalScanned += count;
+    if (scanner.isCancelled) {
+      cancelled = true;
+      break;
+    }
+    const report = await scanFolderWithSeries(folder, options);
+    totalScanned += report.totalSeries;
+    newFiles += report.newFiles;
+    modifiedFiles += report.modifiedFiles;
+    skippedFiles += report.skippedFiles;
+    failedFiles += report.failedFiles;
+    totalProcessed += report.totalProcessed;
+    if (report.cancelled) {
+      cancelled = true;
+      break;
+    }
   }
 
-  return { totalScanned, foldersCount: folders.length };
+  return {
+    count: totalScanned,
+    totalScanned,
+    foldersCount: folders.length,
+    newFiles,
+    modifiedFiles,
+    skippedFiles,
+    failedFiles,
+    totalProcessed,
+    cancelled
+  };
+});
+
+ipcMain.handle('library:cancel-scan', async () => {
+  if (scanner) {
+    scanner.cancel();
+    return true;
+  }
+  return false;
 });
 
 // ==================== SERIES & CHAPTERS IPC ====================

@@ -8,8 +8,9 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
   removeFolder: (folderId) => ipcRenderer.invoke('library:remove-folder', folderId),
   
   // Scanning
-  scanFolder: (folderId) => ipcRenderer.invoke('library:scan-folder', folderId),
-  scanAll: () => ipcRenderer.invoke('library:scan-all'),
+  scanFolder: (folderId, options) => ipcRenderer.invoke('library:scan-folder', folderId, options),
+  scanAll: (options) => ipcRenderer.invoke('library:scan-all', options),
+  cancelScan: () => ipcRenderer.invoke('library:cancel-scan'),
   onScanProgress: (callback) => {
     const subscription = (event, data) => callback(data);
     ipcRenderer.on('scan:progress', subscription);

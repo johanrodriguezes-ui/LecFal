@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' lecfal-cover: lecfal-file: blob: data: https://fonts.googleapis.com https://fonts.gstatic.com;">
-  <title>LecFal - Biblioteca de Mangas y Cómics</title>
+  <title>LecFal - Tu biblioteca de mangas y comics</title>
+  <link rel="icon" type="image/png" href="../../assets/icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -17,16 +18,11 @@
       <div class="nav-left">
         <div class="brand" id="brandHomeBtn" title="Ir a la biblioteca">
           <div class="brand-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
-              <path d="M6 6h10"/>
-              <path d="M6 10h10"/>
-              <path d="M6 14h6"/>
-            </svg>
+            <img src="../../assets/icon.png" alt="LecFal" class="brand-icon-img">
           </div>
           <div class="brand-text">
             <h1 class="brand-title">LecFal</h1>
-            <span class="brand-subtitle">Manga & Comic Vault</span>
+            <span class="brand-subtitle">Tu biblioteca de mangas y comics</span>
           </div>
         </div>
 
@@ -65,15 +61,38 @@
 
       <!-- Action Buttons -->
       <div class="nav-right">
-        <button class="btn btn-secondary" id="btnRescan" title="Escanear carpeta por defecto">
-          <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
-            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-            <path d="M16 21h5v-5"/>
-          </svg>
-          <span>Escanear</span>
-        </button>
+        <div class="scan-button-group">
+          <button class="btn btn-secondary" id="btnRescan" title="Escanear cambios (archivos nuevos o modificados)">
+            <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+            <span>Escanear</span>
+          </button>
+          <button class="btn btn-secondary btn-icon-only" id="btnScanMenu" title="Modos de escaneo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </button>
+          <div class="scan-dropdown" id="scanDropdownMenu" style="display: none;">
+            <button class="scan-dropdown-item" id="btnScanIncremental">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              <div>
+                <div class="scan-dropdown-item-title">Escanear cambios (Rápido)</div>
+                <div class="scan-dropdown-item-desc">Solo analiza archivos nuevos o modificados</div>
+              </div>
+            </button>
+            <button class="scan-dropdown-item" id="btnScanFull">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+              <div>
+                <div class="scan-dropdown-item-title">Re-escanear todo (Completo)</div>
+                <div class="scan-dropdown-item-desc">Fuerza el re-análisis de todos los archivos</div>
+              </div>
+            </button>
+          </div>
+        </div>
 
         <button class="btn btn-primary" id="btnAddFolder" title="Seleccionar y escanear una nueva carpeta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -104,6 +123,13 @@
           <div class="banner-progress-bar" id="scanProgressBar" style="width: 0%;"></div>
         </div>
         <span class="banner-count" id="scanBannerCount">0/0</span>
+        <button class="btn-banner-cancel" id="btnCancelScan" title="Cancelar escaneo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          <span>Cancelar</span>
+        </button>
       </div>
     </div>
 
@@ -196,13 +222,9 @@
 
         <!-- Empty State: No folders configured yet -->
         <div class="empty-state" id="emptyStateNoFolders" style="display: none;">
-          <div class="empty-illustration">
+          <div class="empty-illustration empty-logo-illustration">
             <div class="empty-glow"></div>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
-              <path d="m9 9 6 6"/>
-              <path d="m15 9-6 6"/>
-            </svg>
+            <img src="../../assets/icon.png" alt="LecFal" class="empty-state-logo">
           </div>
           <h2>Tu biblioteca está vacía</h2>
           <p>Selecciona la carpeta raíz donde organizas tus mangas (cada manga en su subcarpeta con sus capítulos <strong>.cbz</strong> o <strong>.pdf</strong>).<br>Quedará guardada por defecto.</p>

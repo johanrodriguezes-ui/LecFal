@@ -71,6 +71,7 @@ class DatabaseManager {
         file_path TEXT UNIQUE,
         format TEXT,
         file_size INTEGER,
+        mtime_ms INTEGER DEFAULT 0,
         chapter_number REAL DEFAULT 0,
         page_count INTEGER DEFAULT 0,
         is_read INTEGER DEFAULT 0,
@@ -83,7 +84,15 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_series_folder ON series(folder_id);
       CREATE INDEX IF NOT EXISTS idx_chapters_series ON chapters(series_id);
       CREATE INDEX IF NOT EXISTS idx_chapters_number ON chapters(chapter_number);
+      CREATE INDEX IF NOT EXISTS idx_chapters_path ON chapters(file_path);
     `);
+
+    // Backward-compatible schema migration
+    try {
+      this.db.run('ALTER TABLE chapters ADD COLUMN mtime_ms INTEGER DEFAULT 0');
+    } catch (e) {
+      // column already exists
+    }
   }
 
   save() {
@@ -251,25 +260,63 @@ class DatabaseManager {
   upsertChapter(chapterData) {
     const stmt = this.db.prepare(`
       INSERT INTO chapters (
-        series_id, title, file_name, file_path, format, file_size, chapter_number, page_count
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        series_id, title, file_name, file_path, format, file_size, mtime_ms, chapter_number, page_count
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(file_path) DO UPDATE SET
         title = excluded.title,
         file_size = excluded.file_size,
+        mtime_ms = excluded.mtime_ms,
         chapter_number = excluded.chapter_number,
         page_count = CASE WHEN excluded.page_count > 0 THEN excluded.page_count ELSE chapters.page_count END
     `);
     stmt.run([
       chapterData.series_id,
-      chapterData.title,
-      chapterData.file_name,
+      chapterData.title || '',
+      chapterData.file_name || '',
       chapterData.file_path,
-      chapterData.format,
-      chapterData.file_size,
+      chapterData.format || 'cbz',
+      chapterData.file_size || 0,
+      Math.round(chapterData.mtime_ms || 0),
       chapterData.chapter_number || 0,
       chapterData.page_count || 0
     ]);
     stmt.free();
+  }
+
+  getRegisteredChaptersMap(folderId = null) {
+    let sql = 'SELECT id, series_id, file_path, file_size, mtime_ms FROM chapters';
+    const params = [];
+    if (folderId) {
+      sql += ' WHERE series_id IN (SELECT id FROM series WHERE folder_id = ?)';
+      params.push(folderId);
+    }
+    const stmt = this.db.prepare(sql);
+    if (params.length > 0) stmt.bind(params);
+    const map = new Map();
+    while (stmt.step()) {
+      const row = stmt.getAsObject();
+      map.set(row.file_path, row);
+    }
+    stmt.free();
+    return map;
+  }
+
+  getRegisteredSeriesMap(folderId = null) {
+    let sql = 'SELECT id, folder_id, path, title, cover_path, chapter_count, primary_format FROM series';
+    const params = [];
+    if (folderId) {
+      sql += ' WHERE folder_id = ?';
+      params.push(folderId);
+    }
+    const stmt = this.db.prepare(sql);
+    if (params.length > 0) stmt.bind(params);
+    const map = new Map();
+    while (stmt.step()) {
+      const row = stmt.getAsObject();
+      map.set(row.path, row);
+    }
+    stmt.free();
+    return map;
   }
 
   getSeriesList({ searchQuery = '', format = 'all', folderId = null, sortBy = 'title_asc', favoriteOnly = false, tag = '' } = {}) {
