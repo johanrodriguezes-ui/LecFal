@@ -15,16 +15,22 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
     ipcRenderer.on('scan:progress', subscription);
     return () => ipcRenderer.removeListener('scan:progress', subscription);
   },
-  onItemsBatch: (callback) => {
+  onSeriesBatch: (callback) => {
     const subscription = (event, data) => callback(data);
-    ipcRenderer.on('library:items-batch', subscription);
-    return () => ipcRenderer.removeListener('library:items-batch', subscription);
+    ipcRenderer.on('library:series-batch', subscription);
+    return () => ipcRenderer.removeListener('library:series-batch', subscription);
   },
 
-  // Library Items
-  getItems: (filters) => ipcRenderer.invoke('library:get-items', filters),
-  toggleFavorite: (itemId) => ipcRenderer.invoke('library:toggle-favorite', itemId),
-  savePdfCover: (data) => ipcRenderer.invoke('library:save-pdf-cover', data),
+  // Series & Manga Management
+  getSeries: (filters) => ipcRenderer.invoke('library:get-series', filters),
+  getSeriesDetail: (params) => ipcRenderer.invoke('library:get-series-detail', params),
+  updateSeriesMetadata: (data) => ipcRenderer.invoke('library:update-series-metadata', data),
+  toggleSeriesFavorite: (seriesId) => ipcRenderer.invoke('library:toggle-series-fav', seriesId),
+  saveSeriesCover: (data) => ipcRenderer.invoke('library:save-series-cover', data),
+
+  // Chapter interactions
+  toggleChapterRead: (chapterId) => ipcRenderer.invoke('library:toggle-chapter-read', chapterId),
+  markAllChaptersRead: (data) => ipcRenderer.invoke('library:mark-all-read', data),
 
   // File interactions
   openFile: (filePath) => ipcRenderer.invoke('library:open-file', filePath),

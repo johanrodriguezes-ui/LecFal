@@ -44,27 +44,45 @@ class DatabaseManager {
         last_scanned DATETIME
       );
 
-      CREATE TABLE IF NOT EXISTS items (
+      -- Series / Manga model (represents a manga subfolder or standalone title)
+      CREATE TABLE IF NOT EXISTS series (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         folder_id INTEGER,
         title TEXT,
-        file_name TEXT,
-        file_path TEXT UNIQUE,
-        format TEXT,
-        file_size INTEGER,
-        page_count INTEGER DEFAULT 0,
+        path TEXT UNIQUE,
         cover_path TEXT,
+        author TEXT DEFAULT 'Desconocido',
+        description TEXT DEFAULT 'Sin descripción',
+        tags TEXT DEFAULT '',
         favorite INTEGER DEFAULT 0,
-        progress INTEGER DEFAULT 0,
-        last_read DATETIME,
+        chapter_count INTEGER DEFAULT 0,
+        primary_format TEXT DEFAULT 'cbz',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (folder_id) REFERENCES library_folders(id) ON DELETE CASCADE
       );
 
-      CREATE INDEX IF NOT EXISTS idx_items_format ON items(format);
-      CREATE INDEX IF NOT EXISTS idx_items_title ON items(title);
-      CREATE INDEX IF NOT EXISTS idx_items_folder ON items(folder_id);
+      -- Chapters model (individual chapter files inside the series)
+      CREATE TABLE IF NOT EXISTS chapters (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        series_id INTEGER,
+        title TEXT,
+        file_name TEXT,
+        file_path TEXT UNIQUE,
+        format TEXT,
+        file_size INTEGER,
+        chapter_number REAL DEFAULT 0,
+        page_count INTEGER DEFAULT 0,
+        is_read INTEGER DEFAULT 0,
+        last_read_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (series_id) REFERENCES series(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_series_title ON series(title);
+      CREATE INDEX IF NOT EXISTS idx_series_folder ON series(folder_id);
+      CREATE INDEX IF NOT EXISTS idx_chapters_series ON chapters(series_id);
+      CREATE INDEX IF NOT EXISTS idx_chapters_number ON chapters(chapter_number);
     `);
   }
 
@@ -79,7 +97,7 @@ class DatabaseManager {
     }
   }
 
-  // Settings helpers
+  // ==================== SETTINGS ====================
   getSetting(key, defaultValue = null) {
     const stmt = this.db.prepare('SELECT value FROM settings WHERE key = ?');
     stmt.bind([key]);
@@ -102,7 +120,7 @@ class DatabaseManager {
     this.save();
   }
 
-  // Folders helpers
+  // ==================== LIBRARY FOLDERS ====================
   getFolders() {
     const res = [];
     const stmt = this.db.prepare('SELECT * FROM library_folders ORDER BY added_at ASC');
@@ -136,7 +154,9 @@ class DatabaseManager {
   }
 
   removeFolder(folderId) {
-    this.db.run('DELETE FROM items WHERE folder_id = ?', [folderId]);
+    // Delete chapters belonging to series of this folder
+    this.db.run('DELETE FROM chapters WHERE series_id IN (SELECT id FROM series WHERE folder_id = ?)', [folderId]);
+    this.db.run('DELETE FROM series WHERE folder_id = ?', [folderId]);
     this.db.run('DELETE FROM library_folders WHERE id = ?', [folderId]);
     this.save();
   }
@@ -146,43 +166,119 @@ class DatabaseManager {
     this.save();
   }
 
-  // Items helpers
-  upsertItem(item) {
+  // ==================== SERIES / MANGAS ====================
+  upsertSeries(seriesData) {
+    // Check if series already exists
+    const checkStmt = this.db.prepare('SELECT id, cover_path, author, description, tags FROM series WHERE path = ?');
+    checkStmt.bind([seriesData.path]);
+
+    let seriesId = null;
+    let existing = null;
+    if (checkStmt.step()) {
+      existing = checkStmt.getAsObject();
+      seriesId = existing.id;
+    }
+    checkStmt.free();
+
+    if (existing) {
+      // Update without overwriting user custom author/description/tags if they were edited
+      const coverToUse = existing.cover_path || seriesData.cover_path;
+      const authorToUse = (existing.author && existing.author !== 'Desconocido') ? existing.author : (seriesData.author || existing.author || 'Desconocido');
+      const descToUse = (existing.description && existing.description !== 'Sin descripción') ? existing.description : (seriesData.description || existing.description || 'Sin descripción');
+      const tagsToUse = existing.tags || seriesData.tags || '';
+
+      const updateStmt = this.db.prepare(`
+        UPDATE series SET
+          folder_id = ?,
+          title = ?,
+          cover_path = ?,
+          author = ?,
+          description = ?,
+          tags = ?,
+          chapter_count = ?,
+          primary_format = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `);
+      updateStmt.run([
+        seriesData.folder_id,
+        seriesData.title,
+        coverToUse,
+        authorToUse,
+        descToUse,
+        tagsToUse,
+        seriesData.chapter_count || 0,
+        seriesData.primary_format || 'cbz',
+        seriesId
+      ]);
+      updateStmt.free();
+    } else {
+      const insertStmt = this.db.prepare(`
+        INSERT INTO series (
+          folder_id, title, path, cover_path, author, description, tags, chapter_count, primary_format, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `);
+      insertStmt.run([
+        seriesData.folder_id,
+        seriesData.title,
+        seriesData.path,
+        seriesData.cover_path || null,
+        seriesData.author || 'Desconocido',
+        seriesData.description || 'Sin descripción',
+        seriesData.tags || '',
+        seriesData.chapter_count || 0,
+        seriesData.primary_format || 'cbz'
+      ]);
+      insertStmt.free();
+
+      // Retrieve new ID
+      const getIdStmt = this.db.prepare('SELECT id FROM series WHERE path = ?');
+      getIdStmt.bind([seriesData.path]);
+      if (getIdStmt.step()) {
+        seriesId = getIdStmt.getAsObject().id;
+      }
+      getIdStmt.free();
+    }
+
+    return seriesId;
+  }
+
+  upsertChapter(chapterData) {
     const stmt = this.db.prepare(`
-      INSERT INTO items (
-        folder_id, title, file_name, file_path, format, file_size, page_count, cover_path, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      INSERT INTO chapters (
+        series_id, title, file_name, file_path, format, file_size, chapter_number, page_count
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(file_path) DO UPDATE SET
         title = excluded.title,
         file_size = excluded.file_size,
-        cover_path = COALESCE(excluded.cover_path, items.cover_path),
-        page_count = CASE WHEN excluded.page_count > 0 THEN excluded.page_count ELSE items.page_count END,
-        updated_at = CURRENT_TIMESTAMP
+        chapter_number = excluded.chapter_number,
+        page_count = CASE WHEN excluded.page_count > 0 THEN excluded.page_count ELSE chapters.page_count END
     `);
     stmt.run([
-      item.folder_id,
-      item.title,
-      item.file_name,
-      item.file_path,
-      item.format,
-      item.file_size,
-      item.page_count || 0,
-      item.cover_path || null
+      chapterData.series_id,
+      chapterData.title,
+      chapterData.file_name,
+      chapterData.file_path,
+      chapterData.format,
+      chapterData.file_size,
+      chapterData.chapter_number || 0,
+      chapterData.page_count || 0
     ]);
     stmt.free();
   }
 
-  getItems({ searchQuery = '', format = 'all', folderId = null, sortBy = 'title_asc', favoriteOnly = false } = {}) {
-    let sql = 'SELECT * FROM items WHERE 1=1';
+  getSeriesList({ searchQuery = '', format = 'all', folderId = null, sortBy = 'title_asc', favoriteOnly = false, tag = '' } = {}) {
+    let sql = 'SELECT * FROM series WHERE 1=1';
     const params = [];
 
     if (searchQuery && searchQuery.trim() !== '') {
-      sql += ' AND (title LIKE ? OR file_name LIKE ?)';
-      params.push(`%${searchQuery.trim()}%`, `%${searchQuery.trim()}%`);
+      sql += ' AND (title LIKE ? OR author LIKE ? OR tags LIKE ?)';
+      const query = `%${searchQuery.trim()}%`;
+      params.push(query, query, query);
     }
 
     if (format && format !== 'all') {
-      sql += ' AND format = ?';
+      sql += ' AND primary_format = ?';
       params.push(format.toLowerCase());
     }
 
@@ -195,6 +291,11 @@ class DatabaseManager {
       sql += ' AND favorite = 1';
     }
 
+    if (tag && tag.trim() !== '') {
+      sql += ' AND tags LIKE ?';
+      params.push(`%${tag.trim()}%`);
+    }
+
     switch (sortBy) {
       case 'title_desc':
         sql += ' ORDER BY title COLLATE NOCASE DESC';
@@ -205,8 +306,8 @@ class DatabaseManager {
       case 'oldest_added':
         sql += ' ORDER BY created_at ASC';
         break;
-      case 'file_size_desc':
-        sql += ' ORDER BY file_size DESC';
+      case 'chapters_desc':
+        sql += ' ORDER BY chapter_count DESC';
         break;
       case 'title_asc':
       default:
@@ -224,11 +325,54 @@ class DatabaseManager {
     return results;
   }
 
-  toggleFavorite(itemId) {
-    this.db.run('UPDATE items SET favorite = CASE WHEN favorite = 1 THEN 0 ELSE 1 END WHERE id = ?', [itemId]);
+  getSeriesById(seriesId) {
+    const stmt = this.db.prepare('SELECT * FROM series WHERE id = ?');
+    stmt.bind([seriesId]);
+    let result = null;
+    if (stmt.step()) {
+      result = stmt.getAsObject();
+    }
+    stmt.free();
+    return result;
+  }
+
+  updateSeriesMetadata(seriesId, { title, author, description, tags }) {
+    const updates = [];
+    const params = [];
+
+    if (title !== undefined) {
+      updates.push('title = ?');
+      params.push(title);
+    }
+    if (author !== undefined) {
+      updates.push('author = ?');
+      params.push(author);
+    }
+    if (description !== undefined) {
+      updates.push('description = ?');
+      params.push(description);
+    }
+    if (tags !== undefined) {
+      updates.push('tags = ?');
+      params.push(tags);
+    }
+
+    if (updates.length === 0) return false;
+
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    params.push(seriesId);
+
+    const sql = `UPDATE series SET ${updates.join(', ')} WHERE id = ?`;
+    this.db.run(sql, params);
     this.save();
-    const stmt = this.db.prepare('SELECT favorite FROM items WHERE id = ?');
-    stmt.bind([itemId]);
+    return true;
+  }
+
+  toggleSeriesFavorite(seriesId) {
+    this.db.run('UPDATE series SET favorite = CASE WHEN favorite = 1 THEN 0 ELSE 1 END WHERE id = ?', [seriesId]);
+    this.save();
+    const stmt = this.db.prepare('SELECT favorite FROM series WHERE id = ?');
+    stmt.bind([seriesId]);
     let fav = 0;
     if (stmt.step()) {
       fav = stmt.getAsObject().favorite;
@@ -237,17 +381,40 @@ class DatabaseManager {
     return fav;
   }
 
-  deleteMissingItems(existingPaths) {
-    if (!existingPaths || existingPaths.length === 0) return;
-    // Remove items whose files no longer exist on disk
-    const allItems = this.getItems();
-    const toDelete = allItems.filter(item => !existingPaths.includes(item.file_path));
-    for (const item of toDelete) {
-      this.db.run('DELETE FROM items WHERE id = ?', [item.id]);
+  // ==================== CHAPTERS ====================
+  getChapters(seriesId, { sortOrder = 'asc' } = {}) {
+    const orderSql = sortOrder === 'desc' ? 'ORDER BY chapter_number DESC, title DESC' : 'ORDER BY chapter_number ASC, title ASC';
+    const stmt = this.db.prepare(`SELECT * FROM chapters WHERE series_id = ? ${orderSql}`);
+    stmt.bind([seriesId]);
+    const results = [];
+    while (stmt.step()) {
+      results.push(stmt.getAsObject());
     }
-    if (toDelete.length > 0) {
-      this.save();
+    stmt.free();
+    return results;
+  }
+
+  toggleChapterRead(chapterId) {
+    this.db.run(
+      'UPDATE chapters SET is_read = CASE WHEN is_read = 1 THEN 0 ELSE 1 END, last_read_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [chapterId]
+    );
+    this.save();
+    const stmt = this.db.prepare('SELECT is_read FROM chapters WHERE id = ?');
+    stmt.bind([chapterId]);
+    let isRead = 0;
+    if (stmt.step()) {
+      isRead = stmt.getAsObject().is_read;
     }
+    stmt.free();
+    return isRead;
+  }
+
+  markAllChaptersRead(seriesId, isRead = true) {
+    const val = isRead ? 1 : 0;
+    this.db.run('UPDATE chapters SET is_read = ?, last_read_at = CURRENT_TIMESTAMP WHERE series_id = ?', [val, seriesId]);
+    this.save();
+    return true;
   }
 }
 

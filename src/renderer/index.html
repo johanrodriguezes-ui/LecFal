@@ -15,7 +15,7 @@
     <!-- Top Navigation Bar -->
     <header class="top-nav">
       <div class="nav-left">
-        <div class="brand">
+        <div class="brand" id="brandHomeBtn" title="Ir a la biblioteca">
           <div class="brand-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
@@ -45,14 +45,14 @@
         </div>
       </div>
 
-      <!-- Search Field -->
-      <div class="nav-center">
+      <!-- Search Field (Visible in Library View) -->
+      <div class="nav-center" id="navSearchContainer">
         <div class="search-bar">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/>
             <path d="m21 21-4.3-4.3"/>
           </svg>
-          <input type="text" id="searchInput" placeholder="Buscar por título o archivo..." autocomplete="off">
+          <input type="text" id="searchInput" placeholder="Buscar por título, autor o tags..." autocomplete="off">
           <button class="clear-search-btn" id="clearSearchBtn" title="Limpiar búsqueda" style="display: none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 6 6 18"/>
@@ -85,88 +85,7 @@
       </div>
     </header>
 
-    <!-- Secondary Controls Bar: Filters, Sorting & Grid Sizing -->
-    <section class="toolbar-bar">
-      <!-- Filter Chips -->
-      <div class="filter-group">
-        <button class="filter-chip active" data-filter="all">Todos <span class="counter-badge" id="countAll">0</span></button>
-        <button class="filter-chip" data-filter="cbz">
-          <span class="badge-dot dot-cbz"></span>
-          CBZ <span class="counter-badge" id="countCbz">0</span>
-        </button>
-        <button class="filter-chip" data-filter="pdf">
-          <span class="badge-dot dot-pdf"></span>
-          PDF <span class="counter-badge" id="countPdf">0</span>
-        </button>
-        <button class="filter-chip" data-filter="favorite">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" class="chip-heart-icon">
-            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-          </svg>
-          Favoritos <span class="counter-badge" id="countFav">0</span>
-        </button>
-      </div>
-
-      <!-- Right Controls: Sort and Size -->
-      <div class="toolbar-controls-right">
-        <!-- Sort Dropdown -->
-        <div class="sort-wrapper">
-          <label for="sortSelect" class="control-label">Ordenar:</label>
-          <div class="select-container">
-            <select id="sortSelect">
-              <option value="title_asc">Título (A - Z)</option>
-              <option value="title_desc">Título (Z - A)</option>
-              <option value="recent_added">Más recientes</option>
-              <option value="oldest_added">Más antiguos</option>
-              <option value="file_size_desc">Mayor tamaño</option>
-            </select>
-            <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m6 9 6 6 6-6"/>
-            </svg>
-          </div>
-        </div>
-
-        <div class="toolbar-separator"></div>
-
-        <!-- Grid Size Switcher (Small, Medium, Large + Slider) -->
-        <div class="size-control-wrapper">
-          <span class="control-label">Tamaño:</span>
-          
-          <div class="size-btn-group" id="sizeButtonGroup">
-            <button class="size-btn" data-size="small" title="Tamaño pequeño">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="7" height="7"/>
-                <rect x="14" y="3" width="7" height="7"/>
-                <rect x="14" y="14" width="7" height="7"/>
-                <rect x="3" y="14" width="7" height="7"/>
-              </svg>
-              <span>S</span>
-            </button>
-            <button class="size-btn active" data-size="medium" title="Tamaño mediano">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="8" height="8"/>
-                <rect x="13" y="3" width="8" height="8"/>
-                <rect x="3" y="13" width="8" height="8"/>
-                <rect x="13" y="13" width="8" height="8"/>
-              </svg>
-              <span>M</span>
-            </button>
-            <button class="size-btn" data-size="large" title="Tamaño grande">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-              </svg>
-              <span>L</span>
-            </button>
-          </div>
-
-          <!-- Fine-tuning Slider -->
-          <div class="slider-wrapper" title="Ajuste fino de tamaño">
-            <input type="range" id="sizeSlider" min="120" max="320" value="180" step="5">
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Scan Progress Banner (hidden by default) -->
+    <!-- Scan Progress Banner -->
     <div class="scan-progress-banner" id="scanProgressBanner" style="display: none;">
       <div class="banner-inner">
         <div class="banner-icon-spin">
@@ -188,49 +107,277 @@
       </div>
     </div>
 
-    <!-- Main Content Area: Grid View or Empty States -->
-    <main class="main-content" id="mainContent">
-      <!-- Grid Container -->
-      <div class="comics-grid" id="comicsGrid">
-        <!-- Manga cards injected here dynamically -->
-      </div>
-
-      <!-- Empty State: No folders configured yet -->
-      <div class="empty-state" id="emptyStateNoFolders" style="display: none;">
-        <div class="empty-illustration">
-          <div class="empty-glow"></div>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
-            <path d="m9 9 6 6"/>
-            <path d="m15 9-6 6"/>
-          </svg>
+    <!-- ==================== VIEW 1: LIBRARY GRID VIEW ==================== -->
+    <div class="view-container" id="libraryView">
+      <!-- Toolbar Bar: Filters, Sorting & Grid Sizing -->
+      <section class="toolbar-bar">
+        <div class="filter-group">
+          <button class="filter-chip active" data-filter="all">Todos <span class="counter-badge" id="countAll">0</span></button>
+          <button class="filter-chip" data-filter="cbz">
+            <span class="badge-dot dot-cbz"></span>
+            CBZ <span class="counter-badge" id="countCbz">0</span>
+          </button>
+          <button class="filter-chip" data-filter="pdf">
+            <span class="badge-dot dot-pdf"></span>
+            PDF <span class="counter-badge" id="countPdf">0</span>
+          </button>
+          <button class="filter-chip" data-filter="favorite">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" class="chip-heart-icon">
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+            </svg>
+            Favoritos <span class="counter-badge" id="countFav">0</span>
+          </button>
         </div>
-        <h2>Tu biblioteca está vacía</h2>
-        <p>Selecciona la carpeta donde tienes guardados tus mangas y cómics en formato <strong>.cbz</strong> o <strong>.pdf</strong>.<br>Una vez seleccionada, quedará guardada por defecto.</p>
-        <button class="btn btn-primary btn-large" id="btnSelectInitialFolder">
+
+        <div class="toolbar-controls-right">
+          <!-- Sort Dropdown -->
+          <div class="sort-wrapper">
+            <label for="sortSelect" class="control-label">Ordenar:</label>
+            <div class="select-container">
+              <select id="sortSelect">
+                <option value="title_asc">Título (A - Z)</option>
+                <option value="title_desc">Título (Z - A)</option>
+                <option value="recent_added">Más recientes</option>
+                <option value="chapters_desc">Más capítulos</option>
+                <option value="oldest_added">Más antiguos</option>
+              </select>
+              <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="toolbar-separator"></div>
+
+          <!-- Grid Size Switcher (Small, Medium, Large + Slider) -->
+          <div class="size-control-wrapper">
+            <span class="control-label">Tamaño:</span>
+            
+            <div class="size-btn-group" id="sizeButtonGroup">
+              <button class="size-btn" data-size="small" title="Tamaño pequeño">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7"/>
+                  <rect x="14" y="3" width="7" height="7"/>
+                  <rect x="14" y="14" width="7" height="7"/>
+                  <rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                <span>S</span>
+              </button>
+              <button class="size-btn active" data-size="medium" title="Tamaño mediano">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="8" height="8"/>
+                  <rect x="13" y="3" width="8" height="8"/>
+                  <rect x="3" y="13" width="8" height="8"/>
+                  <rect x="13" y="13" width="8" height="8"/>
+                </svg>
+                <span>M</span>
+              </button>
+              <button class="size-btn" data-size="large" title="Tamaño grande">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                </svg>
+                <span>L</span>
+              </button>
+            </div>
+
+            <!-- Fine-tuning Slider -->
+            <div class="slider-wrapper" title="Ajuste fino de tamaño">
+              <input type="range" id="sizeSlider" min="130" max="320" value="185" step="5">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Content Area: Grid View or Empty States -->
+      <main class="main-content" id="mainContent">
+        <div class="comics-grid" id="comicsGrid">
+          <!-- Manga series cards injected here -->
+        </div>
+
+        <!-- Empty State: No folders configured yet -->
+        <div class="empty-state" id="emptyStateNoFolders" style="display: none;">
+          <div class="empty-illustration">
+            <div class="empty-glow"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+              <path d="m9 9 6 6"/>
+              <path d="m15 9-6 6"/>
+            </svg>
+          </div>
+          <h2>Tu biblioteca está vacía</h2>
+          <p>Selecciona la carpeta raíz donde organizas tus mangas (cada manga en su subcarpeta con sus capítulos <strong>.cbz</strong> o <strong>.pdf</strong>).<br>Quedará guardada por defecto.</p>
+          <button class="btn btn-primary btn-large" id="btnSelectInitialFolder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              <path d="M12 11v6"/>
+              <path d="M9 14h6"/>
+            </svg>
+            <span>Seleccionar Carpeta por Defecto</span>
+          </button>
+        </div>
+
+        <!-- Empty State: No results match search/filter -->
+        <div class="empty-state" id="emptyStateNoResults" style="display: none;">
+          <div class="empty-illustration">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.3-4.3"/>
+              <path d="M8 11h6"/>
+            </svg>
+          </div>
+          <h2>Sin resultados coincidentes</h2>
+          <p>No se encontraron mangas que coincidan con la búsqueda o filtro seleccionado.</p>
+          <button class="btn btn-secondary" id="btnResetFilters">Limpiar filtros</button>
+        </div>
+      </main>
+    </div>
+
+    <!-- ==================== VIEW 2: TACHIYOMI-STYLE MANGA DETAIL VIEW ==================== -->
+    <div class="view-container manga-detail-view" id="mangaView" style="display: none;">
+      <!-- Manga Detail Navigation Sub-bar -->
+      <div class="manga-nav-bar">
+        <button class="btn btn-secondary btn-back" id="btnBackToLibrary">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            <path d="M12 11v6"/>
-            <path d="M9 14h6"/>
+            <path d="m15 18-6-6 6-6"/>
           </svg>
-          <span>Seleccionar Carpeta por Defecto</span>
+          <span>Biblioteca</span>
         </button>
+        
+        <div class="manga-nav-actions">
+          <button class="btn btn-secondary" id="btnOpenMangaFolder" title="Abrir carpeta de este manga en el explorador de archivos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>Carpeta</span>
+          </button>
+          <button class="btn btn-secondary" id="btnToggleMarkAllRead" title="Marcar todos los capítulos como leídos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span id="btnMarkAllText">Marcar todo leído</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Empty State: No results match search/filter -->
-      <div class="empty-state" id="emptyStateNoResults" style="display: none;">
-        <div class="empty-illustration">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="m21 21-4.3-4.3"/>
-            <path d="M8 11h6"/>
-          </svg>
-        </div>
-        <h2>Sin resultados coincidentes</h2>
-        <p>No se encontraron mangas o cómics que coincidan con la búsqueda o filtro seleccionado.</p>
-        <button class="btn btn-secondary" id="btnResetFilters">Limpiar filtros</button>
+      <div class="manga-view-scrollable">
+        <!-- Hero Header -->
+        <section class="manga-hero-banner">
+          <div class="manga-hero-cover-container">
+            <img id="mangaHeroCoverImg" src="" alt="Portada" class="manga-hero-cover">
+            <span class="manga-hero-format-badge" id="mangaHeroFormatBadge">CBZ</span>
+          </div>
+
+          <div class="manga-hero-details">
+            <div class="manga-hero-title-row">
+              <h2 class="manga-hero-title" id="mangaHeroTitle">Nombre del Manga</h2>
+              <button class="btn-fav-large" id="btnMangaFav" title="Marcar como favorito">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Author & Metadata Row -->
+            <div class="manga-meta-edit-row">
+              <span class="meta-label">Autor:</span>
+              <span class="manga-author-text" id="mangaHeroAuthor">Desconocido</span>
+              <button class="btn-text-edit" id="btnEditAuthor" title="Editar autor">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
+                <span>Editar</span>
+              </button>
+            </div>
+
+            <!-- Tags Section -->
+            <div class="manga-tags-section">
+              <span class="meta-label">Tags / Géneros:</span>
+              <div class="manga-tags-list" id="mangaTagsList">
+                <!-- Tag chips injected dynamically -->
+              </div>
+              <button class="btn-add-tag" id="btnAddTag" title="Añadir nuevo tag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14"/>
+                  <path d="M5 12h14"/>
+                </svg>
+                <span>Añadir tag</span>
+              </button>
+            </div>
+
+            <!-- Description Section -->
+            <div class="manga-desc-section">
+              <div class="desc-header">
+                <span class="meta-label">Sinopsis / Descripción:</span>
+                <button class="btn-text-edit" id="btnEditDesc" title="Editar sinopsis">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                  </svg>
+                  <span>Editar descripción</span>
+                </button>
+              </div>
+              <p class="manga-desc-text" id="mangaHeroDesc">Sin descripción</p>
+              
+              <!-- Inline Desc Editor (Hidden by default) -->
+              <div class="desc-editor-container" id="descEditorContainer" style="display: none;">
+                <textarea id="descEditTextArea" placeholder="Escribe aquí la sinopsis o descripción del manga..."></textarea>
+                <div class="desc-editor-actions">
+                  <button class="btn btn-secondary btn-small" id="btnCancelEditDesc">Cancelar</button>
+                  <button class="btn btn-primary btn-small" id="btnSaveEditDesc">Guardar descripción</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Action Bar -->
+            <div class="manga-hero-actions">
+              <button class="btn btn-primary btn-large" id="btnStartReading">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                <span id="btnStartReadingText">Empezar a leer (Cap 1)</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Chapters List Section -->
+        <section class="chapters-section">
+          <div class="chapters-header">
+            <div class="chapters-title-group">
+              <h3 class="chapters-title">Capítulos</h3>
+              <span class="chapters-count-pill" id="chaptersCountBadge">0 capítulos</span>
+              <span class="chapters-read-pill" id="chaptersReadBadge">0 leídos</span>
+            </div>
+
+            <div class="chapters-controls">
+              <!-- Filter within chapters -->
+              <div class="chapter-search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.3-4.3"/>
+                </svg>
+                <input type="text" id="chapterFilterInput" placeholder="Filtrar capítulo...">
+              </div>
+
+              <!-- Sort Order Toggle -->
+              <button class="btn-sort-toggle" id="btnToggleChapterSort" title="Cambiar orden ascendente/descendente">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="sortDirectionIcon">
+                  <path d="m3 8 4-4 4 4"/>
+                  <path d="M7 4v16"/>
+                  <path d="m21 16-4 4-4-4"/>
+                  <path d="M17 20V4"/>
+                </svg>
+                <span id="chapterSortLabel">1 → 99</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Chapters List Container -->
+          <div class="chapters-list" id="chaptersList">
+            <!-- Chapter rows injected dynamically -->
+          </div>
+        </section>
       </div>
-    </main>
+    </div>
 
     <!-- Footer Status Bar -->
     <footer class="status-bar">
@@ -313,7 +460,7 @@
 
       <div class="modal-body">
         <p class="modal-description">
-          Gestiona las carpetas escaneadas. Los mangas y cómics encontrados permanecerán en tu biblioteca de forma permanente.
+          Gestiona las carpetas escaneadas. Los mangas y capítulos encontrados permanecerán en tu biblioteca de forma permanente.
         </p>
 
         <div class="folders-list" id="foldersList">
@@ -335,71 +482,25 @@
     </div>
   </div>
 
-  <!-- Item Detail Modal -->
-  <div class="modal-backdrop" id="modalDetail" style="display: none;">
-    <div class="modal-card modal-detail-card">
-      <button class="modal-close-btn detail-close" id="btnCloseModalDetail">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6 6 18"/>
-          <path d="m6 6 12 12"/>
-        </svg>
-      </button>
-
-      <div class="detail-container">
-        <div class="detail-cover-container">
-          <img id="detailCoverImg" src="" alt="Portada" class="detail-cover">
-          <div class="format-badge-large" id="detailFormatBadge">CBZ</div>
-        </div>
-
-        <div class="detail-info">
-          <div class="detail-header-row">
-            <h2 class="detail-title" id="detailTitle">Título del Manga</h2>
-            <button class="btn-fav-large" id="btnDetailFav" title="Marcar como favorito">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-              </svg>
-            </button>
-          </div>
-
-          <div class="detail-meta-grid">
-            <div class="meta-item">
-              <span class="meta-label">Formato:</span>
-              <span class="meta-value uppercase" id="detailFormat">CBZ</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Tamaño:</span>
-              <span class="meta-value" id="detailSize">0 MB</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Páginas:</span>
-              <span class="meta-value" id="detailPages">-</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Añadido:</span>
-              <span class="meta-value" id="detailDate">-</span>
-            </div>
-          </div>
-
-          <div class="detail-path-box">
-            <span class="meta-label">Ubicación del archivo:</span>
-            <div class="path-text" id="detailPath">/ruta/al/archivo</div>
-          </div>
-
-          <div class="detail-actions">
-            <button class="btn btn-primary btn-large" id="btnDetailOpen">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="5 3 19 12 5 21 5 3"/>
-              </svg>
-              <span>Abrir archivo</span>
-            </button>
-            <button class="btn btn-secondary" id="btnDetailShowFolder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-              </svg>
-              <span>Mostrar en carpeta</span>
-            </button>
-          </div>
-        </div>
+  <!-- Edit Metadata Modal (Author / Title) -->
+  <div class="modal-backdrop" id="modalEditField" style="display: none;">
+    <div class="modal-card modal-small-card">
+      <div class="modal-header">
+        <h3 id="editFieldModalTitle">Editar información</h3>
+        <button class="modal-close-btn" id="btnCloseEditFieldModal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label id="editFieldLabel" class="control-label">Valor:</label>
+        <input type="text" id="editFieldInput" class="standard-input" autocomplete="off">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelEditField">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveEditField">Guardar</button>
       </div>
     </div>
   </div>
@@ -412,7 +513,7 @@
     <span class="toast-message" id="toastMessage">Operación realizada con éxito</span>
   </div>
 
-  <!-- PDF.js module for on-demand cover extraction and page rendering -->
+  <!-- PDF.js module -->
   <script type="module" src="renderer.js"></script>
 </body>
 </html>

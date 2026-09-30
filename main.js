@@ -45,7 +45,7 @@ async function createWindow() {
 
   db = new DatabaseManager(dbPath);
   await db.init();
-  logger.info('DATABASE', 'Base de datos SQLite inicializada correctamente');
+  logger.info('DATABASE', 'Base de datos SQLite inicializada correctamente con Series y Capítulos');
 
   scanner = new LibraryScanner(userDataPath);
 
@@ -68,10 +68,8 @@ async function createWindow() {
   });
 
   logger.setWebContents(mainWindow.webContents);
-
   mainWindow.setMenuBarVisibility(false);
 
-  // Save window bounds on resize/move
   mainWindow.on('close', () => {
     if (mainWindow) {
       db.setSetting('window_bounds', mainWindow.getBounds());
@@ -171,61 +169,69 @@ ipcMain.handle('library:remove-folder', async (event, folderId) => {
   return true;
 });
 
-// Helper for scanning a folder with streaming batch database saves
-async function scanFolderWithStreaming(folder) {
-  logger.info('SCANNER', `Ejecutando escaneo para la carpeta "${folder.name}" (${folder.path})`);
+// Helper for scanning a folder and saving Series + Chapters with progressive UI updates
+async function scanFolderWithSeries(folder) {
+  logger.info('SCANNER', `Iniciando escaneo inteligente de carpeta "${folder.name}" (${folder.path})`);
 
-  let batch = [];
-  let totalProcessed = 0;
-
-  const flushBatch = () => {
-    if (batch.length === 0) return;
-    for (const item of batch) {
-      db.upsertItem({
-        ...item,
-        folder_id: folder.id
-      });
-    }
-    db.save();
-
-    // Notify UI that a batch of items is ready to be shown
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('library:items-batch', {
-        count: batch.length,
-        totalSoFar: totalProcessed
-      });
-    }
-    batch = [];
-  };
+  let count = 0;
 
   const onProgress = (data) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('scan:progress', {
         folderId: folder.id,
         folderName: folder.name,
-        ...data
+        file: `${data.seriesTitle} (${data.chapterCount} caps)`,
+        current: data.current,
+        total: data.total,
+        durationMs: data.durationMs
       });
     }
   };
 
-  const onItem = (item) => {
-    totalProcessed++;
-    batch.push(item);
-    // Flush every 20 items to SQLite so items show up progressively in UI
-    if (batch.length >= 20) {
-      flushBatch();
+  const onSeries = (seriesData, current, total) => {
+    count++;
+    // Save series into DB
+    const seriesId = db.upsertSeries({
+      folder_id: folder.id,
+      title: seriesData.title,
+      path: seriesData.path,
+      cover_path: seriesData.cover_path,
+      chapter_count: seriesData.chapter_count,
+      primary_format: seriesData.primary_format
+    });
+
+    // Save its chapters
+    for (const ch of seriesData.chapters) {
+      db.upsertChapter({
+        series_id: seriesId,
+        title: ch.title,
+        file_name: ch.file_name,
+        file_path: ch.file_path,
+        format: ch.format,
+        file_size: ch.file_size,
+        chapter_number: ch.chapter_number
+      });
+    }
+
+    db.save();
+
+    // Stream live update to UI so the series card appears immediately
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('library:series-batch', {
+        seriesId,
+        title: seriesData.title,
+        current,
+        total
+      });
     }
   };
 
-  const scannedItems = await scanner.scanDirectory(folder.path, { onProgress, onItem });
-  // Flush any remaining items
-  flushBatch();
-
+  const scannedResults = await scanner.scanDirectory(folder.path, { onProgress, onSeries });
   db.updateFolderScanTime(folder.id);
   db.save();
 
-  logger.info('SCANNER', `Escaneo de "${folder.name}" completado. ${scannedItems.length} elementos guardados.`);
-  return scannedItems.length;
+  logger.info('SCANNER', `Finalizado: ${scannedResults.length} series registradas en "${folder.name}".`);
+  return scannedResults.length;
 }
 
 // Scanning IPC
@@ -234,7 +240,7 @@ ipcMain.handle('library:scan-folder', async (event, folderId) => {
   const folder = folders.find(f => f.id === folderId);
   if (!folder) throw new Error('Carpeta no encontrada');
 
-  const count = await scanFolderWithStreaming(folder);
+  const count = await scanFolderWithSeries(folder);
   return { count };
 });
 
@@ -242,26 +248,49 @@ ipcMain.handle('library:scan-all', async () => {
   const folders = db.getFolders();
   let totalScanned = 0;
 
-  logger.info('SCANNER', `Iniciando escaneo de todas las carpetas (${folders.length} configuradas)`);
+  logger.info('SCANNER', `Escaneando todas las carpetas (${folders.length} registradas)`);
   for (const folder of folders) {
-    const count = await scanFolderWithStreaming(folder);
+    const count = await scanFolderWithSeries(folder);
     totalScanned += count;
   }
 
   return { totalScanned, foldersCount: folders.length };
 });
 
-// Library Items
-ipcMain.handle('library:get-items', async (event, filters) => {
-  return db.getItems(filters);
+// ==================== SERIES & CHAPTERS IPC ====================
+ipcMain.handle('library:get-series', async (event, filters) => {
+  return db.getSeriesList(filters);
 });
 
-ipcMain.handle('library:toggle-favorite', async (event, itemId) => {
-  return db.toggleFavorite(itemId);
+ipcMain.handle('library:get-series-detail', async (event, { seriesId, sortOrder = 'asc' }) => {
+  const series = db.getSeriesById(seriesId);
+  if (!series) return null;
+  const chapters = db.getChapters(seriesId, { sortOrder });
+  return {
+    ...series,
+    chapters
+  };
 });
 
-// Save PDF cover from renderer
-ipcMain.handle('library:save-pdf-cover', async (event, { filePath, dataUrl, pageCount }) => {
+ipcMain.handle('library:update-series-metadata', async (event, { seriesId, title, author, description, tags }) => {
+  logger.info('METADATA', `Actualizando metadatos para serie ID ${seriesId}: ${title || ''}`);
+  return db.updateSeriesMetadata(seriesId, { title, author, description, tags });
+});
+
+ipcMain.handle('library:toggle-series-fav', async (event, seriesId) => {
+  return db.toggleSeriesFavorite(seriesId);
+});
+
+ipcMain.handle('library:toggle-chapter-read', async (event, chapterId) => {
+  return db.toggleChapterRead(chapterId);
+});
+
+ipcMain.handle('library:mark-all-read', async (event, { seriesId, isRead }) => {
+  return db.markAllChaptersRead(seriesId, isRead);
+});
+
+// Save PDF cover for series
+ipcMain.handle('library:save-series-cover', async (event, { seriesId, filePath, dataUrl }) => {
   try {
     if (!fs.existsSync(filePath)) return null;
     const stats = fs.statSync(filePath);
@@ -272,35 +301,32 @@ ipcMain.handle('library:save-pdf-cover', async (event, { filePath, dataUrl, page
     const buffer = Buffer.from(base64Data, 'base64');
     fs.writeFileSync(targetCoverPath, buffer);
 
-    db.db.run(
-      'UPDATE items SET cover_path = ?, page_count = CASE WHEN ? > 0 THEN ? ELSE page_count END WHERE file_path = ?',
-      [targetCoverPath, pageCount || 0, pageCount || 0, filePath]
-    );
+    db.db.run('UPDATE series SET cover_path = ? WHERE id = ?', [targetCoverPath, seriesId]);
     db.save();
 
-    logger.info('PDF', `Portada de PDF generada y guardada: ${path.basename(filePath)} (${pageCount} pág.)`);
+    logger.info('PDF', `Portada de serie generada y asignada para ID ${seriesId}`);
     return targetCoverPath;
   } catch (err) {
-    logger.error('PDF', `Error guardando portada de PDF: ${err.message}`);
+    logger.error('PDF', `Error guardando portada de serie: ${err.message}`);
     return null;
   }
 });
 
-// Open file with default system application
+// Open chapter file with default system application
 ipcMain.handle('library:open-file', async (event, filePath) => {
   if (!fs.existsSync(filePath)) {
     logger.warn('SHELL', `Archivo no encontrado al intentar abrir: ${filePath}`);
     throw new Error('El archivo no existe en el disco.');
   }
-  logger.info('SHELL', `Abriendo archivo con lector predeterminado: ${filePath}`);
+  logger.info('SHELL', `Abriendo capítulo con lector predeterminado: ${path.basename(filePath)}`);
   return shell.openPath(filePath);
 });
 
-// Show file in system file explorer
-ipcMain.handle('library:show-in-folder', async (event, filePath) => {
-  if (fs.existsSync(filePath)) {
-    logger.info('SHELL', `Mostrando en explorador: ${filePath}`);
-    shell.showItemInFolder(filePath);
+// Show file/folder in system file explorer
+ipcMain.handle('library:show-in-folder', async (event, targetPath) => {
+  if (fs.existsSync(targetPath)) {
+    logger.info('SHELL', `Mostrando en explorador: ${targetPath}`);
+    shell.showItemInFolder(targetPath);
     return true;
   }
   return false;

@@ -17,15 +17,41 @@ class LibraryScanner {
     return crypto.createHash('md5').update(key).digest('hex');
   }
 
-  // Scan a directory recursively for .cbz and .pdf files with event-loop yielding
-  async scanDirectory(dirPath, { onProgress = null, onItem = null } = {}) {
+  parseChapterNumber(fileName) {
+    // Search for "cap 1", "capítulo 08", "ch. 12.5", "c1", etc.
+    const match = fileName.match(/(?:cap[íi]tulo|cap|ch|chapter|episodio|ep|c)[.\s_-]*([0-9]+(?:\.[0-9]+)?)/i);
+    if (match) {
+      return parseFloat(match[1]);
+    }
+    // Fallback: search for first number sequence
+    const numMatch = fileName.match(/([0-9]+(?:\.[0-9]+)?)/);
+    if (numMatch) {
+      return parseFloat(numMatch[1]);
+    }
+    return 0;
+  }
+
+  formatChapterTitle(fileName, chapterNum) {
+    const baseName = path.basename(fileName, path.extname(fileName));
+    // If the base name already starts with Cap or Chapter, use it cleanly
+    if (/^(cap|ch|chapter|episodio)/i.test(baseName)) {
+      return baseName.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+    if (chapterNum > 0) {
+      return `Capítulo ${chapterNum} - ${baseName}`;
+    }
+    return baseName.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  // Scan directory, group files into Manga Series, and extract first chapter cover
+  async scanDirectory(dirPath, { onProgress = null, onSeries = null } = {}) {
     const startTime = Date.now();
-    logger.info('SCANNER', `Iniciando escaneo del directorio: ${dirPath}`);
+    logger.info('SCANNER', `Iniciando escaneo inteligente de biblioteca: ${dirPath}`);
 
     const supportedExtensions = ['.cbz', '.pdf'];
     const discoveredFiles = [];
 
-    // 1. Discovery phase (walking the filesystem)
+    // 1. Walk filesystem recursively
     const walk = (currentDir) => {
       try {
         const entries = fs.readdirSync(currentDir, { withFileTypes: true });
@@ -47,176 +73,183 @@ class LibraryScanner {
           }
         }
       } catch (err) {
-        logger.warn('SCANNER', `No se pudo leer el subdirectorio ${currentDir}: ${err.message}`);
+        logger.warn('SCANNER', `No se pudo acceder a ${currentDir}: ${err.message}`);
       }
     };
 
     walk(dirPath);
 
-    const total = discoveredFiles.length;
-    const cbzCount = discoveredFiles.filter(f => f.ext === 'cbz').length;
-    const pdfCount = discoveredFiles.filter(f => f.ext === 'pdf').length;
+    logger.info('SCANNER', `Descubiertos ${discoveredFiles.length} archivos de cómics/mangas. Agrupando por series...`);
 
-    logger.info(
-      'SCANNER',
-      `Descubiertos ${total} archivos en total (${cbzCount} CBZ, ${pdfCount} PDF). Procesando...`
-    );
+    // 2. Group files by Series (using immediate subfolder under dirPath as Manga title)
+    const seriesGroups = new Map();
 
-    const items = [];
+    for (const file of discoveredFiles) {
+      const relPath = path.relative(dirPath, file.fullPath);
+      const parts = relPath.split(path.sep);
 
-    // 2. Processing phase: non-blocking iteration
-    for (let i = 0; i < total; i++) {
-      const file = discoveredFiles[i];
-      const fileStart = Date.now();
+      let seriesKey = '';
+      let seriesPath = '';
+      let seriesTitle = '';
 
-      try {
-        const stats = fs.statSync(file.fullPath);
-        const hash = this.getFileHash(file.fullPath, stats);
-        const cachedCoverPath = path.join(this.thumbnailsDir, `${hash}.jpg`);
-
-        let coverPath = null;
-        let pageCount = 0;
-        let isCached = false;
-
-        // Check if cover already exists in thumbnail cache
-        if (fs.existsSync(cachedCoverPath)) {
-          coverPath = cachedCoverPath;
-          isCached = true;
-        }
-
+      if (parts.length > 1) {
+        // The file is inside a subfolder: the top subfolder is the Manga Series
+        seriesKey = parts[0];
+        seriesPath = path.join(dirPath, parts[0]);
+        seriesTitle = parts[0].replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
+      } else {
+        // Standalone file in the root directory
+        seriesKey = file.fullPath;
+        seriesPath = file.fullPath;
         const baseName = path.basename(file.fileName, path.extname(file.fileName));
-        const cleanTitle = baseName.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
+        seriesTitle = baseName.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
+      }
 
-        // Extract CBZ cover if not already in cache
-        if (file.ext === 'cbz') {
-          if (!isCached) {
-            try {
-              const result = this.extractCbzInfo(file.fullPath, cachedCoverPath);
-              pageCount = result.pageCount;
-              if (result.hasCover) {
-                coverPath = cachedCoverPath;
-              }
-            } catch (e) {
-              logger.warn('CBZ', `Error extrayendo portada de ${file.fileName}: ${e.message}`);
-            }
-          } else {
-            coverPath = cachedCoverPath;
-          }
-        }
+      if (!seriesGroups.has(seriesKey)) {
+        seriesGroups.set(seriesKey, {
+          title: seriesTitle,
+          path: seriesPath,
+          files: []
+        });
+      }
 
-        const durationMs = Date.now() - fileStart;
-        const sizeMb = (stats.size / (1024 * 1024)).toFixed(1);
+      seriesGroups.get(seriesKey).files.push(file);
+    }
 
-        const item = {
-          title: cleanTitle,
+    const totalSeries = seriesGroups.size;
+    logger.info('SCANNER', `Se identificaron ${totalSeries} series / mangas únicos.`);
+
+    const seriesResults = [];
+    let currentSeriesIndex = 0;
+
+    // 3. Process each Series
+    for (const [key, group] of seriesGroups) {
+      currentSeriesIndex++;
+      const seriesStart = Date.now();
+
+      // Sort chapters naturally by chapter number
+      const chapters = group.files.map(file => {
+        let stats = { size: 0, mtimeMs: 0 };
+        try {
+          stats = fs.statSync(file.fullPath);
+        } catch (e) {}
+
+        const chapterNum = this.parseChapterNumber(file.fileName);
+        const chapterTitle = this.formatChapterTitle(file.fileName, chapterNum);
+
+        return {
+          title: chapterTitle,
           file_name: file.fileName,
           file_path: file.fullPath,
           format: file.ext,
           file_size: stats.size,
-          page_count: pageCount,
-          cover_path: coverPath,
-          hash: hash,
-          cached_cover_path: cachedCoverPath
+          chapter_number: chapterNum
         };
+      });
 
-        items.push(item);
+      // Sort ascending by chapter number, then natural filename sort
+      chapters.sort((a, b) => {
+        if (a.chapter_number !== b.chapter_number && a.chapter_number > 0 && b.chapter_number > 0) {
+          return a.chapter_number - b.chapter_number;
+        }
+        return a.file_name.localeCompare(b.file_name, undefined, { numeric: true, sensitivity: 'base' });
+      });
 
-        // Stream item to caller immediately so it can be saved and displayed live
-        if (onItem) {
-          try {
-            onItem(item, i + 1, total);
-          } catch (e) {
-            logger.error('SCANNER', `Error en callback onItem: ${e.message}`);
+      // Cover extraction: Extract ONLY the cover of the FIRST chapter
+      const firstChapter = chapters[0];
+      let coverPath = null;
+      let primaryFormat = firstChapter ? firstChapter.format : 'cbz';
+
+      if (firstChapter) {
+        try {
+          const stats = fs.statSync(firstChapter.file_path);
+          const hash = this.getFileHash(firstChapter.file_path, stats);
+          const cachedCoverPath = path.join(this.thumbnailsDir, `${hash}.jpg`);
+
+          if (fs.existsSync(cachedCoverPath)) {
+            coverPath = cachedCoverPath;
+          } else if (firstChapter.format === 'cbz') {
+            const result = this.extractCbzCover(firstChapter.file_path, cachedCoverPath);
+            if (result.hasCover) {
+              coverPath = cachedCoverPath;
+            }
           }
+        } catch (err) {
+          logger.warn('COVER', `Error al obtener portada para "${group.title}": ${err.message}`);
         }
-
-        // Notify progress
-        if (onProgress) {
-          onProgress({
-            current: i + 1,
-            total,
-            file: file.fileName,
-            durationMs,
-            isCached
-          });
-        }
-
-        // Detailed logging: log every file or heavy files
-        if (durationMs > 250) {
-          logger.warn(
-            'PERF',
-            `[${i + 1}/${total}] ${file.fileName} (${sizeMb} MB) tardó ${durationMs}ms`
-          );
-        } else if (i % 25 === 0 || i === total - 1 || !isCached) {
-          logger.scan(
-            'SCAN',
-            `[${i + 1}/${total}] ${file.fileName} (${sizeMb} MB) ${isCached ? '⚡(Caché)' : '🖼️(Extraído)'} en ${durationMs}ms`
-          );
-        }
-      } catch (err) {
-        logger.error('SCANNER', `Fallo al procesar ${file.fileName}: ${err.message}`);
       }
 
-      // CRITICAL FOR RESPONSIVENESS:
-      // Yield execution to the Node.js event loop after EVERY file so Electron
-      // can handle OS window manager pings, IPC, and UI repaints without freezing.
+      const seriesData = {
+        title: group.title,
+        path: group.path,
+        cover_path: coverPath,
+        chapter_count: chapters.length,
+        primary_format: primaryFormat,
+        chapters: chapters
+      };
+
+      seriesResults.push(seriesData);
+
+      // Stream to callback if provided
+      if (onSeries) {
+        try {
+          onSeries(seriesData, currentSeriesIndex, totalSeries);
+        } catch (e) {
+          logger.error('SCANNER', `Error en callback onSeries: ${e.message}`);
+        }
+      }
+
+      const durationMs = Date.now() - seriesStart;
+
+      if (onProgress) {
+        onProgress({
+          current: currentSeriesIndex,
+          total: totalSeries,
+          seriesTitle: group.title,
+          chapterCount: chapters.length,
+          durationMs
+        });
+      }
+
+      logger.scan(
+        'MANGA',
+        `[${currentSeriesIndex}/${totalSeries}] "${group.title}" (${chapters.length} caps) -> Portada: ${coverPath ? 'OK' : 'Pendiente'} (${durationMs}ms)`
+      );
+
+      // Yield event loop
       await new Promise(resolve => setImmediate(resolve));
-
-      // Every 15 files, insert a tiny 5ms break to let OS/GC breathe
-      if ((i + 1) % 15 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 5));
-      }
     }
 
     const totalDuration = ((Date.now() - startTime) / 1000).toFixed(1);
-    logger.perf(
-      'SCANNER',
-      `Escaneo finalizado con éxito: ${items.length} archivos procesados en ${totalDuration}s`
-    );
+    logger.perf('SCANNER', `Escaneo completado: ${seriesResults.length} series procesadas en ${totalDuration}s.`);
 
-    return items;
+    return seriesResults;
   }
 
-  // Extract first image from CBZ file and count pages
-  extractCbzInfo(filePath, targetCoverPath) {
-    const zip = new AdmZip(filePath);
-    const entries = zip.getEntries();
+  // Extract first image from CBZ file as cover
+  extractCbzCover(filePath, targetCoverPath) {
+    try {
+      const zip = new AdmZip(filePath);
+      const entries = zip.getEntries();
 
-    const imageRegex = /\.(jpe?g|png|webp|gif|avif|bmp)$/i;
-    const imageEntries = entries
-      .filter(e => !e.isDirectory && !e.entryName.startsWith('__MACOSX') && imageRegex.test(e.entryName))
-      .sort((a, b) => a.entryName.localeCompare(b.entryName, undefined, { numeric: true, sensitivity: 'base' }));
+      const imageRegex = /\.(jpe?g|png|webp|gif|avif|bmp)$/i;
+      const imageEntries = entries
+        .filter(e => !e.isDirectory && !e.entryName.startsWith('__MACOSX') && imageRegex.test(e.entryName))
+        .sort((a, b) => a.entryName.localeCompare(b.entryName, undefined, { numeric: true, sensitivity: 'base' }));
 
-    let hasCover = false;
-    if (imageEntries.length > 0) {
-      if (!fs.existsSync(targetCoverPath)) {
-        try {
+      if (imageEntries.length > 0) {
+        if (!fs.existsSync(targetCoverPath)) {
           const firstImage = imageEntries[0];
           const imgBuffer = firstImage.getData();
           fs.writeFileSync(targetCoverPath, imgBuffer);
-          hasCover = true;
-        } catch (e) {
-          logger.warn('CBZ', `Fallo al escribir portada en disco: ${e.message}`);
         }
-      } else {
-        hasCover = true;
+        return { hasCover: true, pageCount: imageEntries.length };
       }
+    } catch (e) {
+      logger.warn('CBZ', `Fallo al extraer portada de ${path.basename(filePath)}: ${e.message}`);
     }
 
-    return {
-      pageCount: imageEntries.length,
-      hasCover
-    };
-  }
-
-  saveThumbnailBuffer(targetCoverPath, buffer) {
-    try {
-      fs.writeFileSync(targetCoverPath, buffer);
-      return true;
-    } catch (err) {
-      logger.error('THUMBNAIL', `Error guardando miniatura: ${err.message}`);
-      return false;
-    }
+    return { hasCover: false, pageCount: 0 };
   }
 }
 
