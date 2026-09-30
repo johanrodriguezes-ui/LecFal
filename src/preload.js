@@ -15,6 +15,11 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
     ipcRenderer.on('scan:progress', subscription);
     return () => ipcRenderer.removeListener('scan:progress', subscription);
   },
+  onItemsBatch: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('library:items-batch', subscription);
+    return () => ipcRenderer.removeListener('library:items-batch', subscription);
+  },
 
   // Library Items
   getItems: (filters) => ipcRenderer.invoke('library:get-items', filters),
@@ -28,6 +33,16 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
   // Settings
   getSetting: (key, defaultValue) => ipcRenderer.invoke('settings:get', key, defaultValue),
   setSetting: (key, value) => ipcRenderer.invoke('settings:set', key, value),
+
+  // Logs & Diagnostics
+  onLog: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('app:log', subscription);
+    return () => ipcRenderer.removeListener('app:log', subscription);
+  },
+  getLogs: () => ipcRenderer.invoke('system:get-logs'),
+  openLogFile: () => ipcRenderer.invoke('system:open-log-file'),
+  clearLogs: () => ipcRenderer.invoke('system:clear-logs'),
 
   // System
   getAppVersion: () => ipcRenderer.invoke('system:get-version')

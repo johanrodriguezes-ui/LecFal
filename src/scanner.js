@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const AdmZip = require('adm-zip');
+const logger = require('./logger');
 
 class LibraryScanner {
   constructor(userDataPath) {
@@ -16,18 +17,21 @@ class LibraryScanner {
     return crypto.createHash('md5').update(key).digest('hex');
   }
 
-  // Scan a directory recursively for .cbz and .pdf files
-  async scanDirectory(dirPath, onProgress = null) {
+  // Scan a directory recursively for .cbz and .pdf files with event-loop yielding
+  async scanDirectory(dirPath, { onProgress = null, onItem = null } = {}) {
+    const startTime = Date.now();
+    logger.info('SCANNER', `Iniciando escaneo del directorio: ${dirPath}`);
+
     const supportedExtensions = ['.cbz', '.pdf'];
     const discoveredFiles = [];
 
+    // 1. Discovery phase (walking the filesystem)
     const walk = (currentDir) => {
       try {
         const entries = fs.readdirSync(currentDir, { withFileTypes: true });
         for (const entry of entries) {
           const fullPath = path.join(currentDir, entry.name);
           if (entry.isDirectory()) {
-            // Ignore hidden directories (.git, .cache, etc.)
             if (!entry.name.startsWith('.')) {
               walk(fullPath);
             }
@@ -43,17 +47,28 @@ class LibraryScanner {
           }
         }
       } catch (err) {
-        console.warn(`Could not read directory ${currentDir}:`, err.message);
+        logger.warn('SCANNER', `No se pudo leer el subdirectorio ${currentDir}: ${err.message}`);
       }
     };
 
     walk(dirPath);
 
-    const items = [];
     const total = discoveredFiles.length;
+    const cbzCount = discoveredFiles.filter(f => f.ext === 'cbz').length;
+    const pdfCount = discoveredFiles.filter(f => f.ext === 'pdf').length;
 
+    logger.info(
+      'SCANNER',
+      `Descubiertos ${total} archivos en total (${cbzCount} CBZ, ${pdfCount} PDF). Procesando...`
+    );
+
+    const items = [];
+
+    // 2. Processing phase: non-blocking iteration
     for (let i = 0; i < total; i++) {
       const file = discoveredFiles[i];
+      const fileStart = Date.now();
+
       try {
         const stats = fs.statSync(file.fullPath);
         const hash = this.getFileHash(file.fullPath, stats);
@@ -61,30 +76,38 @@ class LibraryScanner {
 
         let coverPath = null;
         let pageCount = 0;
+        let isCached = false;
 
-        // Check if cover already exists in cache
+        // Check if cover already exists in thumbnail cache
         if (fs.existsSync(cachedCoverPath)) {
           coverPath = cachedCoverPath;
+          isCached = true;
         }
 
-        // Clean title: remove extension and replace underscores/periods with spaces
         const baseName = path.basename(file.fileName, path.extname(file.fileName));
         const cleanTitle = baseName.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
 
-        // Extract CBZ cover and page count if not cached
+        // Extract CBZ cover if not already in cache
         if (file.ext === 'cbz') {
-          try {
-            const result = this.extractCbzInfo(file.fullPath, cachedCoverPath);
-            pageCount = result.pageCount;
-            if (result.hasCover) {
-              coverPath = cachedCoverPath;
+          if (!isCached) {
+            try {
+              const result = this.extractCbzInfo(file.fullPath, cachedCoverPath);
+              pageCount = result.pageCount;
+              if (result.hasCover) {
+                coverPath = cachedCoverPath;
+              }
+            } catch (e) {
+              logger.warn('CBZ', `Error extrayendo portada de ${file.fileName}: ${e.message}`);
             }
-          } catch (e) {
-            console.warn(`Error reading CBZ ${file.fileName}:`, e.message);
+          } else {
+            coverPath = cachedCoverPath;
           }
         }
 
-        items.push({
+        const durationMs = Date.now() - fileStart;
+        const sizeMb = (stats.size / (1024 * 1024)).toFixed(1);
+
+        const item = {
           title: cleanTitle,
           file_name: file.fileName,
           file_path: file.fullPath,
@@ -94,19 +117,62 @@ class LibraryScanner {
           cover_path: coverPath,
           hash: hash,
           cached_cover_path: cachedCoverPath
-        });
+        };
 
+        items.push(item);
+
+        // Stream item to caller immediately so it can be saved and displayed live
+        if (onItem) {
+          try {
+            onItem(item, i + 1, total);
+          } catch (e) {
+            logger.error('SCANNER', `Error en callback onItem: ${e.message}`);
+          }
+        }
+
+        // Notify progress
         if (onProgress) {
           onProgress({
             current: i + 1,
             total,
-            file: file.fileName
+            file: file.fileName,
+            durationMs,
+            isCached
           });
         }
+
+        // Detailed logging: log every file or heavy files
+        if (durationMs > 250) {
+          logger.warn(
+            'PERF',
+            `[${i + 1}/${total}] ${file.fileName} (${sizeMb} MB) tardó ${durationMs}ms`
+          );
+        } else if (i % 25 === 0 || i === total - 1 || !isCached) {
+          logger.scan(
+            'SCAN',
+            `[${i + 1}/${total}] ${file.fileName} (${sizeMb} MB) ${isCached ? '⚡(Caché)' : '🖼️(Extraído)'} en ${durationMs}ms`
+          );
+        }
       } catch (err) {
-        console.error(`Error processing file ${file.fullPath}:`, err);
+        logger.error('SCANNER', `Fallo al procesar ${file.fileName}: ${err.message}`);
+      }
+
+      // CRITICAL FOR RESPONSIVENESS:
+      // Yield execution to the Node.js event loop after EVERY file so Electron
+      // can handle OS window manager pings, IPC, and UI repaints without freezing.
+      await new Promise(resolve => setImmediate(resolve));
+
+      // Every 15 files, insert a tiny 5ms break to let OS/GC breathe
+      if ((i + 1) % 15 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 5));
       }
     }
+
+    const totalDuration = ((Date.now() - startTime) / 1000).toFixed(1);
+    logger.perf(
+      'SCANNER',
+      `Escaneo finalizado con éxito: ${items.length} archivos procesados en ${totalDuration}s`
+    );
 
     return items;
   }
@@ -130,7 +196,7 @@ class LibraryScanner {
           fs.writeFileSync(targetCoverPath, imgBuffer);
           hasCover = true;
         } catch (e) {
-          console.warn('Failed to write CBZ cover to cache:', e);
+          logger.warn('CBZ', `Fallo al escribir portada en disco: ${e.message}`);
         }
       } else {
         hasCover = true;
@@ -143,13 +209,12 @@ class LibraryScanner {
     };
   }
 
-  // Save thumbnail data (e.g. from PDF canvas render) directly to cache
   saveThumbnailBuffer(targetCoverPath, buffer) {
     try {
       fs.writeFileSync(targetCoverPath, buffer);
       return true;
     } catch (err) {
-      console.error('Error saving thumbnail buffer:', err);
+      logger.error('THUMBNAIL', `Error guardando miniatura: ${err.message}`);
       return false;
     }
   }

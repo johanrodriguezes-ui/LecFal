@@ -77,10 +77,22 @@ const btnDetailShowFolder = document.getElementById('btnDetailShowFolder');
 const toastNotification = document.getElementById('toastNotification');
 const toastMessage = document.getElementById('toastMessage');
 
+// Log & Diagnostics DOM Elements
+const btnToggleLogs = document.getElementById('btnToggleLogs');
+const logIndicatorDot = document.getElementById('logIndicatorDot');
+const logDrawer = document.getElementById('logDrawer');
+const logTerminal = document.getElementById('logTerminal');
+const logCountBadge = document.getElementById('logCountBadge');
+const btnOpenLogFile = document.getElementById('btnOpenLogFile');
+const btnClearLogs = document.getElementById('btnClearLogs');
+const btnCloseLogDrawer = document.getElementById('btnCloseLogDrawer');
+let logCount = 0;
+
 // ==================== INITIALIZATION ====================
 async function init() {
   setupEventListeners();
   setupScanProgressListener();
+  setupLogging();
 
   // Load saved preferences
   const savedSize = await window.lecfalAPI.getSetting('grid_size', 185);
@@ -290,6 +302,7 @@ async function runFolderScan(folderId) {
   isScanning = true;
   scanProgressBanner.style.display = 'block';
   btnRescan.classList.add('scanning');
+  logIndicatorDot.classList.add('active');
 
   try {
     const result = await window.lecfalAPI.scanFolder(folderId);
@@ -304,6 +317,7 @@ async function runFolderScan(folderId) {
       scanProgressBanner.style.display = 'none';
     }, 1500);
     btnRescan.classList.remove('scanning');
+    logIndicatorDot.classList.remove('active');
   }
 }
 
@@ -312,6 +326,7 @@ async function runAllScan() {
   isScanning = true;
   scanProgressBanner.style.display = 'block';
   btnRescan.classList.add('scanning');
+  logIndicatorDot.classList.add('active');
 
   try {
     const result = await window.lecfalAPI.scanAll();
@@ -326,17 +341,92 @@ async function runAllScan() {
       scanProgressBanner.style.display = 'none';
     }, 1500);
     btnRescan.classList.remove('scanning');
+    logIndicatorDot.classList.remove('active');
   }
 }
 
 function setupScanProgressListener() {
   window.lecfalAPI.onScanProgress((data) => {
     scanBannerTitle.textContent = `Escaneando: ${data.folderName || 'Carpeta'}`;
-    scanBannerFile.textContent = data.file || 'Procesando archivo...';
+    scanBannerFile.textContent = `${data.file || ''} (${data.durationMs ? data.durationMs + 'ms' : ''})`;
     const percent = Math.round((data.current / data.total) * 100);
     scanProgressBar.style.width = `${percent}%`;
     scanBannerCount.textContent = `${data.current}/${data.total}`;
   });
+}
+
+// ==================== LOGGING & DIAGNOSTICS ====================
+function setupLogging() {
+  btnToggleLogs.addEventListener('click', () => {
+    const isHidden = logDrawer.style.display === 'none';
+    logDrawer.style.display = isHidden ? 'flex' : 'none';
+    btnToggleLogs.classList.toggle('active', isHidden);
+    if (isHidden) {
+      logTerminal.scrollTop = logTerminal.scrollHeight;
+    }
+  });
+
+  btnCloseLogDrawer.addEventListener('click', () => {
+    logDrawer.style.display = 'none';
+    btnToggleLogs.classList.remove('active');
+  });
+
+  btnOpenLogFile.addEventListener('click', async () => {
+    await window.lecfalAPI.openLogFile();
+  });
+
+  btnClearLogs.addEventListener('click', async () => {
+    await window.lecfalAPI.clearLogs();
+    logTerminal.innerHTML = '';
+    logCount = 0;
+    logCountBadge.textContent = '0 eventos';
+  });
+
+  // Streaming real-time logs from main process
+  window.lecfalAPI.onLog((entry) => {
+    appendLogToTerminal(entry);
+  });
+
+  // Streaming item batch from scanning: refresh UI progressively
+  window.lecfalAPI.onItemsBatch(() => {
+    refreshItems(false);
+  });
+
+  // Load existing logs
+  window.lecfalAPI.getLogs().then(logs => {
+    if (Array.isArray(logs)) {
+      logs.forEach(appendLogToTerminal);
+    }
+  });
+}
+
+function appendLogToTerminal(entry) {
+  logCount++;
+  logCountBadge.textContent = `${logCount} eventos`;
+
+  const line = document.createElement('div');
+  line.className = 'log-line';
+
+  const levelClass = `log-level-${(entry.level || 'info').toLowerCase()}`;
+  line.innerHTML = `
+    <span class="log-time">${entry.timestamp || ''}</span>
+    <span class="log-level ${levelClass}">[${entry.level || 'INFO'}]</span>
+    <span class="log-tag">[${escapeHtml(entry.tag || 'APP')}]</span>
+    <span class="log-msg">${escapeHtml(entry.message || '')}</span>
+  `;
+
+  logTerminal.appendChild(line);
+
+  // Keep terminal from having infinite DOM elements (max 300)
+  if (logTerminal.children.length > 300) {
+    logTerminal.removeChild(logTerminal.firstElementChild);
+  }
+
+  // Auto-scroll if drawer is open or near bottom
+  const isNearBottom = logTerminal.scrollHeight - logTerminal.clientHeight - logTerminal.scrollTop < 120;
+  if (isNearBottom || logDrawer.style.display !== 'none') {
+    logTerminal.scrollTop = logTerminal.scrollHeight;
+  }
 }
 
 // ==================== ITEMS & RENDERING ====================
