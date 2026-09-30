@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' lecfal-cover: lecfal-file: blob: data: https://fonts.googleapis.com https://fonts.gstatic.com;">
+  <title>LecFal - Biblioteca de Mangas y Cómics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+              <path d="M6 6h10"/>
+              <path d="M6 10h10"/>
+              <path d="M6 14h6"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1 class="brand-title">LecFal</h1>
+            <span class="brand-subtitle">Manga & Comic Vault</span>
+          </div>
+        </div>
+
+        <!-- Default Folder Indicator -->
+        <div class="active-folder-badge" id="activeFolderBadge" title="Carpeta activa por defecto">
+          <svg class="folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span class="folder-name" id="currentFolderName">Sin carpeta asignada</span>
+          <button class="btn-icon-subtle" id="btnManageFolders" title="Administrar carpetas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Field -->
+      <div class="nav-center">
+        <div class="search-bar">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input type="text" id="searchInput" placeholder="Buscar por título o archivo..." autocomplete="off">
+          <button class="clear-search-btn" id="clearSearchBtn" title="Limpiar búsqueda" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6 6 18"/>
+              <path d="m6 6 12 12"/>
+            </svg>
+          </button>
+          <span class="search-shortcut">Ctrl+F</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="nav-right">
+        <button class="btn btn-secondary" id="btnRescan" title="Escanear carpeta por defecto">
+          <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 21h5v-5"/>
+          </svg>
+          <span>Escanear</span>
+        </button>
+
+        <button class="btn btn-primary" id="btnAddFolder" title="Seleccionar y escanear una nueva carpeta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14"/>
+            <path d="M5 12h14"/>
+          </svg>
+          <span>Elegir Carpeta</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Secondary Controls Bar: Filters, Sorting & Grid Sizing -->
+    <section class="toolbar-bar">
+      <!-- Filter Chips -->
+      <div class="filter-group">
+        <button class="filter-chip active" data-filter="all">Todos <span class="counter-badge" id="countAll">0</span></button>
+        <button class="filter-chip" data-filter="cbz">
+          <span class="badge-dot dot-cbz"></span>
+          CBZ <span class="counter-badge" id="countCbz">0</span>
+        </button>
+        <button class="filter-chip" data-filter="pdf">
+          <span class="badge-dot dot-pdf"></span>
+          PDF <span class="counter-badge" id="countPdf">0</span>
+        </button>
+        <button class="filter-chip" data-filter="favorite">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" class="chip-heart-icon">
+            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+          </svg>
+          Favoritos <span class="counter-badge" id="countFav">0</span>
+        </button>
+      </div>
+
+      <!-- Right Controls: Sort and Size -->
+      <div class="toolbar-controls-right">
+        <!-- Sort Dropdown -->
+        <div class="sort-wrapper">
+          <label for="sortSelect" class="control-label">Ordenar:</label>
+          <div class="select-container">
+            <select id="sortSelect">
+              <option value="title_asc">Título (A - Z)</option>
+              <option value="title_desc">Título (Z - A)</option>
+              <option value="recent_added">Más recientes</option>
+              <option value="oldest_added">Más antiguos</option>
+              <option value="file_size_desc">Mayor tamaño</option>
+            </select>
+            <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="toolbar-separator"></div>
+
+        <!-- Grid Size Switcher (Small, Medium, Large + Slider) -->
+        <div class="size-control-wrapper">
+          <span class="control-label">Tamaño:</span>
+          
+          <div class="size-btn-group" id="sizeButtonGroup">
+            <button class="size-btn" data-size="small" title="Tamaño pequeño">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
+              </svg>
+              <span>S</span>
+            </button>
+            <button class="size-btn active" data-size="medium" title="Tamaño mediano">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="8" height="8"/>
+                <rect x="13" y="3" width="8" height="8"/>
+                <rect x="3" y="13" width="8" height="8"/>
+                <rect x="13" y="13" width="8" height="8"/>
+              </svg>
+              <span>M</span>
+            </button>
+            <button class="size-btn" data-size="large" title="Tamaño grande">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+              </svg>
+              <span>L</span>
+            </button>
+          </div>
+
+          <!-- Fine-tuning Slider -->
+          <div class="slider-wrapper" title="Ajuste fino de tamaño">
+            <input type="range" id="sizeSlider" min="120" max="320" value="180" step="5">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scan Progress Banner (hidden by default) -->
+    <div class="scan-progress-banner" id="scanProgressBanner" style="display: none;">
+      <div class="banner-inner">
+        <div class="banner-icon-spin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 21h5v-5"/>
+          </svg>
+        </div>
+        <div class="banner-text">
+          <div class="banner-title" id="scanBannerTitle">Escaneando biblioteca...</div>
+          <div class="banner-file" id="scanBannerFile">Iniciando escaneo...</div>
+        </div>
+        <div class="banner-progress-bar-container">
+          <div class="banner-progress-bar" id="scanProgressBar" style="width: 0%;"></div>
+        </div>
+        <span class="banner-count" id="scanBannerCount">0/0</span>
+      </div>
+    </div>
+
+    <!-- Main Content Area: Grid View or Empty States -->
+    <main class="main-content" id="mainContent">
+      <!-- Grid Container -->
+      <div class="comics-grid" id="comicsGrid">
+        <!-- Manga cards injected here dynamically -->
+      </div>
+
+      <!-- Empty State: No folders configured yet -->
+      <div class="empty-state" id="emptyStateNoFolders" style="display: none;">
+        <div class="empty-illustration">
+          <div class="empty-glow"></div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="m9 9 6 6"/>
+            <path d="m15 9-6 6"/>
+          </svg>
+        </div>
+        <h2>Tu biblioteca está vacía</h2>
+        <p>Selecciona la carpeta donde tienes guardados tus mangas y cómics en formato <strong>.cbz</strong> o <strong>.pdf</strong>.<br>Una vez seleccionada, quedará guardada por defecto.</p>
+        <button class="btn btn-primary btn-large" id="btnSelectInitialFolder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            <path d="M12 11v6"/>
+            <path d="M9 14h6"/>
+          </svg>
+          <span>Seleccionar Carpeta por Defecto</span>
+        </button>
+      </div>
+
+      <!-- Empty State: No results match search/filter -->
+      <div class="empty-state" id="emptyStateNoResults" style="display: none;">
+        <div class="empty-illustration">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+            <path d="M8 11h6"/>
+          </svg>
+        </div>
+        <h2>Sin resultados coincidentes</h2>
+        <p>No se encontraron mangas o cómics que coincidan con la búsqueda o filtro seleccionado.</p>
+        <button class="btn btn-secondary" id="btnResetFilters">Limpiar filtros</button>
+      </div>
+    </main>
+
+    <!-- Footer Status Bar -->
+    <footer class="status-bar">
+      <div class="status-left">
+        <span class="status-item" id="statusCount">0 mangas en total</span>
+        <span class="status-dot">•</span>
+        <span class="status-item" id="statusFolderCount">0 carpetas</span>
+      </div>
+      <div class="status-right">
+        <span class="status-item keyboard-hint">Doble clic para abrir • Clic derecho para opciones</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Folder Management Modal -->
+  <div class="modal-backdrop" id="modalFolders" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg class="modal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <h3>Carpetas de la Biblioteca</h3>
+        </div>
+        <button class="modal-close-btn" id="btnCloseModalFolders">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description">
+          Gestiona las carpetas escaneadas. Los mangas y cómics encontrados permanecerán en tu biblioteca de forma permanente.
+        </p>
+
+        <div class="folders-list" id="foldersList">
+          <!-- Folder items injected dynamically -->
+        </div>
+
+        <button class="btn btn-secondary btn-full" id="btnAddAnotherFolder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14"/>
+            <path d="M5 12h14"/>
+          </svg>
+          <span>Añadir otra carpeta</span>
+        </button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnModalCloseDone">Listo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Item Detail Modal -->
+  <div class="modal-backdrop" id="modalDetail" style="display: none;">
+    <div class="modal-card modal-detail-card">
+      <button class="modal-close-btn detail-close" id="btnCloseModalDetail">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6 6 18"/>
+          <path d="m6 6 12 12"/>
+        </svg>
+      </button>
+
+      <div class="detail-container">
+        <div class="detail-cover-container">
+          <img id="detailCoverImg" src="" alt="Portada" class="detail-cover">
+          <div class="format-badge-large" id="detailFormatBadge">CBZ</div>
+        </div>
+
+        <div class="detail-info">
+          <div class="detail-header-row">
+            <h2 class="detail-title" id="detailTitle">Título del Manga</h2>
+            <button class="btn-fav-large" id="btnDetailFav" title="Marcar como favorito">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="detail-meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Formato:</span>
+              <span class="meta-value uppercase" id="detailFormat">CBZ</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Tamaño:</span>
+              <span class="meta-value" id="detailSize">0 MB</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Páginas:</span>
+              <span class="meta-value" id="detailPages">-</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Añadido:</span>
+              <span class="meta-value" id="detailDate">-</span>
+            </div>
+          </div>
+
+          <div class="detail-path-box">
+            <span class="meta-label">Ubicación del archivo:</span>
+            <div class="path-text" id="detailPath">/ruta/al/archivo</div>
+          </div>
+
+          <div class="detail-actions">
+            <button class="btn btn-primary btn-large" id="btnDetailOpen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              <span>Abrir archivo</span>
+            </button>
+            <button class="btn btn-secondary" id="btnDetailShowFolder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>Mostrar en carpeta</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toastNotification" style="display: none;">
+    <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20 6 9 17l-5-5"/>
+    </svg>
+    <span class="toast-message" id="toastMessage">Operación realizada con éxito</span>
+  </div>
+
+  <!-- PDF.js module for on-demand cover extraction and page rendering -->
+  <script type="module" src="renderer.js"></script>
+</body>
+</html>

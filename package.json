@@ -1,0 +1,29 @@
+{
+  "name": "lecfal",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johanrodriguezes-ui/LecFal.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/johanrodriguezes-ui/LecFal/issues"
+  },
+  "homepage": "https://github.com/johanrodriguezes-ui/LecFal#readme",
+  "devDependencies": {
+    "electron": "^44.5.1"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.1",
+    "pdfjs-dist": "^6.3.289",
+    "sql.js": "^1.14.2"
+  }
+}
