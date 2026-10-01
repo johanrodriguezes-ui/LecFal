@@ -1,7 +1,35 @@
+# Dependencies
 node_modules/
+
+# Production build and distribution
 dist/
 build/
+
+# Application runtime & portable data directory
+data/
+
+# Application cache and thumbnails
+cache/
 .cache/
+thumbnails/
+
+# SQLite databases, journals, and WAL files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+
+# Application logs
+logs/
 *.log
+
+# Local user/runtime configuration overrides
+config.local.*
+
+# OS generated files
 .DS_Store
 Thumbs.db

@@ -16,6 +16,11 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
     ipcRenderer.on('scan:progress', subscription);
     return () => ipcRenderer.removeListener('scan:progress', subscription);
   },
+  onScanStatus: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('scan:status', subscription);
+    return () => ipcRenderer.removeListener('scan:status', subscription);
+  },
   onSeriesBatch: (callback) => {
     const subscription = (event, data) => callback(data);
     ipcRenderer.on('library:series-batch', subscription);
@@ -33,6 +38,57 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
   toggleChapterRead: (chapterId) => ipcRenderer.invoke('library:toggle-chapter-read', chapterId),
   markAllChaptersRead: (data) => ipcRenderer.invoke('library:mark-all-read', data),
 
+  // Centralized Tag Management
+  getTags: () => ipcRenderer.invoke('tags:get-all'),
+  getAllTags: () => ipcRenderer.invoke('tags:get-all'),
+  createTag: (name) => ipcRenderer.invoke('tags:create', name),
+  renameTag: (idOrObj, maybeName) => {
+    const payload = (typeof idOrObj === 'object' && idOrObj !== null) ? idOrObj : { id: idOrObj, name: maybeName };
+    return ipcRenderer.invoke('tags:rename', payload);
+  },
+  deleteTag: (id) => ipcRenderer.invoke('tags:delete', id),
+  setSeriesTags: (data) => ipcRenderer.invoke('tags:set-series-tags', data),
+
+  // Centralized Author Management
+  getAllAuthors: () => ipcRenderer.invoke('authors:get-all'),
+  createAuthor: (name) => ipcRenderer.invoke('authors:create', name),
+  renameAuthor: (idOrObj, maybeName) => {
+    const payload = (typeof idOrObj === 'object' && idOrObj !== null) ? idOrObj : { id: idOrObj, name: maybeName };
+    return ipcRenderer.invoke('authors:rename', payload);
+  },
+  deleteAuthor: (id) => ipcRenderer.invoke('authors:delete', id),
+  setSeriesAuthors: (data) => ipcRenderer.invoke('authors:set-series-authors', data),
+
+  // Centralized Language Management
+  getAllLanguages: () => ipcRenderer.invoke('languages:get-all'),
+  createLanguage: (name) => ipcRenderer.invoke('languages:create', name),
+  renameLanguage: (idOrObj, maybeName) => {
+    const payload = (typeof idOrObj === 'object' && idOrObj !== null) ? idOrObj : { id: idOrObj, name: maybeName };
+    return ipcRenderer.invoke('languages:rename', payload);
+  },
+  deleteLanguage: (id) => ipcRenderer.invoke('languages:delete', id),
+  setSeriesLanguages: (data) => ipcRenderer.invoke('languages:set-series-languages', data),
+
+  // Centralized Series / Parody Management
+  getAllParodies: () => ipcRenderer.invoke('parodies:get-all'),
+  createParody: (name) => ipcRenderer.invoke('parodies:create', name),
+  renameParody: (idOrObj, maybeName) => {
+    const payload = (typeof idOrObj === 'object' && idOrObj !== null) ? idOrObj : { id: idOrObj, name: maybeName };
+    return ipcRenderer.invoke('parodies:rename', payload);
+  },
+  deleteParody: (id) => ipcRenderer.invoke('parodies:delete', id),
+  setSeriesParodies: (data) => ipcRenderer.invoke('parodies:set-series-parodies', data),
+
+  // Centralized Group Management
+  getAllGroups: () => ipcRenderer.invoke('groups:get-all'),
+  createGroup: (name) => ipcRenderer.invoke('groups:create', name),
+  renameGroup: (idOrObj, maybeName) => {
+    const payload = (typeof idOrObj === 'object' && idOrObj !== null) ? idOrObj : { id: idOrObj, name: maybeName };
+    return ipcRenderer.invoke('groups:rename', payload);
+  },
+  deleteGroup: (id) => ipcRenderer.invoke('groups:delete', id),
+  setSeriesGroups: (data) => ipcRenderer.invoke('groups:set-series-groups', data),
+
   // File interactions
   openFile: (filePath) => ipcRenderer.invoke('library:open-file', filePath),
   showInFolder: (filePath) => ipcRenderer.invoke('library:show-in-folder', filePath),
@@ -43,9 +99,20 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
 
   // Logs & Diagnostics
   onLog: (callback) => {
-    const subscription = (event, data) => callback(data);
-    ipcRenderer.on('app:log', subscription);
-    return () => ipcRenderer.removeListener('app:log', subscription);
+    const subSingle = (event, data) => callback(data);
+    const subBatch = (event, data) => {
+      if (Array.isArray(data)) {
+        data.forEach(item => callback(item));
+      } else {
+        callback(data);
+      }
+    };
+    ipcRenderer.on('app:log', subSingle);
+    ipcRenderer.on('app:logs', subBatch);
+    return () => {
+      ipcRenderer.removeListener('app:log', subSingle);
+      ipcRenderer.removeListener('app:logs', subBatch);
+    };
   },
   getLogs: () => ipcRenderer.invoke('system:get-logs'),
   openLogFile: () => ipcRenderer.invoke('system:open-log-file'),

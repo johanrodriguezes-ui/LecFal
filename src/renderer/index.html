@@ -14,7 +14,7 @@
 <body>
   <div class="app-container">
     <!-- Top Navigation Bar -->
-    <header class="top-nav">
+    <header class="top-nav" id="topNav">
       <div class="nav-left">
         <div class="brand" id="brandHomeBtn" title="Ir a la biblioteca">
           <div class="brand-icon">
@@ -24,20 +24,6 @@
             <h1 class="brand-title">LecFal</h1>
             <span class="brand-subtitle">Tu biblioteca de mangas y comics</span>
           </div>
-        </div>
-
-        <!-- Default Folder Indicator -->
-        <div class="active-folder-badge" id="activeFolderBadge" title="Carpeta activa por defecto">
-          <svg class="folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span class="folder-name" id="currentFolderName">Sin carpeta asignada</span>
-          <button class="btn-icon-subtle" id="btnManageFolders" title="Administrar carpetas">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -55,12 +41,25 @@
               <path d="m6 6 12 12"/>
             </svg>
           </button>
+          <button class="btn-adv-search-toggle" id="btnToggleAdvSearch" title="Abrir búsqueda avanzada">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+            </svg>
+          </button>
           <span class="search-shortcut">Ctrl+F</span>
         </div>
       </div>
 
       <!-- Action Buttons -->
       <div class="nav-right">
+        <button class="btn btn-secondary btn-settings" id="btnOpenSettings" title="Configuración de la biblioteca">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span>Ajustes</span>
+        </button>
+
         <div class="scan-button-group">
           <button class="btn btn-secondary" id="btnRescan" title="Escanear cambios (archivos nuevos o modificados)">
             <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -93,14 +92,6 @@
             </button>
           </div>
         </div>
-
-        <button class="btn btn-primary" id="btnAddFolder" title="Seleccionar y escanear una nueva carpeta">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14"/>
-            <path d="M5 12h14"/>
-          </svg>
-          <span>Elegir Carpeta</span>
-        </button>
       </div>
     </header>
 
@@ -135,6 +126,75 @@
 
     <!-- ==================== VIEW 1: LIBRARY GRID VIEW ==================== -->
     <div class="view-container" id="libraryView">
+      <!-- Advanced Search Collapsible Panel -->
+      <section class="adv-search-panel" id="advSearchPanel" style="display: none;">
+        <div class="adv-search-header">
+          <div class="adv-search-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+            </svg>
+            <span>Búsqueda Avanzada</span>
+          </div>
+          <button class="btn-icon-subtle" id="btnCloseAdvSearch" title="Cerrar búsqueda avanzada">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6 6 18"/>
+              <path d="m6 6 12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="adv-search-grid">
+          <div class="adv-field">
+            <label for="advInputTitle">Título</label>
+            <input type="text" id="advInputTitle" placeholder="Buscar por título..." autocomplete="off">
+          </div>
+          <div class="adv-field">
+            <label for="advSelectAuthor">Autor</label>
+            <select id="advSelectAuthor">
+              <option value="">Todos los autores</option>
+            </select>
+          </div>
+          <div class="adv-field">
+            <label for="advSelectGroup">Grupo / Círculo</label>
+            <select id="advSelectGroup">
+              <option value="">Todos los grupos</option>
+            </select>
+          </div>
+          <div class="adv-field">
+            <label for="advSelectParody">Serie / Parodia</label>
+            <select id="advSelectParody">
+              <option value="">Todas las series / parodias</option>
+            </select>
+          </div>
+          <div class="adv-field">
+            <label for="advSelectTag">Tag / Género</label>
+            <select id="advSelectTag">
+              <option value="">Todos los tags</option>
+            </select>
+          </div>
+          <div class="adv-field">
+            <label for="advSelectLanguage">Idioma</label>
+            <select id="advSelectLanguage">
+              <option value="">Todos los idiomas</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="adv-search-footer">
+          <span class="adv-search-hint">Combina múltiples criterios para filtrar tu biblioteca.</span>
+          <div class="adv-search-actions">
+            <button class="btn btn-secondary" id="btnClearAdvSearch">Limpiar filtros</button>
+            <button class="btn btn-primary" id="btnApplyAdvSearch">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.3-4.3"/>
+              </svg>
+              <span>Buscar</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- Toolbar Bar: Filters, Sorting & Grid Sizing -->
       <section class="toolbar-bar">
         <div class="filter-group">
@@ -153,6 +213,10 @@
             </svg>
             Favoritos <span class="counter-badge" id="countFav">0</span>
           </button>
+          <div class="adv-active-badge" id="advActiveBadge" style="display: none;">
+            <span>Filtros avanzados</span>
+            <button id="btnQuickClearAdv" title="Eliminar filtros avanzados">×</button>
+          </div>
         </div>
 
         <div class="toolbar-controls-right">
@@ -307,25 +371,74 @@
               </button>
             </div>
 
-            <!-- Author & Metadata Row -->
-            <div class="manga-meta-edit-row">
+            <!-- Author Metadata Section -->
+            <div class="manga-meta-row-group" id="mangaAuthorSection">
               <span class="meta-label">Autor:</span>
-              <span class="manga-author-text" id="mangaHeroAuthor">Desconocido</span>
-              <button class="btn-text-edit" id="btnEditAuthor" title="Editar autor">
+              <div class="meta-chips-list" id="mangaAuthorsList">
+                <!-- Author chips injected dynamically -->
+              </div>
+              <button class="btn-add-meta" id="btnAddAuthor" title="Asignar autor">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                  <path d="M12 5v14"/>
+                  <path d="M5 12h14"/>
                 </svg>
-                <span>Editar</span>
+                <span>Añadir</span>
+              </button>
+              <div class="detected-author-hint" id="detectedAuthorHint" style="display: none;"></div>
+            </div>
+
+            <!-- Group / Circle Metadata Section -->
+            <div class="manga-meta-row-group" id="mangaGroupSection">
+              <span class="meta-label">Grupo:</span>
+              <div class="meta-chips-list" id="mangaGroupsList">
+                <!-- Group chips injected dynamically -->
+              </div>
+              <button class="btn-add-meta" id="btnAddGroup" title="Asignar grupo o círculo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14"/>
+                  <path d="M5 12h14"/>
+                </svg>
+                <span>Añadir</span>
+              </button>
+            </div>
+
+            <!-- Series / Parody Metadata Section -->
+            <div class="manga-meta-row-group" id="mangaParodySection">
+              <span class="meta-label">Serie / Parodia:</span>
+              <div class="meta-chips-list" id="mangaParodiesList">
+                <!-- Parody chips injected dynamically -->
+              </div>
+              <button class="btn-add-meta" id="btnAddParody" title="Asignar serie o parodia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14"/>
+                  <path d="M5 12h14"/>
+                </svg>
+                <span>Añadir</span>
+              </button>
+            </div>
+
+            <!-- Language Metadata Section -->
+            <div class="manga-meta-row-group" id="mangaLanguageSection">
+              <span class="meta-label">Idioma:</span>
+              <div class="meta-chips-list" id="mangaLanguagesList">
+                <!-- Language chips injected dynamically -->
+              </div>
+              <button class="btn-add-meta" id="btnAddLanguage" title="Asignar idioma">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14"/>
+                  <path d="M5 12h14"/>
+                </svg>
+                <span>Añadir</span>
               </button>
             </div>
 
             <!-- Tags Section -->
-            <div class="manga-tags-section">
+            <div class="manga-meta-row-group" id="mangaTagsSection">
               <span class="meta-label">Tags / Géneros:</span>
-              <div class="manga-tags-list" id="mangaTagsList">
+              <div class="meta-chips-list" id="mangaTagsList">
                 <!-- Tag chips injected dynamically -->
               </div>
-              <button class="btn-add-tag" id="btnAddTag" title="Añadir nuevo tag">
+              <button class="btn-add-meta" id="btnAddTag" title="Añadir nuevo tag">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 5v14"/>
                   <path d="M5 12h14"/>
@@ -406,6 +519,311 @@
             <!-- Chapter rows injected dynamically -->
           </div>
         </section>
+      </div>
+    </div>
+
+    <!-- ==================== VIEW 3: SETTINGS VIEW ==================== -->
+    <div class="view-container settings-view" id="settingsView" style="display: none;">
+      <!-- Settings Navigation Header -->
+      <div class="settings-nav-bar">
+        <button class="btn btn-secondary btn-back" id="btnBackFromSettings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+          <span>Biblioteca</span>
+        </button>
+        <h2 class="settings-nav-title">Configuración de la Biblioteca</h2>
+        <div style="width: 110px;"></div> <!-- visual balancer -->
+      </div>
+
+      <div class="settings-view-scrollable">
+        <div class="settings-container">
+
+          <!-- Section A: GESTIÓN DE TAGS -->
+          <section class="settings-card" id="sectionTags">
+            <div class="settings-card-header">
+              <div class="settings-card-icon-title">
+                <div class="settings-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                    <line x1="7" y1="7" x2="7.01" y2="7"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="settings-card-title">Gestión de Tags y Géneros</h3>
+                  <p class="settings-card-desc">Crea, edita y administra los tags disponibles en la biblioteca. Es la fuente única de verdad.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-card-body">
+              <!-- Create tag form -->
+              <form class="tag-create-form" id="formCreateTag">
+                <input type="text" id="inputNewTagName" placeholder="Nombre del nuevo tag (ej. Acción, Romance, Shonen)..." autocomplete="off" required>
+                <button type="submit" class="btn btn-primary" id="btnCreateTag">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Añadir Tag</span>
+                </button>
+              </form>
+
+              <!-- Tags list table/grid -->
+              <div class="settings-tags-list" id="settingsTagsList">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 2: GESTIÓN DE AUTORES -->
+          <section class="settings-card" id="sectionAuthors">
+            <div class="settings-card-header">
+              <div class="settings-card-icon-title">
+                <div class="settings-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="settings-card-title">Gestión de Autores</h3>
+                  <p class="settings-card-desc">Crea y administra el catálogo oficial de autores. Es la fuente única de verdad para asignar autores a tus mangas.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-card-body">
+              <form class="tag-create-form" id="formCreateAuthor">
+                <input type="text" id="inputNewAuthorName" placeholder="Nombre del nuevo autor (ej. Mikan Dou, Eiichiro Oda)..." autocomplete="off" required>
+                <button type="submit" class="btn btn-primary" id="btnCreateAuthor">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Añadir Autor</span>
+                </button>
+              </form>
+
+              <div class="settings-tags-list" id="settingsAuthorsList">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 3: GESTIÓN DE IDIOMAS -->
+          <section class="settings-card" id="sectionLanguages">
+            <div class="settings-card-header">
+              <div class="settings-card-icon-title">
+                <div class="settings-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="settings-card-title">Gestión de Idiomas</h3>
+                  <p class="settings-card-desc">Configura los idiomas disponibles en tu biblioteca para filtrar y clasificar mangas.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-card-body">
+              <form class="tag-create-form" id="formCreateLanguage">
+                <input type="text" id="inputNewLanguageName" placeholder="Nombre del nuevo idioma (ej. Español, Inglés, Japonés)..." autocomplete="off" required>
+                <button type="submit" class="btn btn-primary" id="btnCreateLanguage">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Añadir Idioma</span>
+                </button>
+              </form>
+
+              <div class="settings-tags-list" id="settingsLanguagesList">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 4: GESTIÓN DE SERIES / PARODIAS -->
+          <section class="settings-card" id="sectionParodies">
+            <div class="settings-card-header">
+              <div class="settings-card-icon-title">
+                <div class="settings-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="settings-card-title">Gestión de Series / Parodias</h3>
+                  <p class="settings-card-desc">Configura los universos, obras originales o parodias a las que pertenecen los mangas (ej. Original, Naruto, One Piece).</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-card-body">
+              <form class="tag-create-form" id="formCreateParody">
+                <input type="text" id="inputNewParodyName" placeholder="Nombre de la serie o parodia (ej. Original, Naruto)..." autocomplete="off" required>
+                <button type="submit" class="btn btn-primary" id="btnCreateParody">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Añadir Serie / Parodia</span>
+                </button>
+              </form>
+
+              <div class="settings-tags-list" id="settingsParodiesList">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 5: GESTIÓN DE GRUPOS / CÍRCULOS -->
+          <section class="settings-card" id="sectionGroups">
+            <div class="settings-card-header">
+              <div class="settings-card-icon-title">
+                <div class="settings-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="settings-card-title">Gestión de Grupos</h3>
+                  <p class="settings-card-desc">Crea y administra el catálogo oficial de grupos, círculos o colectivos de autores para tus mangas.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-card-body">
+              <form class="tag-create-form" id="formCreateGroup">
+                <input type="text" id="inputNewGroupName" placeholder="Nombre del nuevo grupo (ej. Studio X, Circle A)..." autocomplete="off" required>
+                <button type="submit" class="btn btn-primary" id="btnCreateGroup">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Añadir Grupo</span>
+                </button>
+              </form>
+
+              <div class="settings-tags-list" id="settingsGroupsList">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 6: CARPETAS DE LA BIBLIOTECA -->
+          <section class="settings-card" id="sectionFolders">
+            <div class="settings-card-header">
+              <div class="settings-card-icon-title">
+                <div class="settings-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="settings-card-title">Carpetas de la Biblioteca</h3>
+                  <p class="settings-card-desc">Gestiona directorios locales, en discos externos o volúmenes montados con VeraCrypt.</p>
+                </div>
+              </div>
+              <div class="settings-card-actions">
+                <button class="btn btn-secondary" id="btnSettingsScanAll" title="Escanear todas las carpetas disponibles">
+                  <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                    <path d="M16 21h5v-5"/>
+                  </svg>
+                  <span>Escanear Todo</span>
+                </button>
+                <button class="btn btn-primary" id="btnSettingsAddFolder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Añadir Carpeta</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="settings-card-body">
+              <div class="settings-folders-list" id="settingsFoldersList">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 6: APARIENCIA -->
+          <section class="settings-card" id="sectionAppearance">
+            <div class="settings-card-header">
+              <div class="settings-card-icon-title">
+                <div class="settings-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="settings-card-title">Apariencia y Tema</h3>
+                  <p class="settings-card-desc">Elige el tema de la aplicación. Tu preferencia se aplica al instante y persiste al reiniciar.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-card-body">
+              <div class="theme-options-grid">
+                <div class="theme-card active" data-theme-value="dark" id="themeOptDark">
+                  <div class="theme-card-preview theme-preview-dark">
+                    <div class="preview-header"></div>
+                    <div class="preview-cards">
+                      <div class="preview-card"></div>
+                      <div class="preview-card"></div>
+                    </div>
+                  </div>
+                  <div class="theme-card-info">
+                    <div class="theme-card-label">
+                      <span class="theme-name">Modo Oscuro</span>
+                      <span class="theme-desc">Tema original púrpura y negro</span>
+                    </div>
+                    <span class="theme-card-badge">Activo</span>
+                  </div>
+                </div>
+
+                <div class="theme-card" data-theme-value="light" id="themeOptLight">
+                  <div class="theme-card-preview theme-preview-light">
+                    <div class="preview-header"></div>
+                    <div class="preview-cards">
+                      <div class="preview-card"></div>
+                      <div class="preview-card"></div>
+                    </div>
+                  </div>
+                  <div class="theme-card-info">
+                    <div class="theme-card-label">
+                      <span class="theme-name">Modo Claro</span>
+                      <span class="theme-desc">Estilo luminoso y limpio</span>
+                    </div>
+                    <span class="theme-card-badge" style="display: none;">Activo</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
       </div>
     </div>
 
@@ -531,6 +949,79 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btnCancelEditField">Cancelar</button>
         <button class="btn btn-primary" id="btnSaveEditField">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated Metadata Rename Modal -->
+  <div class="modal-backdrop" id="modalRenameMetadata" style="display: none;">
+    <div class="modal-card modal-small-card">
+      <div class="modal-header">
+        <h3 id="renameModalTitle">Renombrar</h3>
+        <button class="modal-close-btn" id="btnCloseRenameModal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label id="renameModalLabel" class="control-label">Nuevo nombre:</label>
+        <input type="text" id="renameModalInput" class="standard-input" autocomplete="off">
+        <div id="renameModalError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelRenameModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmRenameModal">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Centralized Metadata Catalog Picker Modal (Tags, Authors, Groups, Languages, Parodies) -->
+  <div class="modal-backdrop" id="modalCatalogPicker" style="display: none;">
+    <div class="modal-card modal-tag-picker-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg class="modal-icon" id="modalCatalogPickerIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+          <h3 id="modalCatalogPickerTitle">Asignar Metadatos</h3>
+        </div>
+        <button class="modal-close-btn" id="btnCloseCatalogPicker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description" id="modalCatalogPickerDesc">
+          Selecciona los elementos que deseas asignar a este manga. Todos los valores provienen de la configuración centralizada de la biblioteca.
+        </p>
+
+        <div class="tag-picker-filter-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input type="text" id="inputFilterCatalogPicker" placeholder="Filtrar valores disponibles..." autocomplete="off">
+        </div>
+
+        <div class="tag-picker-chips-container" id="catalogPickerChipsContainer">
+          <!-- Chips injected dynamically -->
+        </div>
+
+        <div class="tag-picker-empty" id="catalogPickerEmpty" style="display: none;">
+          <p id="catalogPickerEmptyText">No hay elementos creados aún en la biblioteca.</p>
+          <button class="btn btn-secondary" id="btnGoToSettingsFromPicker">Ir a Ajustes para crearlos</button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelCatalogPicker">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveCatalogPicker">Guardar Cambios</button>
       </div>
     </div>
   </div>

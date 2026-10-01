@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "reset-data": "rm -rf ~/.config/lecfal",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

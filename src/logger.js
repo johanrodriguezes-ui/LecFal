@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const storage = require('./storage');
 
 class AppLogger {
   constructor() {
@@ -7,14 +8,25 @@ class AppLogger {
     this.memoryLogs = [];
     this.maxMemoryLogs = 500;
     this.webContents = null;
+    this.pendingUILogs = [];
+    this.uiFlushTimer = null;
   }
 
-  init(userDataPath) {
-    this.logFilePath = path.join(userDataPath, 'lecfal.log');
+  init(logTarget) {
+    if (logTarget) {
+      if (path.extname(logTarget) === '.log') {
+        this.logFilePath = logTarget;
+      } else {
+        this.logFilePath = path.join(logTarget, 'lecfal.log');
+      }
+    } else {
+      this.logFilePath = storage.getLogFilePath();
+    }
+
     try {
-      // Create or truncate/ensure log file exists
-      if (!fs.existsSync(userDataPath)) {
-        fs.mkdirSync(userDataPath, { recursive: true });
+      const logDir = path.dirname(this.logFilePath);
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
       }
       fs.appendFileSync(this.logFilePath, `\n=== LecFal Sesión iniciada: ${new Date().toISOString()} ===\n`);
     } catch (e) {
@@ -24,6 +36,21 @@ class AppLogger {
 
   setWebContents(webContents) {
     this.webContents = webContents;
+  }
+
+  flushUILogs() {
+    this.uiFlushTimer = null;
+    if (!this.webContents || this.webContents.isDestroyed() || this.pendingUILogs.length === 0) {
+      this.pendingUILogs = [];
+      return;
+    }
+    const batch = this.pendingUILogs;
+    this.pendingUILogs = [];
+    try {
+      this.webContents.send('app:logs', batch);
+    } catch (err) {
+      // window closed or navigating
+    }
   }
 
   log(level, tag, message, meta = null) {
@@ -48,12 +75,13 @@ class AppLogger {
     // Write to file
     this.appendToFile(logEntry);
 
-    // Send to UI if window is open
+    // Send to UI with batching (avoids flooding IPC during high-volume scans)
     if (this.webContents && !this.webContents.isDestroyed()) {
-      try {
-        this.webContents.send('app:log', logEntry);
-      } catch (err) {
-        // window closed or navigating
+      this.pendingUILogs.push(logEntry);
+      if (!this.uiFlushTimer) {
+        this.uiFlushTimer = setTimeout(() => {
+          this.flushUILogs();
+        }, 100);
       }
     }
   }
@@ -113,6 +141,11 @@ class AppLogger {
 
   clearLogs() {
     this.memoryLogs = [];
+    this.pendingUILogs = [];
+    if (this.uiFlushTimer) {
+      clearTimeout(this.uiFlushTimer);
+      this.uiFlushTimer = null;
+    }
     if (this.logFilePath && fs.existsSync(this.logFilePath)) {
       try {
         fs.writeFileSync(this.logFilePath, `=== Logs reiniciados: ${new Date().toISOString()} ===\n`);

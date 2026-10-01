@@ -14,21 +14,54 @@ let currentFilter = 'all';
 let searchQuery = '';
 let currentSort = 'title_asc';
 let isScanning = false;
+let isCancelling = false;
 
-// Current Active View: 'library' or 'manga'
+// Current Active View: 'library', 'manga', or 'settings'
 let currentView = 'library';
 let activeSeries = null;
 let activeChapters = [];
 let currentChapterSort = 'asc'; // 'asc' or 'desc'
 let chapterFilterText = '';
 
+// Advanced Search State
+let activeAdvFilters = {
+  title: '',
+  author: '',
+  authorId: '',
+  group: '',
+  groupId: '',
+  parody: '',
+  parodyId: '',
+  tag: '',
+  tagId: '',
+  language: '',
+  languageId: ''
+};
+
+// Centralized Metadata & Catalog Picker State
+let availableTags = [];
+let availableAuthors = [];
+let availableGroups = [];
+let availableLanguages = [];
+let availableParodies = [];
+
+let currentPickerType = 'tag'; // 'tag' | 'author' | 'group' | 'language' | 'parody'
+let pickerSelectedIds = new Set();
+let pickerSearchText = '';
+let currentPickerCatalog = [];
+
 // Edit Field Modal State
-let currentEditField = null; // 'title' or 'author'
+let currentEditField = null; // 'title'
+
+// Dedicated Metadata Rename Modal State
+let pendingRenameConfig = null; // { type, id, currentName, typeLabel }
 
 // ==================== DOM ELEMENTS ====================
 // Views
+const topNav = document.getElementById('topNav');
 const libraryView = document.getElementById('libraryView');
 const mangaView = document.getElementById('mangaView');
+const settingsView = document.getElementById('settingsView');
 const navSearchContainer = document.getElementById('navSearchContainer');
 const brandHomeBtn = document.getElementById('brandHomeBtn');
 
@@ -41,6 +74,64 @@ const btnAddFolder = document.getElementById('btnAddFolder');
 const btnRescan = document.getElementById('btnRescan');
 const btnSelectInitialFolder = document.getElementById('btnSelectInitialFolder');
 const btnResetFilters = document.getElementById('btnResetFilters');
+
+// Settings Navigation & Sections
+const btnOpenSettings = document.getElementById('btnOpenSettings');
+const btnBackFromSettings = document.getElementById('btnBackFromSettings');
+
+// Settings: Tags
+const formCreateTag = document.getElementById('formCreateTag');
+const inputNewTagName = document.getElementById('inputNewTagName');
+const btnCreateTag = document.getElementById('btnCreateTag');
+const settingsTagsList = document.getElementById('settingsTagsList');
+
+// Settings: Authors
+const formCreateAuthor = document.getElementById('formCreateAuthor');
+const inputNewAuthorName = document.getElementById('inputNewAuthorName');
+const btnCreateAuthor = document.getElementById('btnCreateAuthor');
+const settingsAuthorsList = document.getElementById('settingsAuthorsList');
+
+// Settings: Groups
+const formCreateGroup = document.getElementById('formCreateGroup');
+const inputNewGroupName = document.getElementById('inputNewGroupName');
+const btnCreateGroup = document.getElementById('btnCreateGroup');
+const settingsGroupsList = document.getElementById('settingsGroupsList');
+
+// Settings: Languages
+const formCreateLanguage = document.getElementById('formCreateLanguage');
+const inputNewLanguageName = document.getElementById('inputNewLanguageName');
+const btnCreateLanguage = document.getElementById('btnCreateLanguage');
+const settingsLanguagesList = document.getElementById('settingsLanguagesList');
+
+// Settings: Series / Parodies
+const formCreateParody = document.getElementById('formCreateParody');
+const inputNewParodyName = document.getElementById('inputNewParodyName');
+const btnCreateParody = document.getElementById('btnCreateParody');
+const settingsParodiesList = document.getElementById('settingsParodiesList');
+
+// Settings: Appearance
+const themeOptDark = document.getElementById('themeOptDark');
+const themeOptLight = document.getElementById('themeOptLight');
+
+// Settings: Folders
+const settingsFoldersList = document.getElementById('settingsFoldersList');
+const btnSettingsScanAll = document.getElementById('btnSettingsScanAll');
+const btnSettingsAddFolder = document.getElementById('btnSettingsAddFolder');
+
+// Advanced Search Elements
+const btnToggleAdvSearch = document.getElementById('btnToggleAdvSearch');
+const advSearchPanel = document.getElementById('advSearchPanel');
+const btnCloseAdvSearch = document.getElementById('btnCloseAdvSearch');
+const advInputTitle = document.getElementById('advInputTitle');
+const advSelectAuthor = document.getElementById('advSelectAuthor');
+const advSelectGroup = document.getElementById('advSelectGroup');
+const advSelectParody = document.getElementById('advSelectParody');
+const advSelectTag = document.getElementById('advSelectTag');
+const advSelectLanguage = document.getElementById('advSelectLanguage');
+const btnApplyAdvSearch = document.getElementById('btnApplyAdvSearch');
+const btnClearAdvSearch = document.getElementById('btnClearAdvSearch');
+const advActiveBadge = document.getElementById('advActiveBadge');
+const btnQuickClearAdv = document.getElementById('btnQuickClearAdv');
 
 // Grid controls
 const comicsGrid = document.getElementById('comicsGrid');
@@ -81,8 +172,18 @@ const mangaHeroTitle = document.getElementById('mangaHeroTitle');
 const btnEditTitle = document.getElementById('btnEditTitle');
 const btnMangaFav = document.getElementById('btnMangaFav');
 
-const mangaHeroAuthor = document.getElementById('mangaHeroAuthor');
-const btnEditAuthor = document.getElementById('btnEditAuthor');
+const mangaAuthorsList = document.getElementById('mangaAuthorsList');
+const btnAddAuthor = document.getElementById('btnAddAuthor');
+const detectedAuthorHint = document.getElementById('detectedAuthorHint');
+
+const mangaGroupsList = document.getElementById('mangaGroupsList');
+const btnAddGroup = document.getElementById('btnAddGroup');
+
+const mangaParodiesList = document.getElementById('mangaParodiesList');
+const btnAddParody = document.getElementById('btnAddParody');
+
+const mangaLanguagesList = document.getElementById('mangaLanguagesList');
+const btnAddLanguage = document.getElementById('btnAddLanguage');
 
 const mangaTagsList = document.getElementById('mangaTagsList');
 const btnAddTag = document.getElementById('btnAddTag');
@@ -120,6 +221,29 @@ const btnCloseEditFieldModal = document.getElementById('btnCloseEditFieldModal')
 const btnCancelEditField = document.getElementById('btnCancelEditField');
 const btnSaveEditField = document.getElementById('btnSaveEditField');
 
+// Dedicated Metadata Rename Modal
+const modalRenameMetadata = document.getElementById('modalRenameMetadata');
+const renameModalTitle = document.getElementById('renameModalTitle');
+const renameModalLabel = document.getElementById('renameModalLabel');
+const renameModalInput = document.getElementById('renameModalInput');
+const renameModalError = document.getElementById('renameModalError');
+const btnCloseRenameModal = document.getElementById('btnCloseRenameModal');
+const btnCancelRenameModal = document.getElementById('btnCancelRenameModal');
+const btnConfirmRenameModal = document.getElementById('btnConfirmRenameModal');
+
+// Centralized Catalog Picker Modal
+const modalCatalogPicker = document.getElementById('modalCatalogPicker');
+const modalCatalogPickerTitle = document.getElementById('modalCatalogPickerTitle');
+const modalCatalogPickerDesc = document.getElementById('modalCatalogPickerDesc');
+const btnCloseCatalogPicker = document.getElementById('btnCloseCatalogPicker');
+const btnCancelCatalogPicker = document.getElementById('btnCancelCatalogPicker');
+const btnSaveCatalogPicker = document.getElementById('btnSaveCatalogPicker');
+const inputFilterCatalogPicker = document.getElementById('inputFilterCatalogPicker');
+const catalogPickerChipsContainer = document.getElementById('catalogPickerChipsContainer');
+const catalogPickerEmpty = document.getElementById('catalogPickerEmpty');
+const catalogPickerEmptyText = document.getElementById('catalogPickerEmptyText');
+const btnGoToSettingsFromPicker = document.getElementById('btnGoToSettingsFromPicker');
+
 // Logs & Toast
 const toastNotification = document.getElementById('toastNotification');
 const toastMessage = document.getElementById('toastMessage');
@@ -137,7 +261,12 @@ let logCount = 0;
 async function init() {
   setupEventListeners();
   setupScanProgressListener();
+  setupScanStatusListener();
   setupLogging();
+
+  // Load theme preference
+  const savedTheme = await window.lecfalAPI.getSetting('theme', 'dark');
+  applyTheme(savedTheme, false);
 
   // Load saved preferences
   const savedSize = await window.lecfalAPI.getSetting('grid_size', 185);
@@ -146,6 +275,9 @@ async function init() {
   const savedSort = await window.lecfalAPI.getSetting('sort_order', 'title_asc');
   currentSort = savedSort;
   sortSelect.value = savedSort;
+
+  // Load options for advanced search dropdowns
+  await populateAdvSearchOptions();
 
   // Load folders & series
   await refreshFolders();
@@ -157,15 +289,17 @@ function setupEventListeners() {
   // Navigation
   brandHomeBtn.addEventListener('click', navigateToLibrary);
   btnBackToLibrary.addEventListener('click', navigateToLibrary);
+  btnOpenSettings?.addEventListener('click', openSettingsView);
+  btnBackFromSettings?.addEventListener('click', navigateToLibrary);
 
   // Folder management
-  btnAddFolder.addEventListener('click', handleAddFolder);
-  btnSelectInitialFolder.addEventListener('click', handleAddFolder);
-  btnAddAnotherFolder.addEventListener('click', handleAddFolder);
-  btnRescan.addEventListener('click', handleRescan);
-  btnManageFolders.addEventListener('click', () => openFoldersModal());
-  btnCloseModalFolders.addEventListener('click', () => closeFoldersModal());
-  btnModalCloseDone.addEventListener('click', () => closeFoldersModal());
+  btnAddFolder?.addEventListener('click', handleAddFolder);
+  btnSelectInitialFolder?.addEventListener('click', handleAddFolder);
+  btnAddAnotherFolder?.addEventListener('click', handleAddFolder);
+  btnRescan?.addEventListener('click', handleRescan);
+  btnManageFolders?.addEventListener('click', () => openFoldersModal());
+  btnCloseModalFolders?.addEventListener('click', () => closeFoldersModal());
+  btnModalCloseDone?.addEventListener('click', () => closeFoldersModal());
 
   // Scan modes dropdown & cancel
   if (btnScanMenu && scanDropdownMenu) {
@@ -195,10 +329,18 @@ function setupEventListeners() {
   }
 
   btnCancelScan?.addEventListener('click', async () => {
-    if (isScanning) {
+    if (isScanning && !isCancelling) {
+      isCancelling = true;
       btnCancelScan.disabled = true;
       btnCancelScan.innerHTML = '<span>Cancelando...</span>';
-      await window.lecfalAPI.cancelScan();
+      scanBannerTitle.textContent = 'Cancelando escaneo...';
+      scanBannerFile.textContent = 'Deteniendo procesos y guardando progreso...';
+      scanProgressBanner.classList.add('cancelling');
+      try {
+        await window.lecfalAPI.cancelScan();
+      } catch (err) {
+        console.error('Error al solicitar cancelación:', err);
+      }
     }
   });
 
@@ -223,7 +365,72 @@ function setupEventListeners() {
     currentFilter = 'all';
     filterChips.forEach(c => c.classList.remove('active'));
     document.querySelector('.filter-chip[data-filter="all"]').classList.add('active');
-    refreshSeries();
+    handleClearAdvancedSearch();
+  });
+
+  // Advanced Search Controls
+  btnToggleAdvSearch?.addEventListener('click', () => toggleAdvancedSearchPanel());
+  btnCloseAdvSearch?.addEventListener('click', () => toggleAdvancedSearchPanel(false));
+  btnApplyAdvSearch?.addEventListener('click', handleApplyAdvancedSearch);
+  btnClearAdvSearch?.addEventListener('click', handleClearAdvancedSearch);
+  btnQuickClearAdv?.addEventListener('click', handleClearAdvancedSearch);
+
+  advInputTitle?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleApplyAdvancedSearch();
+    }
+  });
+  advSelectAuthor?.addEventListener('change', handleApplyAdvancedSearch);
+  advSelectGroup?.addEventListener('change', handleApplyAdvancedSearch);
+  advSelectParody?.addEventListener('change', handleApplyAdvancedSearch);
+  advSelectTag?.addEventListener('change', handleApplyAdvancedSearch);
+  advSelectLanguage?.addEventListener('change', handleApplyAdvancedSearch);
+
+  // Settings Actions
+  formCreateTag?.addEventListener('submit', handleCreateTag);
+  formCreateAuthor?.addEventListener('submit', handleCreateAuthor);
+  formCreateGroup?.addEventListener('submit', handleCreateGroup);
+  formCreateLanguage?.addEventListener('submit', handleCreateLanguage);
+  formCreateParody?.addEventListener('submit', handleCreateParody);
+  themeOptDark?.addEventListener('click', () => applyTheme('dark'));
+  themeOptLight?.addEventListener('click', () => applyTheme('light'));
+  btnSettingsScanAll?.addEventListener('click', () => runAllScan('incremental'));
+  btnSettingsAddFolder?.addEventListener('click', async () => {
+    await handleAddFolder();
+    await renderSettingsFolders();
+  });
+
+  // Dedicated Rename Metadata Modal Controls
+  btnCloseRenameModal?.addEventListener('click', closeRenameModal);
+  btnCancelRenameModal?.addEventListener('click', closeRenameModal);
+  btnConfirmRenameModal?.addEventListener('click', handleConfirmRename);
+  renameModalInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleConfirmRename();
+    } else if (e.key === 'Escape') {
+      closeRenameModal();
+    }
+  });
+  modalRenameMetadata?.addEventListener('click', (e) => {
+    if (e.target === modalRenameMetadata) closeRenameModal();
+  });
+
+  // Universal Catalog Picker Modal Controls
+  btnCloseCatalogPicker?.addEventListener('click', closeCatalogPickerModal);
+  btnCancelCatalogPicker?.addEventListener('click', closeCatalogPickerModal);
+  btnSaveCatalogPicker?.addEventListener('click', handleSaveCatalogPicker);
+  btnGoToSettingsFromPicker?.addEventListener('click', () => {
+    closeCatalogPickerModal();
+    openSettingsView();
+  });
+  inputFilterCatalogPicker?.addEventListener('input', (e) => {
+    pickerSearchText = e.target.value.trim();
+    renderCatalogPickerChips();
+  });
+  modalCatalogPicker?.addEventListener('click', (e) => {
+    if (e.target === modalCatalogPicker) closeCatalogPickerModal();
   });
 
   // Filter chips
@@ -292,15 +499,35 @@ function setupEventListeners() {
   });
 
   // Edit title
-  btnEditTitle.addEventListener('click', () => {
+  btnEditTitle?.addEventListener('click', () => {
     if (!activeSeries) return;
     openEditFieldModal('title', 'Renombrar Manga', 'Nuevo título para este manga:', activeSeries.title);
   });
 
-  // Edit author
-  btnEditAuthor.addEventListener('click', () => {
+  // Assign metadata buttons (open centralized catalog picker)
+  btnAddAuthor?.addEventListener('click', async () => {
     if (!activeSeries) return;
-    openEditFieldModal('author', 'Editar Autor', 'Nombre del autor o creador:', activeSeries.author === 'Desconocido' ? '' : activeSeries.author);
+    await openCatalogPicker('author');
+  });
+
+  btnAddGroup?.addEventListener('click', async () => {
+    if (!activeSeries) return;
+    await openCatalogPicker('group');
+  });
+
+  btnAddParody?.addEventListener('click', async () => {
+    if (!activeSeries) return;
+    await openCatalogPicker('parody');
+  });
+
+  btnAddLanguage?.addEventListener('click', async () => {
+    if (!activeSeries) return;
+    await openCatalogPicker('language');
+  });
+
+  btnAddTag?.addEventListener('click', async () => {
+    if (!activeSeries) return;
+    await openCatalogPicker('tag');
   });
 
   // Edit description
@@ -329,27 +556,6 @@ function setupEventListeners() {
     descEditorContainer.style.display = 'none';
     mangaHeroDesc.style.display = 'block';
     showToast('Descripción guardada');
-  });
-
-  // Add tag
-  btnAddTag.addEventListener('click', async () => {
-    if (!activeSeries) return;
-    const tag = prompt('Introduce el nombre del tag o género (ej. Acción, Shonen, Romance):');
-    if (tag && tag.trim()) {
-      const cleanTag = tag.trim();
-      const currentTags = activeSeries.tags ? activeSeries.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-      if (!currentTags.includes(cleanTag)) {
-        currentTags.push(cleanTag);
-        const updatedTagsStr = currentTags.join(', ');
-        await window.lecfalAPI.updateSeriesMetadata({
-          seriesId: activeSeries.id,
-          tags: updatedTagsStr
-        });
-        activeSeries.tags = updatedTagsStr;
-        renderMangaTags(currentTags);
-        showToast(`Tag "${cleanTag}" añadido`);
-      }
-    }
   });
 
   // Chapter list controls
@@ -404,14 +610,17 @@ function setupEventListeners() {
       }
     }
     if (e.key === 'Escape') {
-      if (modalEditField.style.display !== 'none') closeEditFieldModal();
+      if (modalCatalogPicker && modalCatalogPicker.style.display !== 'none') closeCatalogPickerModal();
+      else if (modalEditField.style.display !== 'none') closeEditFieldModal();
       else if (modalFolders.style.display !== 'none') closeFoldersModal();
+      else if (advSearchPanel && advSearchPanel.style.display !== 'none') toggleAdvancedSearchPanel(false);
+      else if (currentView === 'settings') navigateToLibrary();
       else if (currentView === 'manga') navigateToLibrary();
-      else if (searchQuery) {
+      else if (searchQuery || hasActiveAdvFilters()) {
         searchInput.value = '';
         searchQuery = '';
         clearSearchBtn.style.display = 'none';
-        refreshSeries();
+        handleClearAdvancedSearch();
       }
     }
   });
@@ -420,7 +629,9 @@ function setupEventListeners() {
 // ==================== VIEW NAVIGATION ====================
 function navigateToLibrary() {
   currentView = 'library';
+  if (topNav) topNav.style.display = 'flex';
   mangaView.style.display = 'none';
+  if (settingsView) settingsView.style.display = 'none';
   libraryView.style.display = 'flex';
   navSearchContainer.style.visibility = 'visible';
   activeSeries = null;
@@ -430,7 +641,9 @@ function navigateToLibrary() {
 
 async function openMangaView(seriesId) {
   currentView = 'manga';
+  if (topNav) topNav.style.display = 'none';
   libraryView.style.display = 'none';
+  if (settingsView) settingsView.style.display = 'none';
   mangaView.style.display = 'flex';
   navSearchContainer.style.visibility = 'hidden';
 
@@ -452,30 +665,59 @@ async function openMangaView(seriesId) {
 
   // Render hero
   mangaHeroTitle.textContent = activeSeries.title;
-  mangaHeroAuthor.textContent = activeSeries.author || 'Desconocido';
   mangaHeroDesc.textContent = activeSeries.description || 'Sin descripción';
   mangaHeroFormatBadge.textContent = (activeSeries.primary_format || 'CBZ').toUpperCase();
   mangaHeroFormatBadge.className = `manga-hero-format-badge badge-${activeSeries.primary_format || 'cbz'}`;
 
   if (activeSeries.cover_path) {
-    mangaHeroCoverImg.src = `lecfal-cover://${encodeURIComponent(activeSeries.cover_path)}`;
+    mangaHeroCoverImg.src = getCoverUrl(activeSeries.cover_path);
     mangaHeroCoverImg.style.display = 'block';
+    mangaHeroCoverImg.onerror = () => {
+      console.warn(`[LecFal UI] Fallo al cargar portada hero para "${activeSeries.title}" (${activeSeries.cover_path})`);
+      mangaHeroCoverImg.style.display = 'none';
+    };
   } else {
     mangaHeroCoverImg.style.display = 'none';
   }
 
   updateFavButtonState(btnMangaFav, activeSeries.favorite === 1);
 
-  // Render tags
-  const tagsArray = activeSeries.tags ? activeSeries.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-  renderMangaTags(tagsArray);
+  // Render metadata chips
+  renderMangaAuthorsFromSeries(activeSeries);
+  renderMangaGroupsFromSeries(activeSeries);
+  renderMangaParodiesFromSeries(activeSeries);
+  renderMangaLanguagesFromSeries(activeSeries);
+  renderMangaTagsFromSeries(activeSeries);
 
   // Render chapters
   renderChaptersList();
   updateChapterCounters();
 
   // Scroll to top
-  document.querySelector('.manga-view-scrollable').scrollTop = 0;
+  const scrollable = document.querySelector('.manga-view-scrollable');
+  if (scrollable) scrollable.scrollTop = 0;
+}
+
+async function openSettingsView() {
+  currentView = 'settings';
+  if (topNav) topNav.style.display = 'none';
+  libraryView.style.display = 'none';
+  mangaView.style.display = 'none';
+  if (settingsView) settingsView.style.display = 'flex';
+  navSearchContainer.style.visibility = 'hidden';
+
+  // Load and render all 5 metadata catalogs + folders
+  await Promise.all([
+    renderSettingsTags(),
+    renderSettingsAuthors(),
+    renderSettingsGroups(),
+    renderSettingsLanguages(),
+    renderSettingsParodies(),
+    renderSettingsFolders()
+  ]);
+
+  const scrollable = document.querySelector('.settings-view-scrollable');
+  if (scrollable) scrollable.scrollTop = 0;
 }
 
 async function reloadActiveSeries() {
@@ -487,36 +729,270 @@ async function reloadActiveSeries() {
   if (data) {
     activeSeries = data;
     activeChapters = data.chapters || [];
+    renderMangaAuthorsFromSeries(activeSeries);
+    renderMangaGroupsFromSeries(activeSeries);
+    renderMangaParodiesFromSeries(activeSeries);
+    renderMangaLanguagesFromSeries(activeSeries);
+    renderMangaTagsFromSeries(activeSeries);
     renderChaptersList();
     updateChapterCounters();
   }
 }
 
-function renderMangaTags(tagsArray) {
+function renderMangaAuthorsFromSeries(series) {
+  if (!mangaAuthorsList) return;
+  mangaAuthorsList.innerHTML = '';
+  const authors = series.authors_list || [];
+
+  if (authors.length === 0) {
+    const emptySpan = document.createElement('span');
+    emptySpan.textContent = series.author || 'Desconocido';
+    emptySpan.style.color = 'var(--text-muted)';
+    emptySpan.style.fontSize = '0.85rem';
+    mangaAuthorsList.appendChild(emptySpan);
+  } else {
+    authors.forEach(a => {
+      const chip = document.createElement('span');
+      chip.className = 'manga-meta-chip';
+      chip.innerHTML = `
+        <span>${escapeHtml(a.name)}</span>
+        <button class="btn-remove-chip" data-id="${a.id}" title="Eliminar autor de este manga">×</button>
+      `;
+      chip.querySelector('.btn-remove-chip').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleRemoveAuthorFromSeries(a.id);
+      });
+      mangaAuthorsList.appendChild(chip);
+    });
+  }
+
+  // Handle detected author hint
+  if (detectedAuthorHint) {
+    const detected = (series.detected_author || '').trim();
+    const alreadyAssigned = authors.some(a => a.name.toLowerCase() === detected.toLowerCase());
+    if (detected && !alreadyAssigned) {
+      detectedAuthorHint.innerHTML = `
+        <span>Detectado en carpeta: <strong>"${escapeHtml(detected)}"</strong></span>
+        <button type="button" class="hint-btn" id="btnQuickAddDetectedAuthor">Añadir a Ajustes</button>
+      `;
+      detectedAuthorHint.style.display = 'inline-flex';
+      const btnQuick = detectedAuthorHint.querySelector('#btnQuickAddDetectedAuthor');
+      if (btnQuick) {
+        btnQuick.addEventListener('click', async () => {
+          try {
+            await window.lecfalAPI.createAuthor(detected);
+            showToast(`Autor "${detected}" creado y asignado`);
+            await reloadActiveSeries();
+            await populateAdvSearchOptions();
+          } catch (err) {
+            showToast(err.message);
+          }
+        });
+      }
+    } else {
+      detectedAuthorHint.style.display = 'none';
+      detectedAuthorHint.innerHTML = '';
+    }
+  }
+}
+
+async function handleRemoveAuthorFromSeries(authorId) {
+  if (!activeSeries) return;
+  const currentList = activeSeries.authors_list || [];
+  const remainingIds = currentList.filter(a => a.id !== authorId).map(a => a.id);
+  const updated = await window.lecfalAPI.setSeriesAuthors({
+    seriesId: activeSeries.id,
+    authorIds: remainingIds
+  });
+  activeSeries.authors_list = updated;
+  activeSeries.author = updated.length > 0 ? updated.map(a => a.name).join(', ') : 'Desconocido';
+  renderMangaAuthorsFromSeries(activeSeries);
+  refreshSeries();
+  showToast('Autor desvinculado de este manga');
+}
+
+function renderMangaGroupsFromSeries(series) {
+  if (!mangaGroupsList) return;
+  mangaGroupsList.innerHTML = '';
+  const groups = series.groups_list || [];
+
+  if (groups.length === 0) {
+    const emptySpan = document.createElement('span');
+    emptySpan.textContent = series.group_name || series.group || 'Sin grupo / círculo';
+    emptySpan.style.color = 'var(--text-muted)';
+    emptySpan.style.fontSize = '0.85rem';
+    mangaGroupsList.appendChild(emptySpan);
+  } else {
+    groups.forEach(g => {
+      const chip = document.createElement('span');
+      chip.className = 'manga-meta-chip';
+      chip.innerHTML = `
+        <span>${escapeHtml(g.name)}</span>
+        <button class="btn-remove-chip" data-id="${g.id}" title="Eliminar grupo de este manga">×</button>
+      `;
+      chip.querySelector('.btn-remove-chip').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleRemoveGroupFromSeries(g.id);
+      });
+      mangaGroupsList.appendChild(chip);
+    });
+  }
+}
+
+async function handleRemoveGroupFromSeries(groupId) {
+  if (!activeSeries) return;
+  const currentList = activeSeries.groups_list || [];
+  const remainingIds = currentList.filter(g => g.id !== groupId).map(g => g.id);
+  const updated = await window.lecfalAPI.setSeriesGroups({
+    seriesId: activeSeries.id,
+    groupIds: remainingIds
+  });
+  activeSeries.groups_list = updated;
+  activeSeries.group = updated.length > 0 ? updated.map(g => g.name).join(', ') : 'Sin grupo / círculo';
+  activeSeries.group_name = activeSeries.group;
+  renderMangaGroupsFromSeries(activeSeries);
+  refreshSeries();
+  showToast('Grupo desvinculado de este manga');
+}
+
+function renderMangaParodiesFromSeries(series) {
+  if (!mangaParodiesList) return;
+  mangaParodiesList.innerHTML = '';
+  const parodies = series.parodies_list || [];
+
+  if (parodies.length === 0) {
+    const emptySpan = document.createElement('span');
+    emptySpan.textContent = series.parody || 'Sin serie / parodia';
+    emptySpan.style.color = 'var(--text-muted)';
+    emptySpan.style.fontSize = '0.85rem';
+    mangaParodiesList.appendChild(emptySpan);
+  } else {
+    parodies.forEach(p => {
+      const chip = document.createElement('span');
+      chip.className = 'manga-meta-chip';
+      chip.innerHTML = `
+        <span>${escapeHtml(p.name)}</span>
+        <button class="btn-remove-chip" data-id="${p.id}" title="Eliminar serie de este manga">×</button>
+      `;
+      chip.querySelector('.btn-remove-chip').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleRemoveParodyFromSeries(p.id);
+      });
+      mangaParodiesList.appendChild(chip);
+    });
+  }
+}
+
+async function handleRemoveParodyFromSeries(parodyId) {
+  if (!activeSeries) return;
+  const currentList = activeSeries.parodies_list || [];
+  const remainingIds = currentList.filter(p => p.id !== parodyId).map(p => p.id);
+  const updated = await window.lecfalAPI.setSeriesParodies({
+    seriesId: activeSeries.id,
+    parodyIds: remainingIds
+  });
+  activeSeries.parodies_list = updated;
+  activeSeries.parody = updated.map(p => p.name).join(', ');
+  renderMangaParodiesFromSeries(activeSeries);
+  refreshSeries();
+  showToast('Serie / Parodia desvinculada de este manga');
+}
+
+function renderMangaLanguagesFromSeries(series) {
+  if (!mangaLanguagesList) return;
+  mangaLanguagesList.innerHTML = '';
+  const langs = series.languages_list || [];
+
+  if (langs.length === 0) {
+    const emptySpan = document.createElement('span');
+    emptySpan.textContent = series.language || 'Sin idioma asignado';
+    emptySpan.style.color = 'var(--text-muted)';
+    emptySpan.style.fontSize = '0.85rem';
+    mangaLanguagesList.appendChild(emptySpan);
+  } else {
+    langs.forEach(l => {
+      const chip = document.createElement('span');
+      chip.className = 'manga-meta-chip';
+      chip.innerHTML = `
+        <span>${escapeHtml(l.name)}</span>
+        <button class="btn-remove-chip" data-id="${l.id}" title="Eliminar idioma de este manga">×</button>
+      `;
+      chip.querySelector('.btn-remove-chip').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleRemoveLanguageFromSeries(l.id);
+      });
+      mangaLanguagesList.appendChild(chip);
+    });
+  }
+}
+
+async function handleRemoveLanguageFromSeries(languageId) {
+  if (!activeSeries) return;
+  const currentList = activeSeries.languages_list || [];
+  const remainingIds = currentList.filter(l => l.id !== languageId).map(l => l.id);
+  const updated = await window.lecfalAPI.setSeriesLanguages({
+    seriesId: activeSeries.id,
+    languageIds: remainingIds
+  });
+  activeSeries.languages_list = updated;
+  activeSeries.language = updated.map(l => l.name).join(', ');
+  renderMangaLanguagesFromSeries(activeSeries);
+  refreshSeries();
+  showToast('Idioma desvinculado de este manga');
+}
+
+function renderMangaTagsFromSeries(series) {
   mangaTagsList.innerHTML = '';
-  tagsArray.forEach(tag => {
+  let tags = [];
+  if (series.tags_list && Array.isArray(series.tags_list) && series.tags_list.length > 0) {
+    tags = series.tags_list;
+  } else if (series.tags) {
+    tags = series.tags.split(',').map(t => t.trim()).filter(Boolean).map(t => ({ id: null, name: t }));
+  }
+
+  tags.forEach(t => {
     const chip = document.createElement('span');
     chip.className = 'manga-tag-chip';
     chip.innerHTML = `
-      <span>${escapeHtml(tag)}</span>
-      <button class="btn-remove-tag" data-tag="${escapeHtml(tag)}" title="Eliminar tag">×</button>
+      <span>${escapeHtml(t.name)}</span>
+      <button class="btn-remove-tag" data-tag-name="${escapeHtml(t.name)}" ${t.id ? `data-tag-id="${t.id}"` : ''} title="Eliminar tag de este manga">×</button>
     `;
 
     chip.querySelector('.btn-remove-tag').addEventListener('click', async (e) => {
       e.stopPropagation();
-      const tagToRemove = e.target.dataset.tag;
-      const updated = tagsArray.filter(t => t !== tagToRemove);
-      const updatedStr = updated.join(', ');
-      await window.lecfalAPI.updateSeriesMetadata({
-        seriesId: activeSeries.id,
-        tags: updatedStr
-      });
-      activeSeries.tags = updatedStr;
-      renderMangaTags(updated);
+      await handleRemoveTagFromSeries(t);
     });
 
     mangaTagsList.appendChild(chip);
   });
+}
+
+async function handleRemoveTagFromSeries(tagObj) {
+  if (!activeSeries) return;
+
+  if (tagObj.id) {
+    const currentList = activeSeries.tags_list || [];
+    const remainingIds = currentList.filter(t => t.id !== tagObj.id).map(t => t.id);
+    const updated = await window.lecfalAPI.setSeriesTags({
+      seriesId: activeSeries.id,
+      tagIds: remainingIds
+    });
+    activeSeries.tags_list = updated;
+    activeSeries.tags = updated.map(t => t.name).join(', ');
+  } else {
+    const currentTags = activeSeries.tags ? activeSeries.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const updated = currentTags.filter(t => t.toLowerCase() !== tagObj.name.toLowerCase());
+    const updatedStr = updated.join(', ');
+    await window.lecfalAPI.updateSeriesMetadata({
+      seriesId: activeSeries.id,
+      tags: updatedStr
+    });
+    activeSeries.tags = updatedStr;
+    activeSeries.tags_list = updated.map(name => ({ id: null, name }));
+  }
+  renderMangaTagsFromSeries(activeSeries);
+  refreshSeries();
+  showToast(`Tag "${tagObj.name}" eliminado de este manga`);
 }
 
 function renderChaptersList() {
@@ -681,6 +1157,101 @@ async function handleSaveEditField() {
   closeEditFieldModal();
 }
 
+// ==================== DEDICATED METADATA RENAME MODAL ====================
+function openRenameModal({ type, id, currentName, typeLabel }) {
+  pendingRenameConfig = { type, id, currentName, typeLabel };
+  if (renameModalTitle) renameModalTitle.textContent = `Renombrar ${typeLabel || 'Metadato'}`;
+  if (renameModalLabel) renameModalLabel.textContent = `Nuevo nombre para "${currentName}":`;
+  if (renameModalInput) {
+    renameModalInput.value = currentName;
+  }
+  if (renameModalError) {
+    renameModalError.textContent = '';
+    renameModalError.style.display = 'none';
+  }
+  if (modalRenameMetadata) {
+    modalRenameMetadata.style.display = 'flex';
+  }
+  setTimeout(() => {
+    if (renameModalInput) {
+      renameModalInput.focus();
+      renameModalInput.select();
+    }
+  }, 50);
+}
+
+function closeRenameModal() {
+  if (modalRenameMetadata) modalRenameMetadata.style.display = 'none';
+  pendingRenameConfig = null;
+  if (renameModalError) {
+    renameModalError.textContent = '';
+    renameModalError.style.display = 'none';
+  }
+}
+
+async function handleConfirmRename() {
+  if (!pendingRenameConfig) return;
+  const { type, id, currentName } = pendingRenameConfig;
+  const newName = renameModalInput ? renameModalInput.value.trim() : '';
+
+  if (!newName) {
+    if (renameModalError) {
+      renameModalError.textContent = 'El nombre no puede estar vacío.';
+      renameModalError.style.display = 'block';
+    }
+    return;
+  }
+
+  if (newName === currentName) {
+    closeRenameModal();
+    return;
+  }
+
+  try {
+    if (type === 'tag') {
+      await window.lecfalAPI.renameTag(id, newName);
+      showToast(`Tag renombrado a "${newName}"`);
+      await renderSettingsTags();
+      await populateAdvSearchTags();
+    } else if (type === 'author') {
+      await window.lecfalAPI.renameAuthor(id, newName);
+      showToast(`Autor renombrado a "${newName}"`);
+      await renderSettingsAuthors();
+      await populateAdvSearchAuthors();
+    } else if (type === 'group') {
+      await window.lecfalAPI.renameGroup(id, newName);
+      showToast(`Grupo renombrado a "${newName}"`);
+      await renderSettingsGroups();
+      await populateAdvSearchGroups();
+    } else if (type === 'language') {
+      await window.lecfalAPI.renameLanguage(id, newName);
+      showToast(`Idioma renombrado a "${newName}"`);
+      await renderSettingsLanguages();
+      await populateAdvSearchLanguages();
+    } else if (type === 'parody') {
+      await window.lecfalAPI.renameParody(id, newName);
+      showToast(`Serie / Parodia renombrada a "${newName}"`);
+      await renderSettingsParodies();
+      await populateAdvSearchParodies();
+    }
+
+    closeRenameModal();
+
+    if (activeSeries) {
+      await reloadActiveSeries();
+    }
+    refreshSeries(false);
+  } catch (err) {
+    console.error('Error renaming metadata:', err);
+    if (renameModalError) {
+      renameModalError.textContent = err.message || 'Error al renombrar';
+      renameModalError.style.display = 'block';
+    } else {
+      showToast(`Error: ${err.message}`);
+    }
+  }
+}
+
 // ==================== GRID SIZE CONTROLS ====================
 function applyGridSize(pxVal, save = true) {
   document.documentElement.style.setProperty('--grid-item-min-width', `${pxVal}px`);
@@ -702,18 +1273,28 @@ function applyGridSize(pxVal, save = true) {
 
 // ==================== FOLDERS & SCANNING ====================
 async function refreshFolders() {
-  folders = await window.lecfalAPI.getFolders();
-  statusFolderCount.textContent = `${folders.length} carpeta${folders.length === 1 ? '' : 's'}`;
+  try {
+    folders = await window.lecfalAPI.getFolders();
+    if (statusFolderCount) {
+      statusFolderCount.textContent = `${folders.length} carpeta${folders.length === 1 ? '' : 's'}`;
+    }
 
-  if (folders.length > 0) {
-    const defaultFolder = folders[0];
-    currentFolderName.textContent = defaultFolder.name || defaultFolder.path;
-    currentFolderName.title = defaultFolder.path;
-    btnRescan.style.display = 'inline-flex';
-  } else {
-    currentFolderName.textContent = 'Sin carpeta asignada';
-    currentFolderName.title = '';
-    btnRescan.style.display = 'none';
+    if (folders.length > 0) {
+      const defaultFolder = folders[0];
+      if (currentFolderName) {
+        currentFolderName.textContent = defaultFolder.name || defaultFolder.path;
+        currentFolderName.title = defaultFolder.path;
+      }
+      if (btnRescan) btnRescan.style.display = 'inline-flex';
+    } else {
+      if (currentFolderName) {
+        currentFolderName.textContent = 'Sin carpeta asignada';
+        currentFolderName.title = '';
+      }
+      if (btnRescan) btnRescan.style.display = 'none';
+    }
+  } catch (err) {
+    console.error('Error refreshing folders:', err);
   }
 }
 
@@ -722,12 +1303,16 @@ async function handleAddFolder() {
     const folderPath = await window.lecfalAPI.selectFolder();
     if (!folderPath) return;
 
-    showToast('Añadiendo carpeta y escaneando...');
+    showToast('Añadiendo carpeta...');
     const newFolder = await window.lecfalAPI.addFolder(folderPath);
     await refreshFolders();
+    await renderSettingsFolders();
 
     if (newFolder) {
+      showToast('Carpeta añadida. Escaneando contenido...');
       await runFolderScan(newFolder.id);
+      await refreshFolders();
+      await renderSettingsFolders();
     }
   } catch (err) {
     console.error('Error adding folder:', err);
@@ -740,10 +1325,73 @@ async function handleRescan() {
   await runAllScan('incremental');
 }
 
+// Scan UI lifecycle management
+let finishTimer = null;
+function finishScanUI(isCancelled) {
+  isScanning = false;
+  isCancelling = false;
+  btnRescan.classList.remove('scanning');
+  logIndicatorDot.classList.remove('active');
+  scanProgressBanner.classList.remove('cancelling');
+
+  if (btnCancelScan) {
+    btnCancelScan.disabled = false;
+    btnCancelScan.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+      <span>Cancelar</span>
+    `;
+  }
+
+  if (isCancelled) {
+    scanBannerTitle.textContent = 'Escaneo cancelado';
+    scanBannerFile.textContent = 'Operación detenida por el usuario.';
+  } else {
+    scanBannerTitle.textContent = 'Escaneo completado';
+  }
+
+  if (finishTimer) clearTimeout(finishTimer);
+  finishTimer = setTimeout(() => {
+    scanProgressBanner.style.display = 'none';
+  }, 1500);
+
+  // Guarantee final refresh with clean state
+  scheduleSeriesRefresh(true);
+}
+
+function setupScanStatusListener() {
+  if (window.lecfalAPI.onScanStatus) {
+    window.lecfalAPI.onScanStatus((data) => {
+      if (data.status === 'cancelling') {
+        isCancelling = true;
+        scanBannerTitle.textContent = 'Cancelando escaneo...';
+        scanBannerFile.textContent = 'Deteniendo procesos y guardando progreso...';
+        scanProgressBanner.classList.add('cancelling');
+        if (btnCancelScan) {
+          btnCancelScan.disabled = true;
+          btnCancelScan.innerHTML = '<span>Cancelando...</span>';
+        }
+      } else if (data.status === 'cancelled') {
+        finishScanUI(true);
+      } else if (data.status === 'completed') {
+        finishScanUI(false);
+      }
+    });
+  }
+}
+
 async function runFolderScan(folderId, mode = 'incremental') {
   if (isScanning) return;
   isScanning = true;
+  isCancelling = false;
+  scanProgressBanner.classList.remove('cancelling');
   scanProgressBanner.style.display = 'block';
+  scanProgressBar.style.width = '0%';
+  scanBannerCount.textContent = '0/0';
+  scanBannerTitle.textContent = 'Iniciando escaneo...';
+  scanBannerFile.textContent = 'Analizando estructura de carpetas...';
   btnRescan.classList.add('scanning');
   logIndicatorDot.classList.add('active');
 
@@ -760,31 +1408,37 @@ async function runFolderScan(folderId, mode = 'incremental') {
 
   try {
     const result = await window.lecfalAPI.scanFolder(folderId, { mode });
-    if (result.cancelled) {
+    if (result.unavailable) {
+      showToast('Carpeta no disponible (disco externo o volumen VeraCrypt desmontado)');
+      finishScanUI(false);
+    } else if (result.cancelled) {
       showToast('Escaneo cancelado por el usuario');
-    } else if (result.newFiles > 0 || result.modifiedFiles > 0) {
-      showToast(`Escaneo finalizado: +${result.newFiles} nuevos, ${result.modifiedFiles} actualizados (${result.totalScanTime})`);
+      finishScanUI(true);
     } else {
-      showToast(`Biblioteca al día: ${result.skippedFiles || result.count} archivos verificados (0 cambios)`);
+      if (result.newFiles > 0 || result.modifiedFiles > 0) {
+        showToast(`Escaneo finalizado: +${result.newFiles} nuevos, ${result.modifiedFiles} actualizados (${result.totalScanTime})`);
+      } else {
+        showToast(`Biblioteca al día: ${result.skippedFiles || result.count} archivos verificados (0 cambios)`);
+      }
+      finishScanUI(false);
     }
-    await refreshSeries();
   } catch (err) {
     console.error('Scan error:', err);
     showToast('Error durante el escaneo');
-  } finally {
-    isScanning = false;
-    setTimeout(() => {
-      scanProgressBanner.style.display = 'none';
-    }, 1500);
-    btnRescan.classList.remove('scanning');
-    logIndicatorDot.classList.remove('active');
+    finishScanUI(false);
   }
 }
 
 async function runAllScan(mode = 'incremental') {
   if (isScanning) return;
   isScanning = true;
+  isCancelling = false;
+  scanProgressBanner.classList.remove('cancelling');
   scanProgressBanner.style.display = 'block';
+  scanProgressBar.style.width = '0%';
+  scanBannerCount.textContent = '0/0';
+  scanBannerTitle.textContent = 'Iniciando escaneo...';
+  scanBannerFile.textContent = 'Analizando biblioteca...';
   btnRescan.classList.add('scanning');
   logIndicatorDot.classList.add('active');
 
@@ -806,70 +1460,138 @@ async function runAllScan(mode = 'incremental') {
     const result = await window.lecfalAPI.scanAll({ mode });
     if (result.cancelled) {
       showToast('Escaneo cancelado por el usuario');
-    } else if (result.newFiles > 0 || result.modifiedFiles > 0) {
-      showToast(`Escaneo finalizado: +${result.newFiles} nuevos, ${result.modifiedFiles} actualizados (${result.totalScanned} mangas)`);
+      finishScanUI(true);
     } else {
-      showToast(`Biblioteca al día: ${result.skippedFiles || result.totalScanned} archivos verificados (0 cambios)`);
+      if (result.newFiles > 0 || result.modifiedFiles > 0) {
+        showToast(`Escaneo finalizado: +${result.newFiles} nuevos, ${result.modifiedFiles} actualizados (${result.totalScanned} mangas)`);
+      } else {
+        showToast(`Biblioteca al día: ${result.skippedFiles || result.totalScanned} archivos verificados (0 cambios)`);
+      }
+      finishScanUI(false);
     }
-    await refreshSeries();
   } catch (err) {
     console.error('Scan all error:', err);
     showToast('Error al escanear carpetas');
-  } finally {
-    isScanning = false;
-    setTimeout(() => {
-      scanProgressBanner.style.display = 'none';
-    }, 1500);
-    btnRescan.classList.remove('scanning');
-    logIndicatorDot.classList.remove('active');
+    finishScanUI(false);
   }
 }
 
+let latestProgressData = null;
+let progressRafScheduled = false;
+
 function setupScanProgressListener() {
   window.lecfalAPI.onScanProgress((data) => {
-    scanBannerTitle.textContent = `Escaneando: ${data.folderName || 'Carpeta'}`;
-    scanBannerFile.textContent = `${data.file || ''} (${data.durationMs ? data.durationMs + 'ms' : ''})`;
-    const percent = Math.round((data.current / data.total) * 100);
-    scanProgressBar.style.width = `${percent}%`;
-    scanBannerCount.textContent = `${data.current}/${data.total}`;
+    latestProgressData = data;
+    if (!progressRafScheduled) {
+      progressRafScheduled = true;
+      requestAnimationFrame(() => {
+        progressRafScheduled = false;
+        if (!latestProgressData || isCancelling) return;
+        const d = latestProgressData;
+        scanBannerTitle.textContent = `Escaneando: ${d.folderName || 'Carpeta'}`;
+        scanBannerFile.textContent = `${d.file || ''} (${d.durationMs ? d.durationMs + 'ms' : ''})`;
+        const percent = d.total > 0 ? Math.round((d.current / d.total) * 100) : 0;
+        scanProgressBar.style.width = `${percent}%`;
+        scanBannerCount.textContent = `${d.current}/${d.total}`;
+      });
+    }
   });
 }
 
 // ==================== SERIES & GRID RENDERING ====================
+// Throttled and concurrency-safe grid refreshing
+let isRefreshingSeries = false;
+let hasPendingSeriesRefresh = false;
+let lastSeriesRefreshTime = 0;
+let seriesRefreshTimer = null;
+
+function scheduleSeriesRefresh(immediate = false) {
+  if (immediate) {
+    if (seriesRefreshTimer) clearTimeout(seriesRefreshTimer);
+    seriesRefreshTimer = null;
+    lastSeriesRefreshTime = Date.now();
+    refreshSeries(false);
+    return;
+  }
+
+  const now = Date.now();
+  const timeSinceLast = now - lastSeriesRefreshTime;
+  const MIN_INTERVAL = 1200; // at most once every 1.2s during scanning
+
+  if (timeSinceLast >= MIN_INTERVAL) {
+    lastSeriesRefreshTime = now;
+    refreshSeries(false);
+  } else if (!seriesRefreshTimer) {
+    seriesRefreshTimer = setTimeout(() => {
+      seriesRefreshTimer = null;
+      lastSeriesRefreshTime = Date.now();
+      if (currentView === 'library') {
+        refreshSeries(false);
+      }
+    }, MIN_INTERVAL - timeSinceLast);
+  }
+}
+
 async function refreshSeries(triggerPdfCover = true) {
-  const queryParams = {
-    searchQuery,
-    format: currentFilter === 'favorite' ? 'all' : currentFilter,
-    favoriteOnly: currentFilter === 'favorite',
-    sortBy: currentSort
-  };
+  if (isRefreshingSeries) {
+    hasPendingSeriesRefresh = true;
+    return;
+  }
+  isRefreshingSeries = true;
 
-  seriesList = await window.lecfalAPI.getSeries(queryParams);
+  try {
+    const queryParams = {
+      searchQuery,
+      format: currentFilter === 'favorite' ? 'all' : currentFilter,
+      favoriteOnly: currentFilter === 'favorite',
+      sortBy: currentSort,
+      advTitle: activeAdvFilters.title || undefined,
+      authorId: activeAdvFilters.authorId ? parseInt(activeAdvFilters.authorId, 10) : undefined,
+      advAuthor: activeAdvFilters.author || undefined,
+      groupId: activeAdvFilters.groupId ? parseInt(activeAdvFilters.groupId, 10) : undefined,
+      advGroup: activeAdvFilters.group || undefined,
+      parodyId: activeAdvFilters.parodyId ? parseInt(activeAdvFilters.parodyId, 10) : undefined,
+      advParody: activeAdvFilters.parody || undefined,
+      tagId: activeAdvFilters.tagId ? parseInt(activeAdvFilters.tagId, 10) : undefined,
+      languageId: activeAdvFilters.languageId ? parseInt(activeAdvFilters.languageId, 10) : undefined,
+      advLanguage: activeAdvFilters.language || undefined
+    };
 
-  await updateCounters();
+    seriesList = await window.lecfalAPI.getSeries(queryParams);
 
-  if (folders.length === 0) {
-    emptyStateNoFolders.style.display = 'flex';
+    await updateCounters();
+
+    if (folders.length === 0) {
+      emptyStateNoFolders.style.display = 'flex';
+      emptyStateNoResults.style.display = 'none';
+      comicsGrid.style.display = 'none';
+      statusCount.textContent = '0 mangas';
+      return;
+    }
+
+    emptyStateNoFolders.style.display = 'none';
+
+    if (seriesList.length === 0) {
+      emptyStateNoResults.style.display = 'flex';
+      comicsGrid.style.display = 'none';
+      statusCount.textContent = '0 mangas';
+      return;
+    }
+
     emptyStateNoResults.style.display = 'none';
-    comicsGrid.style.display = 'none';
-    statusCount.textContent = '0 mangas';
-    return;
+    comicsGrid.style.display = 'grid';
+    statusCount.textContent = `${seriesList.length} manga${seriesList.length === 1 ? '' : 's'}`;
+
+    renderGrid(seriesList);
+  } catch (err) {
+    console.error('Error refreshing series:', err);
+  } finally {
+    isRefreshingSeries = false;
+    if (hasPendingSeriesRefresh) {
+      hasPendingSeriesRefresh = false;
+      scheduleSeriesRefresh(false);
+    }
   }
-
-  emptyStateNoFolders.style.display = 'none';
-
-  if (seriesList.length === 0) {
-    emptyStateNoResults.style.display = 'flex';
-    comicsGrid.style.display = 'none';
-    statusCount.textContent = '0 mangas';
-    return;
-  }
-
-  emptyStateNoResults.style.display = 'none';
-  comicsGrid.style.display = 'grid';
-  statusCount.textContent = `${seriesList.length} manga${seriesList.length === 1 ? '' : 's'}`;
-
-  renderGrid(seriesList);
 }
 
 async function updateCounters() {
@@ -906,21 +1628,10 @@ function renderGrid(seriesArray) {
 
     let coverHtml = '';
     if (series.cover_path) {
-      const coverUrl = `lecfal-cover://${encodeURIComponent(series.cover_path)}`;
+      const coverUrl = getCoverUrl(series.cover_path);
       coverHtml = `<img class="card-cover-img" src="${coverUrl}" alt="${escapeHtml(series.title)}" loading="lazy">`;
     } else {
-      coverHtml = `
-        <div class="card-cover-fallback">
-          <div class="fallback-decor">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
-            </svg>
-            <span class="badge-dot dot-${series.primary_format || 'cbz'}"></span>
-          </div>
-          <div class="fallback-title">${escapeHtml(series.title)}</div>
-          <div class="fallback-footer">${formatUpper}</div>
-        </div>
-      `;
+      coverHtml = renderCoverFallbackHtml(series.title, series.primary_format);
     }
 
     card.innerHTML = `
@@ -949,6 +1660,18 @@ function renderGrid(seriesArray) {
         </div>
       </div>
     `;
+
+    if (series.cover_path) {
+      const imgEl = card.querySelector('.card-cover-img');
+      if (imgEl) {
+        imgEl.addEventListener('error', () => {
+          console.warn(`[LecFal UI] Fallo al cargar portada para "${series.title}" (${series.cover_path})`);
+          const fallbackContainer = document.createElement('div');
+          fallbackContainer.innerHTML = renderCoverFallbackHtml(series.title, series.primary_format);
+          imgEl.replaceWith(fallbackContainer.firstElementChild);
+        }, { once: true });
+      }
+    }
 
     // Click on card: open Tachiyomi-style manga detail view
     card.addEventListener('click', (e) => {
@@ -1001,48 +1724,60 @@ function setupLogging() {
     logCountBadge.textContent = '0 eventos';
   });
 
-  window.lecfalAPI.onLog((entry) => {
-    appendLogToTerminal(entry);
+  window.lecfalAPI.onLog((entryOrBatch) => {
+    appendLogsToTerminal(entryOrBatch);
   });
 
-  // Streaming real-time series during scanning
+  // Streaming real-time series during scanning (throttled to avoid DOM thrashing)
   window.lecfalAPI.onSeriesBatch(() => {
     if (currentView === 'library') {
-      refreshSeries(false);
+      scheduleSeriesRefresh(false);
     }
   });
 
   window.lecfalAPI.getLogs().then(logs => {
     if (Array.isArray(logs)) {
-      logs.forEach(appendLogToTerminal);
+      appendLogsToTerminal(logs);
     }
   });
 }
 
-function appendLogToTerminal(entry) {
-  logCount++;
+function appendLogsToTerminal(entries) {
+  if (!Array.isArray(entries)) {
+    entries = [entries];
+  }
+  if (entries.length === 0) return;
+
+  logCount += entries.length;
   logCountBadge.textContent = `${logCount} eventos`;
 
-  const line = document.createElement('div');
-  line.className = 'log-line';
+  const fragment = document.createDocumentFragment();
+  for (const entry of entries) {
+    const line = document.createElement('div');
+    line.className = 'log-line';
 
-  const levelClass = `log-level-${(entry.level || 'info').toLowerCase()}`;
-  line.innerHTML = `
-    <span class="log-time">${entry.timestamp || ''}</span>
-    <span class="log-level ${levelClass}">[${entry.level || 'INFO'}]</span>
-    <span class="log-tag">[${escapeHtml(entry.tag || 'APP')}]</span>
-    <span class="log-msg">${escapeHtml(entry.message || '')}</span>
-  `;
+    const levelClass = `log-level-${(entry.level || 'info').toLowerCase()}`;
+    line.innerHTML = `
+      <span class="log-time">${entry.timestamp || ''}</span>
+      <span class="log-level ${levelClass}">[${entry.level || 'INFO'}]</span>
+      <span class="log-tag">[${escapeHtml(entry.tag || 'APP')}]</span>
+      <span class="log-msg">${escapeHtml(entry.message || '')}</span>
+    `;
+    fragment.appendChild(line);
+  }
 
-  logTerminal.appendChild(line);
+  logTerminal.appendChild(fragment);
 
-  if (logTerminal.children.length > 300) {
+  // Keep terminal lightweight: max 150 entries in DOM
+  while (logTerminal.children.length > 150) {
     logTerminal.removeChild(logTerminal.firstElementChild);
   }
 
-  const isNearBottom = logTerminal.scrollHeight - logTerminal.clientHeight - logTerminal.scrollTop < 120;
-  if (isNearBottom || logDrawer.style.display !== 'none') {
-    logTerminal.scrollTop = logTerminal.scrollHeight;
+  if (logDrawer.style.display !== 'none') {
+    const isNearBottom = logTerminal.scrollHeight - logTerminal.clientHeight - logTerminal.scrollTop < 120;
+    if (isNearBottom) {
+      logTerminal.scrollTop = logTerminal.scrollHeight;
+    }
   }
 }
 
@@ -1067,18 +1802,23 @@ async function renderFoldersList() {
 
   folders.forEach((f, index) => {
     const isDefault = index === 0;
+    const isAccessible = f.accessible !== false;
     const item = document.createElement('div');
-    item.className = 'folder-item';
+    item.className = `folder-item ${isAccessible ? '' : 'is-unavailable'}`;
     item.innerHTML = `
       <div class="folder-item-info">
         <div class="folder-item-title-row">
           <span class="folder-item-name">${escapeHtml(f.name)}</span>
           ${isDefault ? '<span class="folder-item-default-badge">Por defecto</span>' : ''}
+          ${isAccessible 
+            ? '<span class="status-badge badge-accessible" style="font-size:0.68rem;padding:2px 6px;">Disponible</span>' 
+            : '<span class="status-badge badge-unavailable" style="font-size:0.68rem;padding:2px 6px;">No disponible</span>'
+          }
         </div>
         <div class="folder-item-path" title="${escapeHtml(f.path)}">${escapeHtml(f.path)}</div>
       </div>
       <div class="folder-item-actions">
-        <button class="btn-folder-action btn-folder-rescan" data-id="${f.id}" title="Escanear esta carpeta">
+        <button class="btn-folder-action btn-folder-rescan" data-id="${f.id}" ${!isAccessible ? 'disabled title="Monta el disco o volumen para escanear"' : 'title="Escanear esta carpeta"'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;">
             <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
             <path d="M3 3v5h5"/>
@@ -1103,17 +1843,1043 @@ async function renderFoldersList() {
     });
 
     item.querySelector('.btn-folder-delete').addEventListener('click', async () => {
-      if (confirm(`¿Eliminar la carpeta "${f.name}" de la biblioteca? Los archivos en tu disco no serán borrados.`)) {
-        await window.lecfalAPI.removeFolder(f.id);
-        await refreshFolders();
-        await renderFoldersList();
-        await refreshSeries();
-        showToast('Carpeta eliminada de la biblioteca');
+      if (confirm(`¿Eliminar la carpeta "${f.name || f.path}" de la biblioteca? Los archivos en tu disco no serán borrados.`)) {
+        try {
+          await window.lecfalAPI.removeFolder(f.id);
+          await refreshFolders();
+          await renderFoldersList();
+          await renderSettingsFolders();
+          await refreshSeries();
+          showToast('Carpeta eliminada de la biblioteca');
+        } catch (err) {
+          console.error('Error removing folder:', err);
+          showToast('Error al eliminar carpeta');
+        }
       }
     });
 
     foldersList.appendChild(item);
   });
+}
+
+// ==================== THEME MANAGEMENT ====================
+function applyTheme(theme, save = true) {
+  const finalTheme = theme === 'light' ? 'light' : 'dark';
+  document.body.dataset.theme = finalTheme;
+
+  if (themeOptDark && themeOptLight) {
+    themeOptDark.classList.toggle('active', finalTheme === 'dark');
+    themeOptLight.classList.toggle('active', finalTheme === 'light');
+    const darkBadge = themeOptDark.querySelector('.theme-card-badge');
+    const lightBadge = themeOptLight.querySelector('.theme-card-badge');
+    if (darkBadge) darkBadge.style.display = finalTheme === 'dark' ? 'inline-block' : 'none';
+    if (lightBadge) lightBadge.style.display = finalTheme === 'light' ? 'inline-block' : 'none';
+  }
+
+  if (save) {
+    window.lecfalAPI.setSetting('theme', finalTheme);
+    showToast(`Tema cambiado a ${finalTheme === 'dark' ? 'Modo Oscuro' : 'Modo Claro'}`);
+  }
+}
+
+// ==================== ADVANCED SEARCH ====================
+async function populateAdvSearchOptions() {
+  await Promise.all([
+    populateAdvSearchAuthors(),
+    populateAdvSearchGroups(),
+    populateAdvSearchParodies(),
+    populateAdvSearchTags(),
+    populateAdvSearchLanguages()
+  ]);
+}
+
+async function populateAdvSearchAuthors() {
+  if (!advSelectAuthor) return;
+  try {
+    availableAuthors = await window.lecfalAPI.getAllAuthors();
+    const currentVal = advSelectAuthor.value;
+    advSelectAuthor.innerHTML = '<option value="">Todos los autores</option>';
+    availableAuthors.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = a.name;
+      if (currentVal && String(currentVal) === String(a.id)) {
+        opt.selected = true;
+      }
+      advSelectAuthor.appendChild(opt);
+    });
+  } catch (e) {
+    console.warn('Error populating adv search authors:', e);
+  }
+}
+
+async function populateAdvSearchGroups() {
+  if (!advSelectGroup) return;
+  try {
+    availableGroups = await window.lecfalAPI.getAllGroups();
+    const currentVal = advSelectGroup.value;
+    advSelectGroup.innerHTML = '<option value="">Todos los grupos</option>';
+    availableGroups.forEach(g => {
+      const opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = g.name;
+      if (currentVal && String(currentVal) === String(g.id)) {
+        opt.selected = true;
+      }
+      advSelectGroup.appendChild(opt);
+    });
+  } catch (e) {
+    console.warn('Error populating adv search groups:', e);
+  }
+}
+
+async function populateAdvSearchParodies() {
+  if (!advSelectParody) return;
+  try {
+    availableParodies = await window.lecfalAPI.getAllParodies();
+    const currentVal = advSelectParody.value;
+    advSelectParody.innerHTML = '<option value="">Todas las series / parodias</option>';
+    availableParodies.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name;
+      if (currentVal && String(currentVal) === String(p.id)) {
+        opt.selected = true;
+      }
+      advSelectParody.appendChild(opt);
+    });
+  } catch (e) {
+    console.warn('Error populating adv search parodies:', e);
+  }
+}
+
+async function populateAdvSearchTags() {
+  if (!advSelectTag) return;
+  try {
+    availableTags = await window.lecfalAPI.getAllTags();
+    const currentVal = advSelectTag.value;
+    advSelectTag.innerHTML = '<option value="">Todos los tags</option>';
+    availableTags.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name;
+      if (currentVal && String(currentVal) === String(t.id)) {
+        opt.selected = true;
+      }
+      advSelectTag.appendChild(opt);
+    });
+  } catch (e) {
+    console.warn('Error populating adv search tags:', e);
+  }
+}
+
+async function populateAdvSearchLanguages() {
+  if (!advSelectLanguage) return;
+  try {
+    availableLanguages = await window.lecfalAPI.getAllLanguages();
+    const currentVal = advSelectLanguage.value;
+    advSelectLanguage.innerHTML = '<option value="">Todos los idiomas</option>';
+    availableLanguages.forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.id;
+      opt.textContent = l.name;
+      if (currentVal && String(currentVal) === String(l.id)) {
+        opt.selected = true;
+      }
+      advSelectLanguage.appendChild(opt);
+    });
+  } catch (e) {
+    console.warn('Error populating adv search languages:', e);
+  }
+}
+
+function hasActiveAdvFilters() {
+  return !!(
+    activeAdvFilters.title ||
+    activeAdvFilters.authorId ||
+    activeAdvFilters.author ||
+    activeAdvFilters.groupId ||
+    activeAdvFilters.group ||
+    activeAdvFilters.parodyId ||
+    activeAdvFilters.parody ||
+    activeAdvFilters.tagId ||
+    activeAdvFilters.languageId ||
+    activeAdvFilters.language
+  );
+}
+
+function updateAdvSearchUIState() {
+  const isActive = hasActiveAdvFilters();
+  if (advActiveBadge) advActiveBadge.style.display = isActive ? 'inline-flex' : 'none';
+  if (btnToggleAdvSearch) btnToggleAdvSearch.classList.toggle('active', isActive);
+}
+
+function toggleAdvancedSearchPanel(forceState) {
+  if (!advSearchPanel) return;
+  const isCurrentlyOpen = advSearchPanel.style.display !== 'none';
+  const shouldOpen = forceState !== undefined ? forceState : !isCurrentlyOpen;
+  advSearchPanel.style.display = shouldOpen ? 'block' : 'none';
+  if (shouldOpen && advInputTitle) {
+    advInputTitle.focus();
+  }
+}
+
+function handleApplyAdvancedSearch() {
+  if (!advInputTitle) return;
+  activeAdvFilters.title = advInputTitle.value.trim();
+  activeAdvFilters.authorId = advSelectAuthor ? advSelectAuthor.value : '';
+  activeAdvFilters.groupId = advSelectGroup ? advSelectGroup.value : '';
+  activeAdvFilters.parodyId = advSelectParody ? advSelectParody.value : '';
+  activeAdvFilters.tagId = advSelectTag ? advSelectTag.value : '';
+  activeAdvFilters.languageId = advSelectLanguage ? advSelectLanguage.value : '';
+
+  updateAdvSearchUIState();
+  refreshSeries();
+}
+
+function handleClearAdvancedSearch() {
+  if (advInputTitle) advInputTitle.value = '';
+  if (advSelectAuthor) advSelectAuthor.value = '';
+  if (advSelectGroup) advSelectGroup.value = '';
+  if (advSelectParody) advSelectParody.value = '';
+  if (advSelectTag) advSelectTag.value = '';
+  if (advSelectLanguage) advSelectLanguage.value = '';
+
+  activeAdvFilters = {
+    title: '',
+    author: '',
+    authorId: '',
+    group: '',
+    groupId: '',
+    parody: '',
+    parodyId: '',
+    tag: '',
+    tagId: '',
+    language: '',
+    languageId: ''
+  };
+
+  updateAdvSearchUIState();
+  refreshSeries();
+}
+
+// ==================== SETTINGS VIEW: CATALOGS & FOLDERS ====================
+async function renderSettingsTags() {
+  if (!settingsTagsList) return;
+  try {
+    availableTags = await window.lecfalAPI.getAllTags();
+
+    if (availableTags.length === 0) {
+      settingsTagsList.innerHTML = `
+        <div class="settings-tags-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:36px;height:36px;margin-bottom:8px;opacity:0.4;">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+          <p>No hay tags creados todavía.</p>
+          <span style="font-size:0.82rem; color:var(--text-muted);">Usa el formulario superior para registrar tags y géneros para tu biblioteca.</span>
+        </div>
+      `;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    availableTags.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'settings-tag-row';
+      row.dataset.id = t.id;
+      row.innerHTML = `
+        <div class="tag-row-name">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--accent-purple-light);">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+          <span class="tag-name-text">${escapeHtml(t.name)}</span>
+          ${t.manga_count ? `<span class="settings-tag-count">${t.manga_count}</span>` : ''}
+        </div>
+        <div class="tag-row-actions">
+          <button class="btn btn-secondary btn-sm btn-rename-tag" data-id="${t.id}" title="Renombrar tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            <span>Renombrar</span>
+          </button>
+          <button class="btn btn-danger btn-sm btn-delete-tag" data-id="${t.id}" title="Eliminar tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+            </svg>
+            <span>Eliminar</span>
+          </button>
+        </div>
+      `;
+
+      row.querySelector('.btn-rename-tag').addEventListener('click', () => {
+        openRenameModal({ type: 'tag', id: t.id, currentName: t.name, typeLabel: 'Tag' });
+      });
+
+      row.querySelector('.btn-delete-tag').addEventListener('click', async () => {
+        if (confirm(`¿Eliminar el tag "${t.name}"?\nSe desvinculará de los mangas asignados de forma segura.`)) {
+          try {
+            await window.lecfalAPI.deleteTag(t.id);
+            showToast(`Tag "${t.name}" eliminado`);
+            await renderSettingsTags();
+            await populateAdvSearchTags();
+            if (activeSeries) await reloadActiveSeries();
+            refreshSeries(false);
+          } catch (err) {
+            showToast(`Error: ${err.message}`);
+          }
+        }
+      });
+
+      fragment.appendChild(row);
+    });
+
+    settingsTagsList.innerHTML = '';
+    settingsTagsList.appendChild(fragment);
+  } catch (err) {
+    console.error('Error rendering settings tags:', err);
+  }
+}
+
+async function handleCreateTag(e) {
+  e.preventDefault();
+  const name = inputNewTagName.value.trim();
+  if (!name) return;
+
+  try {
+    const newTag = await window.lecfalAPI.createTag(name);
+    inputNewTagName.value = '';
+    showToast(`Tag "${newTag.name}" creado exitosamente`);
+    await renderSettingsTags();
+    await populateAdvSearchTags();
+    if (activeSeries) await reloadActiveSeries();
+  } catch (err) {
+    showToast(`Error: ${err.message}`);
+  }
+}
+
+async function renderSettingsAuthors() {
+  if (!settingsAuthorsList) return;
+  try {
+    availableAuthors = await window.lecfalAPI.getAllAuthors();
+
+    if (availableAuthors.length === 0) {
+      settingsAuthorsList.innerHTML = `
+        <div class="settings-tags-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:36px;height:36px;margin-bottom:8px;opacity:0.4;">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <p>No hay autores registrados todavía.</p>
+          <span style="font-size:0.82rem; color:var(--text-muted);">Añade autores oficiales para tu biblioteca usando el formulario superior.</span>
+        </div>
+      `;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    availableAuthors.forEach(a => {
+      const row = document.createElement('div');
+      row.className = 'settings-tag-row';
+      row.dataset.id = a.id;
+      row.innerHTML = `
+        <div class="tag-row-name">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--accent-purple-light);">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span class="tag-name-text">${escapeHtml(a.name)}</span>
+          ${a.manga_count ? `<span class="settings-tag-count">${a.manga_count}</span>` : ''}
+        </div>
+        <div class="tag-row-actions">
+          <button class="btn btn-secondary btn-sm btn-rename-author" data-id="${a.id}" title="Renombrar autor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            <span>Renombrar</span>
+          </button>
+          <button class="btn btn-danger btn-sm btn-delete-author" data-id="${a.id}" title="Eliminar autor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+            </svg>
+            <span>Eliminar</span>
+          </button>
+        </div>
+      `;
+
+      row.querySelector('.btn-rename-author').addEventListener('click', () => {
+        openRenameModal({ type: 'author', id: a.id, currentName: a.name, typeLabel: 'Autor' });
+      });
+
+      row.querySelector('.btn-delete-author').addEventListener('click', async () => {
+        if (confirm(`¿Eliminar el autor "${a.name}"?\nSe desvinculará de los mangas asignados de forma segura.`)) {
+          try {
+            await window.lecfalAPI.deleteAuthor(a.id);
+            showToast(`Autor "${a.name}" eliminado`);
+            await renderSettingsAuthors();
+            await populateAdvSearchAuthors();
+            if (activeSeries) await reloadActiveSeries();
+            refreshSeries(false);
+          } catch (err) {
+            showToast(`Error: ${err.message}`);
+          }
+        }
+      });
+
+      fragment.appendChild(row);
+    });
+
+    settingsAuthorsList.innerHTML = '';
+    settingsAuthorsList.appendChild(fragment);
+  } catch (err) {
+    console.error('Error rendering settings authors:', err);
+  }
+}
+
+async function handleCreateAuthor(e) {
+  e.preventDefault();
+  const name = inputNewAuthorName.value.trim();
+  if (!name) return;
+
+  try {
+    const newAuthor = await window.lecfalAPI.createAuthor(name);
+    inputNewAuthorName.value = '';
+    showToast(`Autor "${newAuthor.name}" creado exitosamente`);
+    await renderSettingsAuthors();
+    await populateAdvSearchAuthors();
+    if (activeSeries) await reloadActiveSeries();
+  } catch (err) {
+    showToast(`Error: ${err.message}`);
+  }
+}
+
+async function renderSettingsGroups() {
+  if (!settingsGroupsList) return;
+  try {
+    availableGroups = await window.lecfalAPI.getAllGroups();
+
+    if (availableGroups.length === 0) {
+      settingsGroupsList.innerHTML = `
+        <div class="settings-tags-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:36px;height:36px;margin-bottom:8px;opacity:0.4;">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <p>No hay grupos o círculos configurados todavía.</p>
+          <span style="font-size:0.82rem; color:var(--text-muted);">Añade círculos, editoriales o grupos usando el formulario superior.</span>
+        </div>
+      `;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    availableGroups.forEach(g => {
+      const row = document.createElement('div');
+      row.className = 'settings-tag-row';
+      row.dataset.id = g.id;
+      row.innerHTML = `
+        <div class="tag-row-name">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--accent-purple-light);">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span class="tag-name-text">${escapeHtml(g.name)}</span>
+          ${g.manga_count ? `<span class="settings-tag-count">${g.manga_count}</span>` : ''}
+        </div>
+        <div class="tag-row-actions">
+          <button class="btn btn-secondary btn-sm btn-rename-group" data-id="${g.id}" title="Renombrar grupo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            <span>Renombrar</span>
+          </button>
+          <button class="btn btn-danger btn-sm btn-delete-group" data-id="${g.id}" title="Eliminar grupo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+            </svg>
+            <span>Eliminar</span>
+          </button>
+        </div>
+      `;
+
+      row.querySelector('.btn-rename-group').addEventListener('click', () => {
+        openRenameModal({ type: 'group', id: g.id, currentName: g.name, typeLabel: 'Grupo' });
+      });
+
+      row.querySelector('.btn-delete-group').addEventListener('click', async () => {
+        if (confirm(`¿Eliminar el grupo "${g.name}"?\nSe desvinculará de los mangas asignados de forma segura.`)) {
+          try {
+            await window.lecfalAPI.deleteGroup(g.id);
+            showToast(`Grupo "${g.name}" eliminado`);
+            await renderSettingsGroups();
+            await populateAdvSearchGroups();
+            if (activeSeries) await reloadActiveSeries();
+            refreshSeries(false);
+          } catch (err) {
+            showToast(`Error: ${err.message}`);
+          }
+        }
+      });
+
+      fragment.appendChild(row);
+    });
+
+    settingsGroupsList.innerHTML = '';
+    settingsGroupsList.appendChild(fragment);
+  } catch (err) {
+    console.error('Error rendering settings groups:', err);
+  }
+}
+
+async function handleCreateGroup(e) {
+  e.preventDefault();
+  const name = inputNewGroupName.value.trim();
+  if (!name) return;
+
+  try {
+    const newGroup = await window.lecfalAPI.createGroup(name);
+    inputNewGroupName.value = '';
+    showToast(`Grupo "${newGroup.name}" creado exitosamente`);
+    await renderSettingsGroups();
+    await populateAdvSearchGroups();
+    if (activeSeries) await reloadActiveSeries();
+  } catch (err) {
+    showToast(`Error: ${err.message}`);
+  }
+}
+
+async function renderSettingsLanguages() {
+  if (!settingsLanguagesList) return;
+  try {
+    availableLanguages = await window.lecfalAPI.getAllLanguages();
+
+    if (availableLanguages.length === 0) {
+      settingsLanguagesList.innerHTML = `
+        <div class="settings-tags-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:36px;height:36px;margin-bottom:8px;opacity:0.4;">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+          </svg>
+          <p>No hay idiomas configurados todavía.</p>
+          <span style="font-size:0.82rem; color:var(--text-muted);">Añade los idiomas disponibles para tu biblioteca usando el formulario superior.</span>
+        </div>
+      `;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    availableLanguages.forEach(l => {
+      const row = document.createElement('div');
+      row.className = 'settings-tag-row';
+      row.dataset.id = l.id;
+      row.innerHTML = `
+        <div class="tag-row-name">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--accent-purple-light);">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+          </svg>
+          <span class="tag-name-text">${escapeHtml(l.name)}</span>
+          ${l.manga_count ? `<span class="settings-tag-count">${l.manga_count}</span>` : ''}
+        </div>
+        <div class="tag-row-actions">
+          <button class="btn btn-secondary btn-sm btn-rename-lang" data-id="${l.id}" title="Renombrar idioma">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            <span>Renombrar</span>
+          </button>
+          <button class="btn btn-danger btn-sm btn-delete-lang" data-id="${l.id}" title="Eliminar idioma">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+            </svg>
+            <span>Eliminar</span>
+          </button>
+        </div>
+      `;
+
+      row.querySelector('.btn-rename-lang').addEventListener('click', () => {
+        openRenameModal({ type: 'language', id: l.id, currentName: l.name, typeLabel: 'Idioma' });
+      });
+
+      row.querySelector('.btn-delete-lang').addEventListener('click', async () => {
+        if (confirm(`¿Eliminar el idioma "${l.name}"?\nSe desvinculará de los mangas asignados de forma segura.`)) {
+          try {
+            await window.lecfalAPI.deleteLanguage(l.id);
+            showToast(`Idioma "${l.name}" eliminado`);
+            await renderSettingsLanguages();
+            await populateAdvSearchLanguages();
+            if (activeSeries) await reloadActiveSeries();
+            refreshSeries(false);
+          } catch (err) {
+            showToast(`Error: ${err.message}`);
+          }
+        }
+      });
+
+      fragment.appendChild(row);
+    });
+
+    settingsLanguagesList.innerHTML = '';
+    settingsLanguagesList.appendChild(fragment);
+  } catch (err) {
+    console.error('Error rendering settings languages:', err);
+  }
+}
+
+async function handleCreateLanguage(e) {
+  e.preventDefault();
+  const name = inputNewLanguageName.value.trim();
+  if (!name) return;
+
+  try {
+    const newLang = await window.lecfalAPI.createLanguage(name);
+    inputNewLanguageName.value = '';
+    showToast(`Idioma "${newLang.name}" creado exitosamente`);
+    await renderSettingsLanguages();
+    await populateAdvSearchLanguages();
+    if (activeSeries) await reloadActiveSeries();
+  } catch (err) {
+    showToast(`Error: ${err.message}`);
+  }
+}
+
+async function renderSettingsParodies() {
+  if (!settingsParodiesList) return;
+  try {
+    availableParodies = await window.lecfalAPI.getAllParodies();
+
+    if (availableParodies.length === 0) {
+      settingsParodiesList.innerHTML = `
+        <div class="settings-tags-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:36px;height:36px;margin-bottom:8px;opacity:0.4;">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <p>No hay series o parodias registradas todavía.</p>
+          <span style="font-size:0.82rem; color:var(--text-muted);">Añade series o parodias (ej. Original, Naruto) usando el formulario superior.</span>
+        </div>
+      `;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    availableParodies.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'settings-tag-row';
+      row.dataset.id = p.id;
+      row.innerHTML = `
+        <div class="tag-row-name">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--accent-purple-light);">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span class="tag-name-text">${escapeHtml(p.name)}</span>
+          ${p.manga_count ? `<span class="settings-tag-count">${p.manga_count}</span>` : ''}
+        </div>
+        <div class="tag-row-actions">
+          <button class="btn btn-secondary btn-sm btn-rename-parody" data-id="${p.id}" title="Renombrar serie o parodia">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            <span>Renombrar</span>
+          </button>
+          <button class="btn btn-danger btn-sm btn-delete-parody" data-id="${p.id}" title="Eliminar serie o parodia">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+            </svg>
+            <span>Eliminar</span>
+          </button>
+        </div>
+      `;
+
+      row.querySelector('.btn-rename-parody').addEventListener('click', () => {
+        openRenameModal({ type: 'parody', id: p.id, currentName: p.name, typeLabel: 'Serie o Parodia' });
+      });
+
+      row.querySelector('.btn-delete-parody').addEventListener('click', async () => {
+        if (confirm(`¿Eliminar la serie o parodia "${p.name}"?\nSe desvinculará de los mangas asignados de forma segura.`)) {
+          try {
+            await window.lecfalAPI.deleteParody(p.id);
+            showToast(`Serie / Parodia "${p.name}" eliminada`);
+            await renderSettingsParodies();
+            await populateAdvSearchParodies();
+            if (activeSeries) await reloadActiveSeries();
+            refreshSeries(false);
+          } catch (err) {
+            showToast(`Error: ${err.message}`);
+          }
+        }
+      });
+
+      fragment.appendChild(row);
+    });
+
+    settingsParodiesList.innerHTML = '';
+    settingsParodiesList.appendChild(fragment);
+  } catch (err) {
+    console.error('Error rendering settings parodies:', err);
+  }
+}
+
+async function handleCreateParody(e) {
+  e.preventDefault();
+  const name = inputNewParodyName.value.trim();
+  if (!name) return;
+
+  try {
+    const newParody = await window.lecfalAPI.createParody(name);
+    inputNewParodyName.value = '';
+    showToast(`Serie / Parodia "${newParody.name}" creada exitosamente`);
+    await renderSettingsParodies();
+    await populateAdvSearchParodies();
+    if (activeSeries) await reloadActiveSeries();
+  } catch (err) {
+    showToast(`Error: ${err.message}`);
+  }
+}
+
+async function renderSettingsFolders() {
+  if (!settingsFoldersList) return;
+  try {
+    folders = await window.lecfalAPI.getFolders();
+    if (statusFolderCount) {
+      statusFolderCount.textContent = `${folders.length} carpeta${folders.length === 1 ? '' : 's'}`;
+    }
+
+    if (folders.length === 0) {
+      settingsFoldersList.innerHTML = `
+        <div class="settings-folders-empty">
+          <p>No hay carpetas registradas en la biblioteca.</p>
+          <span style="font-size: 0.82rem; color: var(--text-muted);">Añade una carpeta para comenzar a escanear tus cómics y mangas.</span>
+        </div>
+      `;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    folders.forEach(f => {
+      const isAccessible = f.accessible !== false;
+      const row = document.createElement('div');
+      row.className = `settings-folder-item settings-folder-row ${isAccessible ? '' : 'is-unavailable'}`;
+      row.dataset.id = f.id;
+
+      row.innerHTML = `
+        <div class="settings-folder-main folder-row-main">
+          <div class="settings-folder-title-row folder-row-title-line">
+            <span class="settings-folder-name folder-row-name">${escapeHtml(f.name || f.path)}</span>
+            ${isAccessible 
+              ? '<span class="status-badge badge-accessible">Disponible</span>' 
+              : '<span class="status-badge badge-unavailable">No disponible (desmontada/desconectada)</span>'
+            }
+          </div>
+          <div class="settings-folder-path folder-row-path" title="${escapeHtml(f.path)}">${escapeHtml(f.path)}</div>
+          ${!isAccessible 
+            ? '<div class="folder-row-warning">El disco externo o volumen VeraCrypt no está montado en esta ruta. La carpeta se mantiene registrada pero no puede escanearse hasta que esté accesible.</div>' 
+            : ''
+          }
+        </div>
+        <div class="settings-folder-actions folder-row-actions">
+          <button class="btn btn-secondary btn-sm btn-folder-scan-single" data-id="${f.id}" ${!isAccessible ? 'disabled title="Monta el disco o volumen para escanear"' : 'title="Escanear esta carpeta"'}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+            <span>Escanear</span>
+          </button>
+          <button class="btn btn-danger btn-sm btn-folder-remove-settings" data-id="${f.id}" title="Desvincular carpeta de la biblioteca">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+            </svg>
+            <span>Desvincular</span>
+          </button>
+        </div>
+      `;
+
+      row.querySelector('.btn-folder-scan-single').addEventListener('click', async () => {
+        await runFolderScan(f.id);
+      });
+
+      row.querySelector('.btn-folder-remove-settings').addEventListener('click', async () => {
+        if (confirm(`¿Desvincular la carpeta "${f.name || f.path}" de la biblioteca? Los archivos en tu disco no serán borrados.`)) {
+          try {
+            await window.lecfalAPI.removeFolder(f.id);
+            await refreshFolders();
+            await renderSettingsFolders();
+            await refreshSeries();
+            showToast('Carpeta desvinculada de la biblioteca');
+          } catch (err) {
+            console.error('Error removing folder:', err);
+            showToast('Error al desvincular carpeta');
+          }
+        }
+      });
+
+      fragment.appendChild(row);
+    });
+
+    settingsFoldersList.innerHTML = '';
+    settingsFoldersList.appendChild(fragment);
+  } catch (err) {
+    console.error('Error rendering settings folders:', err);
+  }
+}
+
+// ==================== UNIVERSAL CATALOG PICKER MODAL (FOR MANGA DETAIL) ====================
+function normalizeCatalogId(id) {
+  if (id === null || id === undefined) return null;
+  const num = Number(id);
+  return isNaN(num) ? id : num;
+}
+
+async function openCatalogPicker(type) {
+  if (!activeSeries || !modalCatalogPicker) return;
+  currentPickerType = type;
+  pickerSelectedIds = new Set();
+  pickerSearchText = '';
+  if (inputFilterCatalogPicker) inputFilterCatalogPicker.value = '';
+
+  const config = {
+    tag: {
+      title: 'Asignar Tags / Géneros',
+      desc: 'Selecciona los tags que deseas asignar a este manga. Todos los tags provienen de la configuración centralizada de la biblioteca.',
+      filterPlaceholder: 'Filtrar tags disponibles...',
+      emptyText: 'No hay tags creados aún en la biblioteca.',
+      fetchList: () => window.lecfalAPI.getAllTags(),
+      currentAssigned: activeSeries.tags_list || []
+    },
+    author: {
+      title: 'Asignar Autores',
+      desc: 'Selecciona uno o más autores del catálogo configurado para este manga.',
+      filterPlaceholder: 'Filtrar autores disponibles...',
+      emptyText: 'No hay autores creados aún en la biblioteca.',
+      fetchList: () => window.lecfalAPI.getAllAuthors(),
+      currentAssigned: activeSeries.authors_list || []
+    },
+    group: {
+      title: 'Asignar Grupos / Círculos',
+      desc: 'Selecciona uno o más grupos o círculos del catálogo configurado para este manga.',
+      filterPlaceholder: 'Filtrar grupos disponibles...',
+      emptyText: 'No hay grupos creados aún en la biblioteca.',
+      fetchList: () => window.lecfalAPI.getAllGroups(),
+      currentAssigned: activeSeries.groups_list || []
+    },
+    language: {
+      title: 'Asignar Idiomas',
+      desc: 'Selecciona los idiomas disponibles para este manga.',
+      filterPlaceholder: 'Filtrar idiomas disponibles...',
+      emptyText: 'No hay idiomas creados aún en la biblioteca.',
+      fetchList: () => window.lecfalAPI.getAllLanguages(),
+      currentAssigned: activeSeries.languages_list || []
+    },
+    parody: {
+      title: 'Asignar Series / Parodias',
+      desc: 'Selecciona la serie, universo o parodia correspondiente a este manga.',
+      filterPlaceholder: 'Filtrar series o parodias disponibles...',
+      emptyText: 'No hay series o parodias creadas aún en la biblioteca.',
+      fetchList: () => window.lecfalAPI.getAllParodies(),
+      currentAssigned: activeSeries.parodies_list || []
+    }
+  }[type];
+
+  if (!config) return;
+
+  if (modalCatalogPickerTitle) modalCatalogPickerTitle.textContent = config.title;
+  if (modalCatalogPickerDesc) modalCatalogPickerDesc.textContent = config.desc;
+  if (inputFilterCatalogPicker) inputFilterCatalogPicker.placeholder = config.filterPlaceholder;
+  if (catalogPickerEmptyText) catalogPickerEmptyText.textContent = config.emptyText;
+
+  try {
+    currentPickerCatalog = await config.fetchList();
+    if (config.currentAssigned && Array.isArray(config.currentAssigned)) {
+      config.currentAssigned.forEach(item => {
+        if (item.id != null) {
+          pickerSelectedIds.add(normalizeCatalogId(item.id));
+        } else if (item.name) {
+          const match = currentPickerCatalog.find(c => c.name.toLowerCase() === item.name.trim().toLowerCase());
+          if (match && match.id != null) {
+            pickerSelectedIds.add(normalizeCatalogId(match.id));
+          }
+        }
+      });
+    }
+
+    // Fallback: If no assigned IDs found yet, check comma-separated string on activeSeries
+    if (pickerSelectedIds.size === 0) {
+      let rawString = '';
+      if (type === 'tag' && activeSeries.tags) rawString = activeSeries.tags;
+      else if (type === 'author' && activeSeries.author && activeSeries.author !== 'Desconocido') rawString = activeSeries.author;
+      else if (type === 'group' && (activeSeries.group_name || activeSeries.group) && (activeSeries.group_name || activeSeries.group) !== 'Sin grupo / círculo') {
+        rawString = activeSeries.group_name || activeSeries.group;
+      } else if (type === 'language' && activeSeries.language && activeSeries.language !== 'Sin idioma asignado') {
+        rawString = activeSeries.language;
+      } else if (type === 'parody' && activeSeries.parody && activeSeries.parody !== 'Sin serie / parodia') {
+        rawString = activeSeries.parody;
+      }
+
+      if (rawString && typeof rawString === 'string') {
+        const parts = rawString.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        currentPickerCatalog.forEach(catalogItem => {
+          if (parts.includes(catalogItem.name.toLowerCase())) {
+            pickerSelectedIds.add(normalizeCatalogId(catalogItem.id));
+          }
+        });
+      }
+    }
+
+    if (currentPickerCatalog.length === 0) {
+      if (catalogPickerEmpty) catalogPickerEmpty.style.display = 'block';
+      if (catalogPickerChipsContainer) catalogPickerChipsContainer.style.display = 'none';
+    } else {
+      if (catalogPickerEmpty) catalogPickerEmpty.style.display = 'none';
+      if (catalogPickerChipsContainer) catalogPickerChipsContainer.style.display = 'flex';
+      renderCatalogPickerChips();
+    }
+
+    modalCatalogPicker.style.display = 'flex';
+    if (currentPickerCatalog.length > 0 && inputFilterCatalogPicker) {
+      inputFilterCatalogPicker.focus();
+    }
+  } catch (err) {
+    console.error('Error opening catalog picker modal:', err);
+  }
+}
+
+function closeCatalogPickerModal() {
+  if (modalCatalogPicker) modalCatalogPicker.style.display = 'none';
+  pickerSelectedIds.clear();
+  currentPickerCatalog = [];
+  pickerSearchText = '';
+  if (inputFilterCatalogPicker) inputFilterCatalogPicker.value = '';
+}
+
+function renderCatalogPickerChips() {
+  if (!catalogPickerChipsContainer) return;
+  catalogPickerChipsContainer.innerHTML = '';
+  const filter = pickerSearchText.toLowerCase();
+
+  const matchingItems = currentPickerCatalog.filter(item => 
+    !filter || item.name.toLowerCase().includes(filter)
+  );
+
+  if (matchingItems.length === 0) {
+    catalogPickerChipsContainer.innerHTML = '<div style="color: var(--text-dim); font-size: 0.88rem; padding: 12px; width: 100%; text-align: center;">No hay elementos coincidentes con la búsqueda</div>';
+    return;
+  }
+
+  matchingItems.forEach(item => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    const normId = normalizeCatalogId(item.id);
+    const isSelected = pickerSelectedIds.has(normId);
+    chip.className = `tag-picker-chip ${isSelected ? 'selected is-selected' : ''}`;
+    chip.dataset.id = String(item.id);
+    chip.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    chip.setAttribute('title', isSelected ? `${item.name} (seleccionado)` : item.name);
+    chip.innerHTML = `
+      <span class="chip-check-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </span>
+      <span class="chip-label">${escapeHtml(item.name)}</span>
+    `;
+
+    chip.addEventListener('click', () => {
+      if (pickerSelectedIds.has(normId)) {
+        pickerSelectedIds.delete(normId);
+        chip.classList.remove('selected', 'is-selected');
+        chip.setAttribute('aria-pressed', 'false');
+        chip.setAttribute('title', item.name);
+      } else {
+        pickerSelectedIds.add(normId);
+        chip.classList.add('selected', 'is-selected');
+        chip.setAttribute('aria-pressed', 'true');
+        chip.setAttribute('title', `${item.name} (seleccionado)`);
+      }
+    });
+
+    catalogPickerChipsContainer.appendChild(chip);
+  });
+}
+
+async function handleSaveCatalogPicker() {
+  if (!activeSeries) return;
+  const selectedIds = Array.from(pickerSelectedIds);
+
+  try {
+    if (currentPickerType === 'tag') {
+      const updated = await window.lecfalAPI.setSeriesTags({
+        seriesId: activeSeries.id,
+        tagIds: selectedIds
+      });
+      activeSeries.tags_list = updated;
+      activeSeries.tags = updated.map(t => t.name).join(', ');
+      renderMangaTagsFromSeries(activeSeries);
+      showToast('Tags actualizados correctamente');
+    } else if (currentPickerType === 'author') {
+      const updated = await window.lecfalAPI.setSeriesAuthors({
+        seriesId: activeSeries.id,
+        authorIds: selectedIds
+      });
+      activeSeries.authors_list = updated;
+      activeSeries.author = updated.length > 0 ? updated.map(a => a.name).join(', ') : 'Desconocido';
+      renderMangaAuthorsFromSeries(activeSeries);
+      showToast('Autores actualizados correctamente');
+    } else if (currentPickerType === 'group') {
+      const updated = await window.lecfalAPI.setSeriesGroups({
+        seriesId: activeSeries.id,
+        groupIds: selectedIds
+      });
+      activeSeries.groups_list = updated;
+      activeSeries.group = updated.length > 0 ? updated.map(g => g.name).join(', ') : 'Sin grupo / círculo';
+      activeSeries.group_name = activeSeries.group;
+      renderMangaGroupsFromSeries(activeSeries);
+      showToast('Grupos actualizados correctamente');
+    } else if (currentPickerType === 'language') {
+      const updated = await window.lecfalAPI.setSeriesLanguages({
+        seriesId: activeSeries.id,
+        languageIds: selectedIds
+      });
+      activeSeries.languages_list = updated;
+      activeSeries.language = updated.map(l => l.name).join(', ');
+      renderMangaLanguagesFromSeries(activeSeries);
+      showToast('Idiomas actualizados correctamente');
+    } else if (currentPickerType === 'parody') {
+      const updated = await window.lecfalAPI.setSeriesParodies({
+        seriesId: activeSeries.id,
+        parodyIds: selectedIds
+      });
+      activeSeries.parodies_list = updated;
+      activeSeries.parody = updated.map(p => p.name).join(', ');
+      renderMangaParodiesFromSeries(activeSeries);
+      showToast('Series / Parodias actualizadas correctamente');
+    }
+
+    closeCatalogPickerModal();
+    refreshSeries();
+  } catch (err) {
+    console.error('Error saving catalog picker:', err);
+    showToast(`Error al guardar: ${err.message}`);
+  }
 }
 
 // ==================== UTILS ====================
@@ -1144,6 +2910,32 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
+// Safely convert local filesystem cover path into valid lecfal-cover URL
+function getCoverUrl(coverPath) {
+  if (!coverPath || typeof coverPath !== 'string') return '';
+  if (coverPath.startsWith('data:') || coverPath.startsWith('http://') || coverPath.startsWith('https://')) {
+    return coverPath;
+  }
+  return `lecfal-cover://cover?path=${encodeURIComponent(coverPath)}`;
+}
+
+// Generate procedural cover fallback markup
+function renderCoverFallbackHtml(title, format) {
+  const formatUpper = (format || 'cbz').toUpperCase();
+  return `
+    <div class="card-cover-fallback">
+      <div class="fallback-decor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+        </svg>
+        <span class="badge-dot dot-${format || 'cbz'}"></span>
+      </div>
+      <div class="fallback-title">${escapeHtml(title)}</div>
+      <div class="fallback-footer">${formatUpper}</div>
+    </div>
+  `;
+}
+
 let toastTimeout = null;
 function showToast(msg) {
   toastMessage.textContent = msg;
@@ -1166,5 +2958,16 @@ function debounce(func, wait) {
   };
 }
 
+// Expose view functions on window for programmatic access and navigation
+window.lecfalViews = {
+  navigateToLibrary,
+  openMangaView,
+  openSettingsView,
+  openCatalogPicker,
+  closeCatalogPickerModal,
+  handleSaveCatalogPicker
+};
+
 // Initialize application
 init();
+
