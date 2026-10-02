@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "reset-data": "rm -rf ~/.config/lecfal",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/run_tests.js"
   },
   "repository": {
     "type": "git",

@@ -1,0 +1,225 @@
+/* ==================== REALTIME LOG DRAWER ==================== */
+.btn-status-logs {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-status-logs svg {
+  width: 13px;
+  height: 13px;
+  color: #a855f7;
+}
+
+.btn-status-logs:hover,
+.btn-status-logs.active {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.4);
+  color: #ffffff;
+}
+
+.log-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #64748b;
+}
+
+.log-indicator-dot.active {
+  background: #34d399;
+  box-shadow: 0 0 6px #34d399;
+  animation: pulseDot 1.5s infinite;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.log-drawer {
+  position: fixed;
+  bottom: 28px;
+  left: 0;
+  width: 100vw;
+  height: 260px;
+  background: rgba(11, 14, 23, 0.95);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(99, 102, 241, 0.35);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  z-index: 500;
+  animation: slideUpDrawer 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpDrawer {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.log-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba(17, 24, 39, 0.85);
+  border-bottom: 1px solid var(--border-subtle);
+  min-height: 40px;
+}
+
+.log-drawer-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-drawer-title svg {
+  width: 16px;
+  height: 16px;
+  color: #a855f7;
+}
+
+.log-drawer-title h4 {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.log-count-badge {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  color: var(--text-dim);
+}
+
+.log-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-log-action {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-log-action svg {
+  width: 12px;
+  height: 12px;
+}
+
+.btn-log-action:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+}
+
+.btn-log-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-log-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-log-close:hover {
+  color: var(--text-main);
+}
+
+.log-terminal {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  user-select: text;
+}
+
+.log-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.log-time {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.log-level {
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.log-level-scan {
+  background: rgba(168, 85, 247, 0.2);
+  color: #d8b4fe;
+}
+
+.log-level-info {
+  background: rgba(56, 189, 248, 0.2);
+  color: #7dd3fc;
+}
+
+.log-level-perf {
+  background: rgba(52, 211, 153, 0.2);
+  color: #6ee7b7;
+}
+
+.log-level-warn {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+.log-level-error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.log-tag {
+  color: #94a3b8;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.log-msg {
+  color: #e2e8f0;
+}

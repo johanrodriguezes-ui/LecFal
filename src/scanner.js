@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const yauzl = require('yauzl');
 const logger = require('./logger');
 const storage = require('./storage');
+const thumbnailGenerator = require('./thumbnail-generator');
 
 class LibraryScanner {
   constructor(thumbnailsDirOrUserDataPath) {
@@ -523,6 +524,8 @@ class LibraryScanner {
               if (result.hasCover && this.isValidCover(cachedCoverPath)) {
                 coverPath = cachedCoverPath;
                 seriesHasChanges = true;
+                // Enqueue background grid thumbnail generation asynchronously (non-blocking)
+                thumbnailGenerator.enqueue(cachedCoverPath, false);
               } else {
                 logger.warn('COVER', `No se pudo extraer portada válida para "${group.title}" desde ${firstChapter.file_name}`);
               }

@@ -74,6 +74,9 @@ class StorageManager {
       const electron = require('electron');
       const app = electron.app || (electron.remote && electron.remote.app);
       if (app && typeof app.getPath === 'function') {
+        if (app.name === 'Electron') {
+          try { app.setName('lecfal'); } catch (_) {}
+        }
         return app.getPath('userData');
       }
     } catch (_) {
@@ -153,6 +156,17 @@ class StorageManager {
   }
 
   /**
+   * Returns the directory path for generated grid/card thumbnails.
+   * In standard mode: ~/.config/lecfal/thumbnails/grid
+   * In portable mode: <app-dir>/data/thumbnails/grid
+   *
+   * @returns {string}
+   */
+  getGridThumbnailsPath() {
+    return path.join(this.getThumbnailsPath(), 'grid');
+  }
+
+  /**
    * Returns the full file path for a thumbnail image given its hash.
    *
    * @param {string} hash
@@ -229,6 +243,7 @@ class StorageManager {
       this.getDataRoot(),
       this.getDatabaseDir(),
       this.getThumbnailsPath(),
+      this.getGridThumbnailsPath(),
       this.getCachePath(),
       this.getConfigPath(),
       this.getLogsDir()

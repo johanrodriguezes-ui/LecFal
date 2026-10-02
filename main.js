@@ -2,10 +2,13 @@ const { app, BrowserWindow, ipcMain, dialog, shell, protocol, net } = require('e
 const path = require('path');
 const url = require('url');
 const fs = require('fs');
+const { Readable } = require('stream');
 const DatabaseManager = require('./src/db');
 const LibraryScanner = require('./src/scanner');
 const logger = require('./src/logger');
 const storage = require('./src/storage');
+const cbzProvider = require('./src/cbz-provider');
+const thumbnailGenerator = require('./src/thumbnail-generator');
 
 let mainWindow = null;
 let db = null;
@@ -24,6 +27,16 @@ protocol.registerSchemesAsPrivileged([
   },
   {
     scheme: 'lecfal-file',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true
+    }
+  },
+  {
+    scheme: 'lecfal-cbz',
     privileges: {
       standard: true,
       secure: true,
@@ -79,7 +92,26 @@ async function createWindow() {
     }
   });
 
+  // Track window fullscreen events
+  mainWindow.on('enter-full-screen', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('window:fullscreen-changed', true);
+    }
+  });
+  mainWindow.on('leave-full-screen', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('window:fullscreen-changed', false);
+    }
+  });
+
   mainWindow.loadFile(path.join(__dirname, 'src', 'renderer', 'index.html'));
+
+  // Schedule background thumbnail generation for existing covers without blocking UI
+  setTimeout(() => {
+    thumbnailGenerator.backfill().catch(err => {
+      logger.warn('THUMBNAIL', `Error durante el backfill de miniaturas: ${err.message}`);
+    });
+  }, 2000);
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -112,7 +144,7 @@ app.whenReady().then(() => {
     }
   }
 
-  // Handle custom media protocol for covers
+  // Handle custom media protocol for covers (supports full-resolution and ?type=grid thumbnails)
   protocol.handle('lecfal-cover', (request) => {
     try {
       const targetPath = resolveCustomProtocolPath(request.url);
@@ -126,7 +158,21 @@ app.whenReady().then(() => {
         return new Response('Not found', { status: 404 });
       }
 
-      return net.fetch(url.pathToFileURL(targetPath).toString());
+      let fileToServe = targetPath;
+      try {
+        const parsedUrl = new URL(request.url);
+        if (parsedUrl.searchParams.get('type') === 'grid') {
+          const gridThumb = thumbnailGenerator.getExistingThumbnailPath(targetPath);
+          if (gridThumb) {
+            fileToServe = gridThumb;
+          } else {
+            // Queue thumbnail generation with high priority, but immediately serve original cover to avoid UI stalls
+            thumbnailGenerator.enqueue(targetPath, true);
+          }
+        }
+      } catch (_) {}
+
+      return net.fetch(url.pathToFileURL(fileToServe).toString());
     } catch (e) {
       logger.error('PROTOCOL', `Error sirviendo lecfal-cover (${request.url}): ${e.message}`);
       return new Response('Server error', { status: 500 });
@@ -151,6 +197,53 @@ app.whenReady().then(() => {
     } catch (e) {
       logger.error('PROTOCOL', `Error sirviendo lecfal-file (${request.url}): ${e.message}`);
       return new Response('Server error', { status: 500 });
+    }
+  });
+
+  // Handle custom media protocol for streaming individual CBZ pages on demand
+  protocol.handle('lecfal-cbz', async (request) => {
+    try {
+      const parsed = new URL(request.url);
+      const chapterId = parsed.searchParams.get('chapterId');
+      const entryName = parsed.searchParams.get('entry');
+      const pageIndexStr = parsed.searchParams.get('page');
+      const pageIndex = (pageIndexStr !== null && pageIndexStr !== '') ? parseInt(pageIndexStr, 10) : null;
+
+      let filePath = null;
+      if (chapterId && db) {
+        const chapter = db.getChapterById(chapterId);
+        if (chapter && chapter.file_path) {
+          filePath = chapter.file_path;
+        }
+      }
+
+      // Fallback: direct path parameter if chapterId was not supplied
+      if (!filePath) {
+        filePath = resolveCustomProtocolPath(request.url);
+      }
+
+      if (!filePath || !fs.existsSync(filePath)) {
+        logger.warn('CBZ_PROTOCOL', `Archivo CBZ no encontrado para solicitud: ${request.url}`);
+        return new Response('Chapter archive not found', { status: 404 });
+      }
+
+      if (!entryName && pageIndex === null) {
+        return new Response('Entry name or page index missing', { status: 400 });
+      }
+
+      const streamInfo = await cbzProvider.getEntryStream(filePath, entryName, pageIndex);
+      const webStream = Readable.toWeb(streamInfo.stream);
+
+      return new Response(webStream, {
+        headers: {
+          'Content-Type': streamInfo.mimeType,
+          'Content-Length': String(streamInfo.size),
+          'Cache-Control': 'public, max-age=3600'
+        }
+      });
+    } catch (err) {
+      logger.error('CBZ_PROTOCOL', `Error sirviendo página CBZ (${request.url}): ${err.message}`);
+      return new Response(`Error: ${err.message}`, { status: 500 });
     }
   });
 
@@ -663,12 +756,24 @@ ipcMain.handle('library:save-series-cover', async (event, { seriesId, filePath, 
     db.db.run('UPDATE series SET cover_path = ? WHERE id = ?', [targetCoverPath, seriesId]);
     db.save();
 
+    // Enqueue downsampled grid thumbnail generation in background
+    thumbnailGenerator.enqueue(targetCoverPath, true);
+
     logger.info('PDF', `Portada de serie generada y asignada para ID ${seriesId}`);
     return targetCoverPath;
   } catch (err) {
     logger.error('PDF', `Error guardando portada de serie: ${err.message}`);
     return null;
   }
+});
+
+// Library thumbnail management IPC handlers
+ipcMain.handle('thumbnails:backfill', async () => {
+  return thumbnailGenerator.backfill();
+});
+
+ipcMain.handle('thumbnails:get-stats', async () => {
+  return thumbnailGenerator.getStats();
 });
 
 // Open chapter file with default system application
@@ -722,4 +827,131 @@ ipcMain.handle('system:clear-logs', async () => {
 // System info
 ipcMain.handle('system:get-version', () => {
   return app.getVersion();
+});
+
+// Fullscreen controls
+ipcMain.handle('system:toggle-fullscreen', async () => {
+  if (mainWindow) {
+    const isFull = !mainWindow.isFullScreen();
+    mainWindow.setFullScreen(isFull);
+    return isFull;
+  }
+  return false;
+});
+
+ipcMain.handle('system:is-fullscreen', async () => {
+  return mainWindow ? mainWindow.isFullScreen() : false;
+});
+
+// Reader IPC
+ipcMain.handle('reader:get-chapter', async (event, chapterId) => {
+  if (!chapterId) {
+    throw new Error('ID de capítulo no especificado');
+  }
+
+  // Direct PDF virtual ID or path
+  if (typeof chapterId === 'string' && chapterId.startsWith('pdf:')) {
+    const pdfPath = chapterId.substring(4);
+    if (!fs.existsSync(pdfPath)) {
+      logger.warn('READER', `Archivo PDF no encontrado: ${pdfPath}`);
+      throw new Error('El archivo del capítulo no existe en el disco.');
+    }
+    return {
+      chapter: {
+        id: chapterId,
+        seriesId: null,
+        seriesTitle: 'Documento PDF',
+        title: path.basename(pdfPath, path.extname(pdfPath)),
+        fileName: path.basename(pdfPath),
+        filePath: pdfPath,
+        format: 'pdf',
+        pageCount: 0,
+        isRead: 0,
+        chapterNumber: 1,
+        estimatedAspectRatio: 1.414,
+        firstPageDimensions: null,
+        readingPosition: parseFloat(db.getSetting(`pos:${chapterId}`, '0')) || 0
+      },
+      pages: [],
+      prevChapter: null,
+      nextChapter: null
+    };
+  }
+
+  const chapter = db.getChapterById(chapterId);
+  if (!chapter) {
+    throw new Error('Capítulo no encontrado en la base de datos');
+  }
+
+  if (!fs.existsSync(chapter.file_path)) {
+    logger.warn('READER', `Archivo no encontrado: ${chapter.file_path}`);
+    throw new Error('El archivo del capítulo no existe en el disco.');
+  }
+
+  let pages = [];
+  let estimatedAspectRatio = 1.414;
+  let firstPageDimensions = null;
+  if (chapter.format === 'cbz') {
+    const manifest = await cbzProvider.getManifest(chapter.file_path);
+    pages = manifest.pages;
+    if (manifest.estimatedAspectRatio) {
+      estimatedAspectRatio = manifest.estimatedAspectRatio;
+    }
+    firstPageDimensions = manifest.firstPageDimensions || null;
+    if (chapter.page_count !== manifest.pageCount) {
+      db.updateChapterPageCount(chapter.id, manifest.pageCount);
+      chapter.page_count = manifest.pageCount;
+    }
+  }
+
+  const adjacent = db.getAdjacentChapters(chapter.id);
+
+  logger.info('READER', `Cargando capítulo ID ${chapter.id} "${chapter.title}" (${chapter.format.toUpperCase()})`);
+
+  return {
+    chapter: {
+      id: chapter.id,
+      seriesId: chapter.series_id,
+      seriesTitle: chapter.series_title || 'Manga',
+      title: chapter.title,
+      fileName: chapter.file_name,
+      filePath: chapter.file_path,
+      format: chapter.format,
+      pageCount: chapter.page_count,
+      isRead: chapter.is_read,
+      chapterNumber: chapter.chapter_number,
+      estimatedAspectRatio,
+      firstPageDimensions,
+      readingPosition: (chapter.reading_position !== undefined && chapter.reading_position !== null) ? chapter.reading_position : 0
+    },
+    pages,
+    prevChapter: adjacent.prev ? { id: adjacent.prev.id, title: adjacent.prev.title } : null,
+    nextChapter: adjacent.next ? { id: adjacent.next.id, title: adjacent.next.title } : null
+  };
+});
+
+ipcMain.handle('reader:set-read', async (event, { chapterId, isRead }) => {
+  return db.setChapterRead(chapterId, isRead);
+});
+
+ipcMain.handle('reader:get-reading-position', async (event, chapterId) => {
+  if (!chapterId) return 0;
+  if (typeof chapterId === 'string' && chapterId.startsWith('pdf:')) {
+    return parseFloat(db.getSetting(`pos:${chapterId}`, '0')) || 0;
+  }
+  return db.getChapterReadingPosition(Number(chapterId) || chapterId);
+});
+
+ipcMain.handle('reader:set-reading-position', async (event, { chapterId, position }) => {
+  if (!chapterId) return 0;
+  let pos = Number(position);
+  if (isNaN(pos)) pos = 0;
+  pos = Math.max(0, Math.min(1.0, pos));
+
+  if (typeof chapterId === 'string' && chapterId.startsWith('pdf:')) {
+    if (pos >= 0.90) pos = 1.0;
+    db.setSetting(`pos:${chapterId}`, String(pos));
+    return pos;
+  }
+  return db.setChapterReadingPosition(Number(chapterId) || chapterId, pos);
 });

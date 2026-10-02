@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const AdmZip = require('adm-zip');
-const LibraryScanner = require('../src/scanner');
-const DatabaseManager = require('../src/db');
+const LibraryScanner = require('../../src/scanner');
+const DatabaseManager = require('../../src/db');
 
 async function runTests() {
   console.log('=== STARTING SCANNER E2E UNIT & INTEGRATION TESTS ===');

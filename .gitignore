@@ -30,6 +30,13 @@ logs/
 # Local user/runtime configuration overrides
 config.local.*
 
+# Local development scratchpad & audit archives
+scratch/
+docs/archive/
+
+# Test runtime output reports & telemetry
+test/**/*.json
+
 # OS generated files
 .DS_Store
 Thumbs.db

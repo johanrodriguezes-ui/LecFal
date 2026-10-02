@@ -78,6 +78,7 @@ class DatabaseManager {
         page_count INTEGER DEFAULT 0,
         is_read INTEGER DEFAULT 0,
         last_read_at DATETIME,
+        reading_position REAL DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (series_id) REFERENCES series(id) ON DELETE CASCADE
       );
@@ -182,6 +183,10 @@ class DatabaseManager {
     // Backward-compatible schema migrations
     try {
       this.db.run('ALTER TABLE chapters ADD COLUMN mtime_ms INTEGER DEFAULT 0');
+    } catch (e) {}
+
+    try {
+      this.db.run('ALTER TABLE chapters ADD COLUMN reading_position REAL DEFAULT 0');
     } catch (e) {}
 
     try {
@@ -568,8 +573,16 @@ class DatabaseManager {
     }
 
     if (authorId) {
-      sql += ' AND id IN (SELECT series_id FROM series_authors WHERE author_id = ?)';
-      params.push(authorId);
+      if (Array.isArray(authorId)) {
+        if (authorId.length > 0) {
+          const placeholders = authorId.map(() => '?').join(',');
+          sql += ` AND id IN (SELECT series_id FROM series_authors WHERE author_id IN (${placeholders}))`;
+          params.push(...authorId);
+        }
+      } else {
+        sql += ' AND id IN (SELECT series_id FROM series_authors WHERE author_id = ?)';
+        params.push(authorId);
+      }
     } else if (advAuthor && advAuthor.trim() !== '') {
       sql += ' AND (id IN (SELECT series_id FROM series_authors sa JOIN authors a ON sa.author_id = a.id WHERE a.name = ? COLLATE NOCASE) OR author LIKE ?)';
       const authorVal = advAuthor.trim();
@@ -577,8 +590,16 @@ class DatabaseManager {
     }
 
     if (groupId) {
-      sql += ' AND id IN (SELECT series_id FROM series_groups WHERE group_id = ?)';
-      params.push(groupId);
+      if (Array.isArray(groupId)) {
+        if (groupId.length > 0) {
+          const placeholders = groupId.map(() => '?').join(',');
+          sql += ` AND id IN (SELECT series_id FROM series_groups WHERE group_id IN (${placeholders}))`;
+          params.push(...groupId);
+        }
+      } else {
+        sql += ' AND id IN (SELECT series_id FROM series_groups WHERE group_id = ?)';
+        params.push(groupId);
+      }
     } else if (advGroup && advGroup.trim() !== '') {
       sql += ' AND (id IN (SELECT series_id FROM series_groups sg JOIN groups g ON sg.group_id = g.id WHERE g.name = ? COLLATE NOCASE) OR group_name LIKE ?)';
       const groupVal = advGroup.trim();
@@ -586,8 +607,16 @@ class DatabaseManager {
     }
 
     if (parodyId) {
-      sql += ' AND id IN (SELECT series_id FROM series_parodies_rel WHERE parody_id = ?)';
-      params.push(parodyId);
+      if (Array.isArray(parodyId)) {
+        if (parodyId.length > 0) {
+          const placeholders = parodyId.map(() => '?').join(',');
+          sql += ` AND id IN (SELECT series_id FROM series_parodies_rel WHERE parody_id IN (${placeholders}))`;
+          params.push(...parodyId);
+        }
+      } else {
+        sql += ' AND id IN (SELECT series_id FROM series_parodies_rel WHERE parody_id = ?)';
+        params.push(parodyId);
+      }
     } else if (advParody && advParody.trim() !== '') {
       sql += ' AND (id IN (SELECT series_id FROM series_parodies_rel spr JOIN series_parodies sp ON spr.parody_id = sp.id WHERE sp.name = ? COLLATE NOCASE) OR parody LIKE ? OR title LIKE ?)';
       const parodyVal = advParody.trim();
@@ -619,8 +648,16 @@ class DatabaseManager {
 
     // Tag filtering using relation series_tags or denormalized tags
     if (tagId) {
-      sql += ' AND id IN (SELECT series_id FROM series_tags WHERE tag_id = ?)';
-      params.push(tagId);
+      if (Array.isArray(tagId)) {
+        if (tagId.length > 0) {
+          const placeholders = tagId.map(() => '?').join(',');
+          sql += ` AND id IN (SELECT series_id FROM series_tags WHERE tag_id IN (${placeholders}))`;
+          params.push(...tagId);
+        }
+      } else {
+        sql += ' AND id IN (SELECT series_id FROM series_tags WHERE tag_id = ?)';
+        params.push(tagId);
+      }
     } else if (tag && tag.trim() !== '') {
       sql += ' AND (id IN (SELECT series_id FROM series_tags st JOIN tags t ON st.tag_id = t.id WHERE t.name = ? COLLATE NOCASE) OR tags LIKE ?)';
       params.push(tag.trim(), `%${tag.trim()}%`);
@@ -1575,6 +1612,95 @@ class DatabaseManager {
     }
     stmt.free();
     return isRead;
+  }
+
+  getChapterById(chapterId) {
+    const stmt = this.db.prepare(`
+      SELECT c.*, s.title AS series_title 
+      FROM chapters c
+      LEFT JOIN series s ON c.series_id = s.id
+      WHERE c.id = ?
+    `);
+    stmt.bind([chapterId]);
+    let chapter = null;
+    if (stmt.step()) {
+      chapter = stmt.getAsObject();
+    }
+    stmt.free();
+    return chapter;
+  }
+
+  getAdjacentChapters(chapterId) {
+    const current = this.getChapterById(chapterId);
+    if (!current) return { prev: null, next: null };
+
+    // Get all chapters of this series in ascending reading order
+    const all = this.getChapters(current.series_id, { sortOrder: 'asc' });
+    const currentIndex = all.findIndex(c => c.id === current.id);
+    if (currentIndex === -1) return { prev: null, next: null };
+
+    return {
+      prev: currentIndex > 0 ? all[currentIndex - 1] : null,
+      next: currentIndex < all.length - 1 ? all[currentIndex + 1] : null
+    };
+  }
+
+  updateChapterPageCount(chapterId, pageCount) {
+    if (!pageCount || pageCount <= 0) return;
+    this.db.run('UPDATE chapters SET page_count = ? WHERE id = ?', [pageCount, chapterId]);
+    this.save();
+  }
+
+  getChapterReadingPosition(chapterId) {
+    if (!chapterId) return 0;
+    const stmt = this.db.prepare('SELECT reading_position FROM chapters WHERE id = ?');
+    stmt.bind([chapterId]);
+    let pos = 0;
+    if (stmt.step()) {
+      pos = stmt.getAsObject().reading_position;
+    }
+    stmt.free();
+    return (typeof pos === 'number' && !isNaN(pos)) ? Math.max(0, Math.min(1.0, pos)) : 0;
+  }
+
+  setChapterReadingPosition(chapterId, position) {
+    if (!chapterId) return 0;
+    let pos = Number(position);
+    if (isNaN(pos)) pos = 0;
+    pos = Math.max(0, Math.min(1.0, pos));
+
+    // When pos >= 0.90 (completion threshold), set to 1.0 and mark as read
+    if (pos >= 0.90) {
+      pos = 1.0;
+      this.db.run(
+        'UPDATE chapters SET reading_position = 1.0, is_read = 1, last_read_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [chapterId]
+      );
+    } else {
+      this.db.run(
+        'UPDATE chapters SET reading_position = ? WHERE id = ?',
+        [pos, chapterId]
+      );
+    }
+    this.save();
+    return pos;
+  }
+
+  setChapterRead(chapterId, isRead = 1) {
+    const val = isRead ? 1 : 0;
+    if (val === 1) {
+      this.db.run(
+        'UPDATE chapters SET is_read = 1, reading_position = 1.0, last_read_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [chapterId]
+      );
+    } else {
+      this.db.run(
+        'UPDATE chapters SET is_read = 0, last_read_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [chapterId]
+      );
+    }
+    this.save();
+    return val;
   }
 
   markAllChaptersRead(seriesId, isRead = true) {

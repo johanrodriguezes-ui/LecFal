@@ -3,13 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' lecfal-cover: lecfal-file: blob: data: https://fonts.googleapis.com https://fonts.gstatic.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' lecfal-cover: lecfal-file: lecfal-cbz: blob: data: https://fonts.googleapis.com https://fonts.gstatic.com;">
   <title>LecFal - Tu biblioteca de mangas y comics</title>
   <link rel="icon" type="image/png" href="../../assets/icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/navigation.css">
+  <link rel="stylesheet" href="css/search.css">
+  <link rel="stylesheet" href="css/library.css">
+  <link rel="stylesheet" href="css/scanner.css">
+  <link rel="stylesheet" href="css/detail.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="css/modals.css">
+  <link rel="stylesheet" href="css/terminal.css">
+  <link rel="stylesheet" href="css/reader.css">
 </head>
 <body>
   <div class="app-container">
@@ -149,28 +158,20 @@
             <input type="text" id="advInputTitle" placeholder="Buscar por título..." autocomplete="off">
           </div>
           <div class="adv-field">
-            <label for="advSelectAuthor">Autor</label>
-            <select id="advSelectAuthor">
-              <option value="">Todos los autores</option>
-            </select>
+            <label>Autor</label>
+            <div id="advAutocompleteAuthor"></div>
           </div>
           <div class="adv-field">
-            <label for="advSelectGroup">Grupo / Círculo</label>
-            <select id="advSelectGroup">
-              <option value="">Todos los grupos</option>
-            </select>
+            <label>Grupo / Círculo</label>
+            <div id="advAutocompleteGroup"></div>
           </div>
           <div class="adv-field">
-            <label for="advSelectParody">Serie / Parodia</label>
-            <select id="advSelectParody">
-              <option value="">Todas las series / parodias</option>
-            </select>
+            <label>Serie / Parodia</label>
+            <div id="advAutocompleteParody"></div>
           </div>
           <div class="adv-field">
-            <label for="advSelectTag">Tag / Género</label>
-            <select id="advSelectTag">
-              <option value="">Todos los tags</option>
-            </select>
+            <label>Tag / Género</label>
+            <div id="advAutocompleteTag"></div>
           </div>
           <div class="adv-field">
             <label for="advSelectLanguage">Idioma</label>
@@ -825,6 +826,144 @@
 
         </div>
       </div>
+    </div>
+
+    <!-- Dedicated Webtoon Reader View -->
+    <div class="view-container reader-view" id="readerView" style="display: none;">
+      <!-- Top Hover Detection Zone to reveal hidden controls -->
+      <div class="reader-top-hover-zone" id="readerTopHoverZone"></div>
+
+      <!-- Floating Autohiding Top Header -->
+      <header class="reader-header" id="readerHeader">
+        <div class="reader-header-left">
+          <button class="btn-reader-action" id="btnReaderBack" title="Volver al detalle del manga (Esc)" aria-label="Volver al detalle del manga">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            <span id="btnReaderBackText">Volver</span>
+          </button>
+
+          <!-- Floating Header Chapter Navigation Controls -->
+          <div class="reader-header-nav" id="readerHeaderNav">
+            <button class="btn-reader-action" id="btnHeaderPrevChapter" title="Capítulo anterior ([)" aria-label="Capítulo anterior">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"/>
+              </svg>
+            </button>
+            <button class="btn-reader-action" id="btnHeaderNextChapter" title="Siguiente capítulo (])" aria-label="Siguiente capítulo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="reader-title-box">
+            <span class="reader-series-title" id="readerSeriesTitle">Manga</span>
+            <div class="reader-title-subtitle">
+              <h2 class="reader-chapter-title" id="readerChapterTitle">Capítulo</h2>
+              <span class="reader-page-indicator" id="readerPageIndicator">Cargando...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="reader-header-right">
+          <!-- Width Mode Toggle -->
+          <button class="btn-reader-action" id="btnReaderWidthToggle" title="Ajustar ancho de lectura" aria-label="Ajustar ancho de lectura">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 12h16M4 12l4-4m-4 4 4 4m12-4-4-4m4 4-4 4"/>
+            </svg>
+            <span id="readerWidthLabel">750px</span>
+          </button>
+
+          <!-- Spacing Mode Toggle -->
+          <button class="btn-reader-action" id="btnReaderSpacingToggle" title="Ajustar espacio vertical entre páginas" aria-label="Ajustar espacio entre páginas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 4v16M12 4l-4 4m4-4 4 4m-4 12-4-4m4 4 4-4"/>
+            </svg>
+            <span id="readerSpacingLabel">10px</span>
+          </button>
+
+          <!-- Fallback: Open in external app -->
+          <button class="btn-reader-action" id="btnReaderExternal" title="Abrir archivo en lector externo del sistema" aria-label="Abrir en lector externo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+            <span>Lector externo</span>
+          </button>
+
+          <!-- Fullscreen Toggle -->
+          <button class="btn-reader-action" id="btnReaderFullscreen" title="Pantalla completa" aria-label="Pantalla completa">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="iconFullscreenEnter">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="iconFullscreenExit" style="display: none;">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Integrated Header Progress Bar -->
+        <div class="reader-progress-track">
+          <div class="reader-progress-fill" id="readerProgressFill"></div>
+        </div>
+      </header>
+
+      <!-- Reader Scrollable Container -->
+      <main class="reader-container" id="readerContainer">
+        <!-- Error Banner (if chapter file cannot be opened) -->
+        <div class="reader-error-state" id="readerErrorState" style="display: none;">
+          <div class="reader-error-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <h3 id="readerErrorTitle">Error al abrir el capítulo</h3>
+          <p id="readerErrorMessage">No se pudo acceder al archivo en el disco.</p>
+          <div class="reader-error-actions">
+            <button class="btn btn-secondary" id="btnReaderErrorBack" aria-label="Volver">Volver al manga</button>
+            <button class="btn btn-primary" id="btnReaderErrorExternal" aria-label="Intentar con lector externo">Intentar con lector externo</button>
+          </div>
+        </div>
+
+        <!-- Continuous Vertical Webtoon Page Stream -->
+        <div class="reader-stream" id="readerStream">
+          <!-- Page slots injected dynamically -->
+        </div>
+
+        <!-- Reader Navigation Footer at end of stream -->
+        <div class="reader-footer" id="readerFooter" style="display: none;">
+          <div class="reader-footer-card">
+            <div class="reader-footer-check-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <h3>¡Capítulo finalizado!</h3>
+            <p id="readerFooterSubtext">Has llegado al final de este capítulo.</p>
+            <div class="reader-footer-buttons">
+              <button class="btn btn-secondary" id="btnReaderPrevChapter" aria-label="Capítulo anterior">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+                <span>Capítulo anterior</span>
+              </button>
+              <button class="btn btn-secondary" id="btnReaderFooterBack" aria-label="Volver al detalle del manga">
+                <span id="readerFooterBackText">Volver al manga</span>
+              </button>
+              <button class="btn btn-primary" id="btnReaderNextChapter" aria-label="Siguiente capítulo">
+                <span>Siguiente capítulo</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
 
     <!-- Footer Status Bar -->

@@ -1,0 +1,220 @@
+/* ==================== BASE DESIGN SYSTEM & TOKENS ==================== */
+
+:root {
+  --bg-primary: #0a0d14;
+  --bg-secondary: #101522;
+  --bg-tertiary: #171e30;
+  --bg-card: #131929;
+  --bg-card-hover: #1b233a;
+  
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-focus: rgba(99, 102, 241, 0.5);
+  --border-card: rgba(255, 255, 255, 0.08);
+
+  --accent-primary: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --accent-glow: rgba(99, 102, 241, 0.35);
+
+  --color-cbz: #a855f7;
+  --bg-cbz: rgba(168, 85, 247, 0.15);
+  --border-cbz: rgba(168, 85, 247, 0.35);
+
+  --color-pdf: #f43f5e;
+  --bg-pdf: rgba(244, 63, 94, 0.15);
+  --border-pdf: rgba(244, 63, 94, 0.35);
+
+  --color-fav: #ec4899;
+
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  --grid-item-min-width: 185px;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', var(--font-sans);
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* App Container Layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: radial-gradient(circle at 50% 0%, #151c33 0%, var(--bg-primary) 65%);
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+
+/* ==================== GENERIC BUTTONS & CONTROLS ==================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-primary {
+  background: var(--accent-gradient);
+  color: #ffffff;
+  box-shadow: 0 2px 10px var(--accent-glow);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-subtle);
+  color: var(--text-main);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.btn-large {
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  border-radius: var(--radius-lg);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+
+/* ==================== VIEW CONTAINERS & TRANSITIONS ==================== */
+
+/* ==================== VIEW CONTAINERS & TRANSITIONS ==================== */
+.view-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+
+/* ==================== LIGHT THEME CORE VARIABLES & OVERRIDES ==================== */
+
+/* ==================== LIGHT THEME SUPPORT ==================== */
+body[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-focus: rgba(99, 102, 241, 0.6);
+  --border-card: rgba(0, 0, 0, 0.08);
+
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+}
+
+body[data-theme="light"] .app-container {
+  background: radial-gradient(circle at 50% 0%, #e0e7ff 0%, #f8fafc 65%);
+}
+
+body[data-theme="light"] .top-nav,
+body[data-theme="light"] .manga-nav-bar,
+body[data-theme="light"] .settings-nav-bar {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+body[data-theme="light"] .brand-title {
+  background: linear-gradient(135deg, #0f172a 40%, #334155 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body[data-theme="light"] .search-bar,
+body[data-theme="light"] .standard-input,
+body[data-theme="light"] .tag-create-form input,
+body[data-theme="light"] .adv-field input,
+body[data-theme="light"] .adv-field select,
+body[data-theme="light"] .tag-picker-filter-box input {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+body[data-theme="light"] .comic-card {
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+body[data-theme="light"] .modal-card,
+body[data-theme="light"] .settings-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
+}
+
+body[data-theme="light"] .status-bar {
+  background: #ffffff;
+  border-top-color: rgba(0, 0, 0, 0.08);
+}

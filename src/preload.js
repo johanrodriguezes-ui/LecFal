@@ -32,14 +32,12 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
   getSeriesDetail: (params) => ipcRenderer.invoke('library:get-series-detail', params),
   updateSeriesMetadata: (data) => ipcRenderer.invoke('library:update-series-metadata', data),
   toggleSeriesFavorite: (seriesId) => ipcRenderer.invoke('library:toggle-series-fav', seriesId),
-  saveSeriesCover: (data) => ipcRenderer.invoke('library:save-series-cover', data),
 
   // Chapter interactions
   toggleChapterRead: (chapterId) => ipcRenderer.invoke('library:toggle-chapter-read', chapterId),
   markAllChaptersRead: (data) => ipcRenderer.invoke('library:mark-all-read', data),
 
   // Centralized Tag Management
-  getTags: () => ipcRenderer.invoke('tags:get-all'),
   getAllTags: () => ipcRenderer.invoke('tags:get-all'),
   createTag: (name) => ipcRenderer.invoke('tags:create', name),
   renameTag: (idOrObj, maybeName) => {
@@ -97,6 +95,10 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
   getSetting: (key, defaultValue) => ipcRenderer.invoke('settings:get', key, defaultValue),
   setSetting: (key, value) => ipcRenderer.invoke('settings:set', key, value),
 
+  // Thumbnails
+  backfillThumbnails: () => ipcRenderer.invoke('thumbnails:backfill'),
+  getThumbnailStats: () => ipcRenderer.invoke('thumbnails:get-stats'),
+
   // Logs & Diagnostics
   onLog: (callback) => {
     const subSingle = (event, data) => callback(data);
@@ -117,6 +119,19 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
   getLogs: () => ipcRenderer.invoke('system:get-logs'),
   openLogFile: () => ipcRenderer.invoke('system:open-log-file'),
   clearLogs: () => ipcRenderer.invoke('system:clear-logs'),
+
+  // Reader interactions
+  getChapterForReader: (chapterId) => ipcRenderer.invoke('reader:get-chapter', chapterId),
+  setChapterRead: (chapterId, isRead) => ipcRenderer.invoke('reader:set-read', { chapterId, isRead }),
+  getChapterReadingPosition: (chapterId) => ipcRenderer.invoke('reader:get-reading-position', chapterId),
+  setChapterReadingPosition: (chapterId, position) => ipcRenderer.invoke('reader:set-reading-position', { chapterId, position }),
+  toggleFullscreen: () => ipcRenderer.invoke('system:toggle-fullscreen'),
+  isFullscreen: () => ipcRenderer.invoke('system:is-fullscreen'),
+  onFullscreenChange: (callback) => {
+    const sub = (event, isFullscreen) => callback(isFullscreen);
+    ipcRenderer.on('window:fullscreen-changed', sub);
+    return () => ipcRenderer.removeListener('window:fullscreen-changed', sub);
+  },
 
   // System
   getAppVersion: () => ipcRenderer.invoke('system:get-version')

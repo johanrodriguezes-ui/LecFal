@@ -1,0 +1,192 @@
+/* ==================== SCAN PROGRESS BANNER ==================== */
+.scan-progress-banner {
+  background: linear-gradient(90deg, #1c243a 0%, #151b2c 100%);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+  padding: 10px 24px;
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.banner-icon-spin svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent-primary);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.banner-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.banner-file {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+}
+
+.banner-progress-bar-container {
+  width: 180px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.banner-progress-bar {
+  height: 100%;
+  background: var(--accent-gradient);
+  transition: width 0.15s ease-out;
+}
+
+.banner-count {
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--accent-primary);
+  min-width: 50px;
+  text-align: right;
+}
+
+.btn-banner-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-left: 8px;
+}
+
+.btn-banner-cancel:hover {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: rgba(239, 68, 68, 0.7);
+  color: #ffffff;
+}
+
+.scan-progress-banner.cancelling {
+  background: linear-gradient(90deg, #2b1d14 0%, #1c1512 100%);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+.scan-progress-banner.cancelling .banner-icon-spin svg {
+  color: #f59e0b;
+}
+
+.scan-progress-banner.cancelling .banner-title {
+  color: #fcd34d;
+}
+
+.scan-progress-banner.cancelling .banner-progress-bar {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+
+.btn-banner-cancel svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Scan split button & dropdown */
+.scan-button-group {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.scan-button-group #btnRescan {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.scan-button-group #btnScanMenu {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding: 0 8px;
+  min-width: 28px;
+}
+
+.scan-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #151a28;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.7);
+  z-index: 200;
+  min-width: 260px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: slideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scan-dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.scan-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.scan-dropdown-item svg {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+.scan-dropdown-item-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.scan-dropdown-item-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
