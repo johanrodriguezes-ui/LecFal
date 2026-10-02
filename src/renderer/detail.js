@@ -319,10 +319,11 @@ function renderDetectedAuthorHint(series, authors) {
   if (!detectedAuthorHint) return;
   const detected = (series.detected_author || '').trim();
   const alreadyAssigned = authors.some(a => a.name.toLowerCase() === detected.toLowerCase());
-  if (detected && !alreadyAssigned) {
+  if (detected && !alreadyAssigned && !series.is_author_ignored) {
     detectedAuthorHint.innerHTML = `
       <span>Detectado en carpeta: <strong>"${escapeHtml(detected)}"</strong></span>
       <button type="button" class="hint-btn" id="btnQuickAddDetectedAuthor">Añadir a Ajustes</button>
+      <button type="button" class="hint-btn hint-btn-ignore" id="btnIgnoreDetectedAuthor">Ignorar</button>
     `;
     detectedAuthorHint.style.display = 'inline-flex';
     const btnQuick = detectedAuthorHint.querySelector('#btnQuickAddDetectedAuthor');
@@ -333,6 +334,20 @@ function renderDetectedAuthorHint(series, authors) {
           toast(`Autor "${detected}" creado y asignado`);
           await reloadActiveSeries();
           callbacks.refreshAdvSearch?.();
+        } catch (err) {
+          toast(err.message);
+        }
+      });
+    }
+    const btnIgnore = detectedAuthorHint.querySelector('#btnIgnoreDetectedAuthor');
+    if (btnIgnore) {
+      btnIgnore.addEventListener('click', async () => {
+        try {
+          await window.lecfalAPI.ignoreAuthor(detected);
+          series.is_author_ignored = true;
+          toast(`"${detected}" ignorado`);
+          detectedAuthorHint.style.display = 'none';
+          detectedAuthorHint.innerHTML = '';
         } catch (err) {
           toast(err.message);
         }

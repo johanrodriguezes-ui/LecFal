@@ -56,6 +56,9 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
   },
   deleteAuthor: (id) => ipcRenderer.invoke('authors:delete', id),
   setSeriesAuthors: (data) => ipcRenderer.invoke('authors:set-series-authors', data),
+  ignoreAuthor: (name) => ipcRenderer.invoke('authors:ignore', name),
+  unignoreAuthor: (name) => ipcRenderer.invoke('authors:unignore', name),
+  getAllIgnoredAuthors: () => ipcRenderer.invoke('authors:get-all-ignored'),
 
   // Centralized Language Management
   getAllLanguages: () => ipcRenderer.invoke('languages:get-all'),

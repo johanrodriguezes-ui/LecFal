@@ -371,6 +371,22 @@ ipcMain.handle('authors:set-series-authors', async (event, { seriesId, authorIds
   return updated;
 });
 
+ipcMain.handle('authors:ignore', async (event, name) => {
+  const result = db.ignoreAuthor(name);
+  logger.info('AUTHORS', `Autor ignorado: "${name}"`);
+  return result;
+});
+
+ipcMain.handle('authors:unignore', async (event, name) => {
+  const result = db.unignoreAuthor(name);
+  logger.info('AUTHORS', `Autor des-ignorado: "${name}"`);
+  return result;
+});
+
+ipcMain.handle('authors:get-all-ignored', async () => {
+  return db.getAllIgnoredAuthors();
+});
+
 // ==================== LANGUAGE MANAGEMENT IPC ====================
 ipcMain.handle('languages:get-all', async () => {
   return db.getAllLanguages();

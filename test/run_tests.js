@@ -23,6 +23,11 @@ const tests = [
     args: [path.join(__dirname, 'phase71', 'test_catalog_autocomplete.js')]
   },
   {
+    name: 'Ignored Authors Detection & Precedence Tests',
+    cmd: process.execPath, // node
+    args: [path.join(__dirname, 'test_ignored_authors.js')]
+  },
+  {
     name: 'Reader Persistent Reading Position Suite',
     cmd: 'npx',
     args: ['electron', path.join(__dirname, 'phase41', 'test_reader_position.js')]

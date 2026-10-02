@@ -178,6 +178,14 @@ class DatabaseManager {
       );
       CREATE INDEX IF NOT EXISTS idx_series_groups_series ON series_groups(series_id);
       CREATE INDEX IF NOT EXISTS idx_series_groups_group ON series_groups(group_id);
+
+      -- Centralized ignored authors model (suppresses false-positive author suggestions)
+      CREATE TABLE IF NOT EXISTS ignored_authors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE COLLATE NOCASE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_ignored_authors_name ON ignored_authors(name);
     `);
 
     // Backward-compatible schema migrations
@@ -211,6 +219,7 @@ class DatabaseManager {
       this.db.run('CREATE INDEX IF NOT EXISTS idx_series_parody ON series(parody)');
       this.db.run('CREATE INDEX IF NOT EXISTS idx_series_language ON series(language)');
       this.db.run('CREATE INDEX IF NOT EXISTS idx_series_group_name ON series(group_name)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_ignored_authors_name ON ignored_authors(name)');
     } catch (e) {}
 
     this.seedDefaultLanguages();
@@ -705,6 +714,7 @@ class DatabaseManager {
       result.groups_list = this.getSeriesGroups(seriesId);
       result.group_name = result.group_name || '';
       result.group = result.group_name;
+      result.is_author_ignored = result.detected_author ? this.isAuthorIgnored(result.detected_author) : false;
     }
     stmt.free();
     return result;
@@ -1011,6 +1021,9 @@ class DatabaseManager {
     }
     checkStmt.free();
 
+    // If this name was previously ignored, unignore it now
+    this.db.run('DELETE FROM ignored_authors WHERE name = ? COLLATE NOCASE', [cleanName]);
+
     this.db.run('INSERT INTO authors (name) VALUES (?)', [cleanName]);
 
     const idStmt = this.db.prepare('SELECT id, name FROM authors WHERE name = ? COLLATE NOCASE');
@@ -1147,6 +1160,56 @@ class DatabaseManager {
     for (const sId of seriesIds) {
       this.refreshSeriesAuthorsString(sId);
     }
+  }
+
+  // ==================== IGNORED DETECTED AUTHORS ====================
+  ignoreAuthor(name) {
+    const cleanName = (name || '').trim();
+    if (!cleanName) throw new Error('El nombre a ignorar no puede estar vacío');
+
+    const stmt = this.db.prepare('INSERT OR IGNORE INTO ignored_authors (name) VALUES (?)');
+    stmt.run([cleanName]);
+    stmt.free();
+
+    this.save();
+    return true;
+  }
+
+  unignoreAuthor(name) {
+    const cleanName = (name || '').trim();
+    if (!cleanName) return false;
+
+    const stmt = this.db.prepare('DELETE FROM ignored_authors WHERE name = ? COLLATE NOCASE');
+    stmt.run([cleanName]);
+    stmt.free();
+
+    this.save();
+    return true;
+  }
+
+  getAllIgnoredAuthors() {
+    const stmt = this.db.prepare('SELECT id, name, created_at FROM ignored_authors ORDER BY name COLLATE NOCASE ASC');
+    const results = [];
+    while (stmt.step()) {
+      results.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return results;
+  }
+
+  isAuthorIgnored(name) {
+    const cleanName = (name || '').trim();
+    if (!cleanName) return false;
+
+    // EXISTING AUTHOR > IGNORED VALUE
+    const authorCheck = this.getAuthorByName(cleanName);
+    if (authorCheck) return false;
+
+    const stmt = this.db.prepare('SELECT id FROM ignored_authors WHERE name = ? COLLATE NOCASE');
+    stmt.bind([cleanName]);
+    const isIgnored = stmt.step();
+    stmt.free();
+    return Boolean(isIgnored);
   }
 
   // ==================== CENTRALIZED LANGUAGES ====================

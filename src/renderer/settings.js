@@ -24,6 +24,7 @@ const elements = {
   formCreateAuthor: null,
   inputNewAuthorName: null,
   settingsAuthorsList: null,
+  settingsIgnoredAuthorsList: null,
 
   // Groups
   formCreateGroup: null,
@@ -264,6 +265,10 @@ async function renderSettingsCatalog(type) {
 
     listEl.innerHTML = '';
     listEl.appendChild(fragment);
+
+    if (type === 'author') {
+      await renderSettingsIgnoredAuthors();
+    }
   } catch (err) {
     console.error(`Error rendering settings ${type}:`, err);
   }
@@ -513,7 +518,64 @@ export async function renderSettingsTags() {
 }
 
 export async function renderSettingsAuthors() {
-  return renderSettingsCatalog('author');
+  await renderSettingsCatalog('author');
+  await renderSettingsIgnoredAuthors();
+}
+
+export async function renderSettingsIgnoredAuthors() {
+  const listEl = elements.settingsIgnoredAuthorsList;
+  if (!listEl) return;
+
+  try {
+    const items = await window.lecfalAPI.getAllIgnoredAuthors();
+    if (!items || items.length === 0) {
+      listEl.innerHTML = `
+        <div class="settings-tags-empty" style="padding: 12px; width: 100%;">
+          <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">No hay autores o valores ignorados actualmente.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'settings-tag-item';
+      row.dataset.id = item.id;
+      row.innerHTML = `
+        <span class="settings-tag-name">${escapeHtml(item.name)}</span>
+        <div class="settings-tag-actions">
+          <button type="button" class="btn btn-secondary btn-sm btn-restore-ignored" data-name="${escapeHtml(item.name)}" title="Restaurar sugerencia">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+            </svg>
+            <span>Restaurar</span>
+          </button>
+        </div>
+      `;
+
+      row.querySelector('.btn-restore-ignored').addEventListener('click', async () => {
+        try {
+          await window.lecfalAPI.unignoreAuthor(item.name);
+          callbacks.showToast(`"${item.name}" restaurado`);
+          await renderSettingsIgnoredAuthors();
+          if (callbacks.getActiveSeries && callbacks.getActiveSeries()) {
+            await callbacks.reloadActiveSeries();
+          }
+        } catch (err) {
+          callbacks.showToast(`Error: ${err.message}`);
+        }
+      });
+
+      fragment.appendChild(row);
+    });
+
+    listEl.innerHTML = '';
+    listEl.appendChild(fragment);
+  } catch (err) {
+    console.error('Error rendering settings ignored authors:', err);
+  }
 }
 
 export async function renderSettingsGroups() {
@@ -535,7 +597,8 @@ export async function renderAllSettings() {
     renderSettingsCatalog('group'),
     renderSettingsCatalog('language'),
     renderSettingsCatalog('parody'),
-    renderSettingsFolders()
+    renderSettingsFolders(),
+    renderSettingsIgnoredAuthors()
   ]);
 }
 
@@ -574,6 +637,7 @@ export function initSettings(options = {}) {
   elements.formCreateAuthor = document.getElementById('formCreateAuthor');
   elements.inputNewAuthorName = document.getElementById('inputNewAuthorName');
   elements.settingsAuthorsList = document.getElementById('settingsAuthorsList');
+  elements.settingsIgnoredAuthorsList = document.getElementById('settingsIgnoredAuthorsList');
 
   elements.formCreateGroup = document.getElementById('formCreateGroup');
   elements.inputNewGroupName = document.getElementById('inputNewGroupName');

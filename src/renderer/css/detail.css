@@ -316,6 +316,15 @@
   font-weight: 600;
 }
 
+.detected-author-hint .hint-btn-ignore {
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+.detected-author-hint .hint-btn-ignore:hover {
+  color: #f87171;
+}
+
 .btn-add-tag:hover {
   border-color: var(--accent-primary);
   color: #ffffff;
