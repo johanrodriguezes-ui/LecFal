@@ -694,6 +694,118 @@ class DatabaseManager {
     stmt.free();
   }
 
+  deleteChapter(chapterId) {
+    const numId = Number(chapterId);
+    if (!numId) return false;
+    try {
+      this.db.run('DELETE FROM chapters WHERE id = ?', [numId]);
+      if (!this.inTransaction) {
+        this.save();
+      }
+      return true;
+    } catch (err) {
+      console.error('Error deleting chapter:', err);
+      throw err;
+    }
+  }
+
+  deleteSeries(seriesId) {
+    const numId = Number(seriesId);
+    if (!numId) return false;
+    try {
+      this.db.run('DELETE FROM series_tags WHERE series_id = ?', [numId]);
+      this.db.run('DELETE FROM series_authors WHERE series_id = ?', [numId]);
+      this.db.run('DELETE FROM series_languages WHERE series_id = ?', [numId]);
+      this.db.run('DELETE FROM series_parodies_rel WHERE series_id = ?', [numId]);
+      this.db.run('DELETE FROM series_groups WHERE series_id = ?', [numId]);
+      this.db.run('DELETE FROM chapters WHERE series_id = ?', [numId]);
+      this.db.run('DELETE FROM series WHERE id = ?', [numId]);
+      if (!this.inTransaction) {
+        this.save();
+      }
+      return true;
+    } catch (err) {
+      console.error('Error deleting series:', err);
+      throw err;
+    }
+  }
+
+  pruneFolder(folderId, activeChapterPaths = new Set(), activeSeriesPaths = new Set()) {
+    const numFolderId = Number(folderId);
+    if (!numFolderId) return { prunedChapters: 0, prunedSeries: 0 };
+
+    const activeChapters = activeChapterPaths instanceof Set ? activeChapterPaths : new Set(activeChapterPaths || []);
+    const activeSeries = activeSeriesPaths instanceof Set ? activeSeriesPaths : new Set(activeSeriesPaths || []);
+
+    let prunedChapters = 0;
+    let prunedSeries = 0;
+
+    // 1. Fetch all registered chapters for this folder
+    const registeredChapters = this.getRegisteredChaptersMap(numFolderId);
+    const affectedSeriesIds = new Set();
+
+    // 2. Identify missing chapters
+    const missingChapterIds = [];
+    for (const [filePath, regChapter] of registeredChapters) {
+      if (!activeChapters.has(filePath)) {
+        missingChapterIds.push(regChapter.id);
+        affectedSeriesIds.add(regChapter.series_id);
+      }
+    }
+
+    if (missingChapterIds.length > 0) {
+      const delStmt = this.db.prepare('DELETE FROM chapters WHERE id = ?');
+      for (const chId of missingChapterIds) {
+        delStmt.run([chId]);
+        prunedChapters++;
+      }
+      delStmt.free();
+    }
+
+    // 3. Fetch all registered series for this folder
+    const registeredSeries = this.getRegisteredSeriesMap(numFolderId);
+    const seriesToDelete = new Set();
+
+    // Any series whose folder/file path is no longer on disk
+    for (const [seriesPath, regSeries] of registeredSeries) {
+      if (!activeSeries.has(seriesPath)) {
+        seriesToDelete.add(regSeries.id);
+      }
+    }
+
+    // Check affected series that are still on disk to see if they now have 0 chapters
+    for (const seriesId of affectedSeriesIds) {
+      if (seriesToDelete.has(seriesId)) continue;
+      const countStmt = this.db.prepare('SELECT COUNT(*) as count FROM chapters WHERE series_id = ?');
+      countStmt.bind([seriesId]);
+      let count = 0;
+      if (countStmt.step()) {
+        count = countStmt.getAsObject().count || 0;
+      }
+      countStmt.free();
+
+      if (count === 0) {
+        seriesToDelete.add(seriesId);
+      } else {
+        const updateStmt = this.db.prepare('UPDATE series SET chapter_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        updateStmt.run([count, seriesId]);
+        updateStmt.free();
+      }
+    }
+
+    // 4. Delete missing and empty series
+    for (const sId of seriesToDelete) {
+      this.deleteSeries(sId);
+      prunedSeries++;
+    }
+
+    if (!this.inTransaction) {
+      this.save();
+    }
+
+    return { prunedChapters, prunedSeries };
+  }
+
   getRegisteredChaptersMap(folderId = null) {
     let sql = 'SELECT id, series_id, file_path, file_size, mtime_ms FROM chapters';
     const params = [];

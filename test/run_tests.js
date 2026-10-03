@@ -96,6 +96,11 @@ const tests = [
     name: 'Storage & Portability Settings UI Suite (Phase 5.2)',
     cmd: 'npx',
     args: ['electron', path.join(__dirname, 'test_storage_settings.js')]
+  },
+  {
+    name: 'Scanner Synchronization & Pruning Suite (Phase 6)',
+    cmd: process.execPath,
+    args: [path.join(__dirname, 'test_scanner_pruning.js')]
   }
 ];
 

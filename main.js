@@ -649,14 +649,28 @@ async function scanFolderWithSeries(folder, options = {}) {
 
     if (report.cancelled || scanner.isCancelled) {
       db.commit();
-      db.save();
       logger.info('SCANNER', `Escaneo cancelado en carpeta "${folder.name}".`);
       return { ...report, cancelled: true };
     }
 
+    if (report.failed) {
+      db.rollback();
+      logger.error('SCANNER', `Escaneo fallido en carpeta "${folder.name}".`);
+      return { ...report, failed: true };
+    }
+
+    // Prune missing records ONLY on complete, successful scan
+    const pruneStats = db.pruneFolder(
+      folder.id,
+      report.discoveredChapterPaths,
+      report.discoveredSeriesPaths
+    );
+    report.prunedChapters = pruneStats.prunedChapters;
+    report.prunedSeries = pruneStats.prunedSeries;
+
     db.commit();
     db.updateFolderScanTime(folder.id);
-    logger.info('SCANNER', `Finalizado: ${report.totalSeries} series evaluadas en "${folder.name}" (${report.newFiles} nuevos, ${report.modifiedFiles} modificados, ${report.skippedFiles} omitidos).`);
+    logger.info('SCANNER', `Finalizado: ${report.totalSeries} series evaluadas en "${folder.name}" (${report.newFiles} nuevos, ${report.modifiedFiles} modificados, ${report.skippedFiles} omitidos, ${report.prunedChapters} capítulos eliminados, ${report.prunedSeries} series eliminadas).`);
     return report;
   } catch (err) {
     db.rollback();
@@ -694,6 +708,8 @@ ipcMain.handle('library:scan-all', async (event, options = {}) => {
   let modifiedFiles = 0;
   let skippedFiles = 0;
   let failedFiles = 0;
+  let prunedChapters = 0;
+  let prunedSeries = 0;
   let totalProcessed = 0;
   let cancelled = false;
 
@@ -714,6 +730,8 @@ ipcMain.handle('library:scan-all', async (event, options = {}) => {
     modifiedFiles += report.modifiedFiles;
     skippedFiles += report.skippedFiles;
     failedFiles += report.failedFiles;
+    prunedChapters += report.prunedChapters || 0;
+    prunedSeries += report.prunedSeries || 0;
     totalProcessed += report.totalProcessed;
     if (report.cancelled || scanner.isCancelled) {
       cancelled = true;
@@ -736,6 +754,8 @@ Nuevos archivos:        ${newFiles}
 Archivos modificados:   ${modifiedFiles}
 Archivos omitidos:      ${skippedFiles}
 Archivos con error:     ${failedFiles}
+Capítulos eliminados:   ${prunedChapters}
+Series eliminadas:      ${prunedSeries}
 Total procesados:       ${totalProcessed}
 Carpetas escaneadas:    ${folders.length}
 Estado final:           ${cancelled ? 'CANCELADO' : 'COMPLETADO'}
@@ -750,6 +770,8 @@ Estado final:           ${cancelled ? 'CANCELADO' : 'COMPLETADO'}
     modifiedFiles,
     skippedFiles,
     failedFiles,
+    prunedChapters,
+    prunedSeries,
     totalProcessed,
     cancelled
   };

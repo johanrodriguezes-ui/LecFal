@@ -276,7 +276,8 @@ class LibraryScanner {
         entries = await fs.promises.readdir(currentDir, { withFileTypes: true });
       } catch (err) {
         logger.warn('SCANNER', `No se pudo acceder al directorio ${currentDir}: ${err.message}`);
-        continue;
+        // Filesystem traversal error -> abort discovery so incomplete scan never prunes
+        return null;
       }
 
       for (let i = 0; i < entries.length; i++) {
@@ -386,7 +387,8 @@ class LibraryScanner {
     const seriesGroups = await this.discoverSeries(dirPath, supportedExtensions);
 
     if (this.isCancelled || !seriesGroups) {
-      logger.info('SCANNER', 'Escaneo cancelado durante el descubrimiento de archivos.');
+      const isCancelled = Boolean(this.isCancelled);
+      logger.info('SCANNER', isCancelled ? 'Escaneo cancelado durante el descubrimiento de archivos.' : 'Error durante el descubrimiento de archivos.');
       return this.buildReport({
         startTime,
         totalSeries: 0,
@@ -395,8 +397,18 @@ class LibraryScanner {
         modifiedFiles: 0,
         skippedFiles: 0,
         failedFiles: 0,
-        cancelled: true
+        cancelled: isCancelled,
+        failed: !isCancelled
       });
+    }
+
+    const discoveredSeriesPaths = new Set();
+    const discoveredChapterPaths = new Set();
+    for (const group of seriesGroups.values()) {
+      discoveredSeriesPaths.add(group.path);
+      for (const file of group.files) {
+        discoveredChapterPaths.add(file.fullPath);
+      }
     }
 
     const totalSeries = seriesGroups.size;
@@ -606,7 +618,10 @@ class LibraryScanner {
       modifiedFiles: stats.modifiedFiles,
       skippedFiles: stats.skippedFiles,
       failedFiles: stats.failedFiles,
-      cancelled: Boolean(this.isCancelled)
+      cancelled: Boolean(this.isCancelled),
+      failed: false,
+      discoveredSeriesPaths,
+      discoveredChapterPaths
     });
 
     logger.info('SCANNER', `
@@ -628,7 +643,21 @@ Estado:                ${report.cancelled ? 'CANCELADO' : 'COMPLETADO'}
     return report;
   }
 
-  buildReport({ startTime, totalSeries, processedSeries, newFiles, modifiedFiles, skippedFiles, failedFiles, cancelled }) {
+  buildReport({
+    startTime,
+    totalSeries,
+    processedSeries,
+    newFiles,
+    modifiedFiles,
+    skippedFiles,
+    failedFiles,
+    cancelled,
+    failed = false,
+    discoveredSeriesPaths = new Set(),
+    discoveredChapterPaths = new Set(),
+    prunedChapters = 0,
+    prunedSeries = 0
+  }) {
     const totalDuration = ((Date.now() - startTime) / 1000).toFixed(1);
     const report = {
       totalSeries,
@@ -637,11 +666,16 @@ Estado:                ${report.cancelled ? 'CANCELADO' : 'COMPLETADO'}
       modifiedFiles,
       skippedFiles,
       failedFiles,
+      prunedChapters,
+      prunedSeries,
       totalProcessed: newFiles + modifiedFiles,
       totalDiscovered: newFiles + modifiedFiles + skippedFiles + failedFiles,
       totalScanTime: `${totalDuration}s`,
       durationSeconds: parseFloat(totalDuration),
-      cancelled: Boolean(cancelled)
+      cancelled: Boolean(cancelled),
+      failed: Boolean(failed),
+      discoveredSeriesPaths,
+      discoveredChapterPaths
     };
 
     // Maintain backwards compatibility with code checking result.length
