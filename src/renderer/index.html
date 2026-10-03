@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/detail.css">
   <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="css/catalog-manager.css">
+  <link rel="stylesheet" href="css/all-catalogs.css">
   <link rel="stylesheet" href="css/modals.css">
   <link rel="stylesheet" href="css/terminal.css">
   <link rel="stylesheet" href="css/reader.css">
@@ -828,37 +829,9 @@
             </div>
           </section>
 
-          <!-- 9. CATÁLOGOS: TODOS LOS CATÁLOGOS (PLACEHOLDER PHASE 3) -->
+          <!-- 9. CATÁLOGOS: TODOS LOS CATÁLOGOS -->
           <section class="settings-section settings-card" id="sectionAllCatalogs" style="display: none;">
-            <div class="settings-card-header">
-              <div class="settings-card-icon-title">
-                <div class="settings-card-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                    <polyline points="2 17 12 22 22 17"/>
-                    <polyline points="2 12 12 17 22 12"/>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="settings-card-title">Todos los Catálogos</h3>
-                  <p class="settings-card-desc">Búsqueda unificada y administración integral de todos los valores de catálogo.</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="settings-card-body">
-              <div class="settings-tags-empty" style="padding: 48px 24px; text-align: center;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 44px; height: 44px; margin-bottom: 12px; opacity: 0.35;">
-                  <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                  <polyline points="2 17 12 22 22 17"/>
-                  <polyline points="2 12 12 17 22 12"/>
-                </svg>
-                <p style="font-weight: 700; margin-bottom: 6px; font-size: 1rem;">Vista unificada de catálogos</p>
-                <span style="font-size: 0.85rem; color: var(--text-muted); max-width: 440px; display: inline-block;">
-                  Esta sección unificada se implementará en la siguiente fase. Puedes gestionar cada catálogo individualmente desde los elementos de la barra lateral.
-                </span>
-              </div>
-            </div>
+            <!-- Rendered dynamically by AllCatalogs module -->
           </section>
 
           <!-- 10. DATOS: VALORES IGNORADOS -->
@@ -1154,7 +1127,7 @@
   </div>
 
   <!-- Dedicated Metadata Rename Modal -->
-  <div class="modal-backdrop" id="modalRenameMetadata" style="display: none;">
+  <div class="modal-backdrop" id="modalRenameMetadata" role="dialog" aria-modal="true" aria-labelledby="renameModalTitle" style="display: none;">
     <div class="modal-card modal-small-card">
       <div class="modal-header">
         <h3 id="renameModalTitle">Renombrar</h3>
@@ -1166,7 +1139,7 @@
         </button>
       </div>
       <div class="modal-body">
-        <label id="renameModalLabel" class="control-label">Nuevo nombre:</label>
+        <label id="renameModalLabel" for="renameModalInput" class="control-label">Nuevo nombre:</label>
         <input type="text" id="renameModalInput" class="standard-input" autocomplete="off">
         <div id="renameModalError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
       </div>
@@ -1178,7 +1151,7 @@
   </div>
 
   <!-- Modal: Crear Biblioteca -->
-  <div class="modal-backdrop" id="modalCreateLibrary" style="display: none;">
+  <div class="modal-backdrop" id="modalCreateLibrary" role="dialog" aria-modal="true" aria-labelledby="createLibraryModalTitle" style="display: none;">
     <div class="modal-card modal-small-card">
       <div class="modal-header">
         <h3 id="createLibraryModalTitle">Nueva Biblioteca</h3>
@@ -1202,7 +1175,7 @@
   </div>
 
   <!-- Centralized Metadata Catalog Picker Modal (Tags, Authors, Groups, Languages, Parodies) -->
-  <div class="modal-backdrop" id="modalCatalogPicker" style="display: none;">
+  <div class="modal-backdrop" id="modalCatalogPicker" role="dialog" aria-modal="true" aria-labelledby="modalCatalogPickerTitle" style="display: none;">
     <div class="modal-card modal-tag-picker-card">
       <div class="modal-header">
         <div class="modal-title-group">

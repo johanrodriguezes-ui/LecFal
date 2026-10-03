@@ -352,6 +352,14 @@ export function initCatalogPicker(options = {}) {
   elements.catalogPickerEmptyText = document.getElementById('catalogPickerEmptyText');
   elements.btnGoToSettingsFromPicker = document.getElementById('btnGoToSettingsFromPicker');
 
+const PICKER_TYPE_TO_SECTION = {
+  author: 'sectionAuthors',
+  tag: 'sectionTags',
+  language: 'sectionLanguages',
+  parody: 'sectionParodies',
+  group: 'sectionGroups'
+};
+
   // Register event listeners
   elements.btnCloseCatalogPicker?.addEventListener('click', closeCatalogPickerModal);
   elements.btnCancelCatalogPicker?.addEventListener('click', closeCatalogPickerModal);
@@ -359,7 +367,8 @@ export function initCatalogPicker(options = {}) {
   elements.btnGoToSettingsFromPicker?.addEventListener('click', () => {
     closeCatalogPickerModal();
     if (typeof callbacks.onGoToSettings === 'function') {
-      callbacks.onGoToSettings('tags');
+      const targetSection = PICKER_TYPE_TO_SECTION[currentPickerType] || 'sectionTags';
+      callbacks.onGoToSettings(targetSection);
     }
   });
   elements.inputFilterCatalogPicker?.addEventListener('input', (e) => {

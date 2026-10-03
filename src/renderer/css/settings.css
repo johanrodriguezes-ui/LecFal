@@ -228,28 +228,6 @@
   gap: 16px;
 }
 
-/* Tag Management Form & List */
-.tag-create-form {
-  display: flex;
-  gap: 10px;
-}
-
-.tag-create-form input {
-  flex: 1;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
-  color: var(--text-main);
-  font-size: 0.9rem;
-  outline: none;
-  transition: border-color var(--transition-fast);
-}
-
-.tag-create-form input:focus {
-  border-color: var(--border-focus);
-}
-
 .settings-tags-list {
   display: flex;
   flex-wrap: wrap;

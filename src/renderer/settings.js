@@ -10,37 +10,8 @@
 
 import { escapeHtml } from './ui-utils.js';
 
-// ==================== LOCAL STATE ====================
-let pendingRenameConfig = null; // { type, id, currentName, typeLabel }
-
 // ==================== DOM ELEMENTS CACHE ====================
 const elements = {
-  // Tags
-  formCreateTag: null,
-  inputNewTagName: null,
-  settingsTagsList: null,
-
-  // Authors
-  formCreateAuthor: null,
-  inputNewAuthorName: null,
-  settingsAuthorsList: null,
-  settingsIgnoredAuthorsList: null,
-
-  // Groups
-  formCreateGroup: null,
-  inputNewGroupName: null,
-  settingsGroupsList: null,
-
-  // Languages
-  formCreateLanguage: null,
-  inputNewLanguageName: null,
-  settingsLanguagesList: null,
-
-  // Series / Parodies
-  formCreateParody: null,
-  inputNewParodyName: null,
-  settingsParodiesList: null,
-
   // Appearance
   themeOptDark: null,
   themeOptLight: null,
@@ -63,15 +34,8 @@ const elements = {
   btnSettingsAddFolder: null,
   statusFolderCount: null,
 
-  // Dedicated Rename Modal
-  modalRenameMetadata: null,
-  renameModalTitle: null,
-  renameModalLabel: null,
-  renameModalInput: null,
-  renameModalError: null,
-  btnCloseRenameModal: null,
-  btnCancelRenameModal: null,
-  btnConfirmRenameModal: null
+  // Ignored Values
+  settingsIgnoredAuthorsList: null
 };
 
 // ==================== EXTERNAL CALLBACKS ====================
@@ -102,6 +66,16 @@ import {
   CATALOG_CONFIGS
 } from './catalog-manager.js';
 
+import {
+  renderAllCatalogs,
+  renderAllCatalogsItems,
+  setAllCatalogsSearch,
+  setAllCatalogsFilter,
+  setAllCatalogsSort,
+  getAllCatalogsState,
+  getUnifiedCatalogItems
+} from './all-catalogs.js';
+
 export {
   openRenameModal,
   closeRenameModal,
@@ -113,7 +87,14 @@ export {
   setCatalogSearch,
   getCatalogSearch,
   getCatalogItems,
-  CATALOG_CONFIGS
+  CATALOG_CONFIGS,
+  renderAllCatalogs,
+  renderAllCatalogsItems,
+  setAllCatalogsSearch,
+  setAllCatalogsFilter,
+  setAllCatalogsSort,
+  getAllCatalogsState,
+  getUnifiedCatalogItems
 };
 
 // ==================== CREATE LIBRARY MODAL ====================
@@ -426,10 +407,6 @@ export function applyTheme(theme, save = true) {
 }
 
 // ==================== PUBLIC RENDERERS ====================
-export async function renderSettingsTags() {
-  return renderCatalog('tag');
-}
-
 export async function renderSettingsAuthors() {
   await renderCatalog('author');
   await renderSettingsIgnoredAuthors();
@@ -491,18 +468,6 @@ export async function renderSettingsIgnoredAuthors() {
   }
 }
 
-export async function renderSettingsGroups() {
-  return renderCatalog('group');
-}
-
-export async function renderSettingsLanguages() {
-  return renderCatalog('language');
-}
-
-export async function renderSettingsParodies() {
-  return renderCatalog('parody');
-}
-
 export async function renderAllSettings() {
   await Promise.all([
     renderCatalog('tag'),
@@ -512,7 +477,8 @@ export async function renderAllSettings() {
     renderCatalog('parody'),
     renderSettingsLibraries(),
     renderSettingsFolders(),
-    renderSettingsIgnoredAuthors()
+    renderSettingsIgnoredAuthors(),
+    renderAllCatalogs()
   ]);
 }
 
@@ -569,6 +535,11 @@ export function switchSettingsSection(sectionId) {
       sec.classList.remove('active');
     }
   });
+
+  // Render unified catalogs when switching to sectionAllCatalogs
+  if (finalSectionId === 'sectionAllCatalogs') {
+    renderAllCatalogs();
+  }
 
   // 3. Reset scroll of content area to top
   const contentArea = document.getElementById('settingsContent');
@@ -696,6 +667,7 @@ export function initSettings(options = {}) {
   // Expose navigation helpers globally for testing and inter-module access
   window.switchSettingsSection = switchSettingsSection;
   window.getCurrentSettingsSection = getCurrentSettingsSection;
+  window.renderAllCatalogs = renderAllCatalogs;
 }
 
 

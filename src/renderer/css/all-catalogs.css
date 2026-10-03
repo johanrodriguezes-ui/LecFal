@@ -1,0 +1,371 @@
+/* ==================== ALL CATALOGS CSS (PHASE 3) ==================== */
+
+.all-catalogs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.all-catalogs-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+/* ==================== INLINE ADD FORM ==================== */
+.all-catalogs-add-form {
+  background: var(--bg-secondary);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  animation: fadeIn 0.18s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.all-catalogs-add-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.all-catalogs-add-type {
+  width: 160px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.all-catalogs-add-type:focus {
+  border-color: var(--border-focus);
+}
+
+.all-catalogs-add-input {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 9px 14px;
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.all-catalogs-add-input:focus {
+  border-color: var(--border-focus);
+}
+
+/* ==================== CONTROLS TOOLBAR ==================== */
+.all-catalogs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.all-catalogs-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+}
+
+.all-catalogs-sort-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.all-catalogs-sort-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  user-select: none;
+}
+
+.all-catalogs-sort-select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 7px 12px;
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  outline: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.all-catalogs-sort-select:focus {
+  border-color: var(--border-focus);
+}
+
+.all-catalogs-count-badge {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.all-catalogs-total-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ==================== TYPE FILTER PILLS ==================== */
+.all-catalogs-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 2px 0 4px 0;
+}
+
+.all-catalogs-pill {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 5px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.all-catalogs-pill:hover {
+  color: var(--text-main);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.all-catalogs-pill.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #a5b4fc;
+  font-weight: 600;
+}
+
+/* ==================== ITEMS CONTAINER & TABLE LAYOUT ==================== */
+.all-catalogs-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 80px;
+}
+
+.all-catalogs-table-header {
+  display: grid;
+  grid-template-columns: 140px minmax(180px, 1fr) 100px auto;
+  gap: 14px;
+  align-items: center;
+  padding: 6px 16px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  user-select: none;
+  text-transform: uppercase;
+}
+
+.all-catalogs-rows-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.all-catalogs-item-row {
+  display: grid;
+  grid-template-columns: 140px minmax(180px, 1fr) 100px auto;
+  gap: 14px;
+  align-items: center;
+  padding: 9px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.all-catalogs-item-row:hover {
+  border-color: rgba(99, 102, 241, 0.35);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.all-catalogs-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.all-catalogs-badge-icon {
+  width: 12px;
+  height: 12px;
+  color: #818cf8;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.all-catalogs-item-name {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.all-catalogs-usage-badge {
+  display: inline-block;
+  font-size: 0.74rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(99, 102, 241, 0.14);
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  color: #a5b4fc;
+  text-align: center;
+  min-width: 28px;
+}
+
+.all-catalogs-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+/* ==================== LIGHT THEME OVERRIDES ==================== */
+body[data-theme="light"] .all-catalogs-add-form {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+body[data-theme="light"] .all-catalogs-add-type,
+body[data-theme="light"] .all-catalogs-add-input {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+body[data-theme="light"] .all-catalogs-sort-select {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+body[data-theme="light"] .all-catalogs-pill {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+body[data-theme="light"] .all-catalogs-pill:hover {
+  background: #f1f5f9;
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #1e293b;
+}
+
+body[data-theme="light"] .all-catalogs-pill.active {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #4338ca;
+}
+
+body[data-theme="light"] .all-catalogs-item-row {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+body[data-theme="light"] .all-catalogs-item-row:hover {
+  background: #f8fafc;
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+body[data-theme="light"] .all-catalogs-type-badge {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+body[data-theme="light"] .all-catalogs-item-name {
+  color: #1e293b;
+}
+
+body[data-theme="light"] .all-catalogs-usage-badge {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: #4f46e5;
+}
+
+/* ==================== RESPONSIVE BREAKPOINTS ==================== */
+@media (max-width: 768px) {
+  .all-catalogs-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .all-catalogs-sort-wrap {
+    justify-content: space-between;
+  }
+
+  .all-catalogs-table-header {
+    display: none;
+  }
+
+  .all-catalogs-item-row {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    row-gap: 8px;
+    padding: 10px 14px;
+  }
+
+  .all-catalogs-item-row .col-type {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .all-catalogs-item-row .col-name {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .all-catalogs-item-row .col-usage {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .all-catalogs-item-row .col-actions {
+    grid-column: 2;
+    grid-row: 2;
+    justify-content: flex-end;
+  }
+}

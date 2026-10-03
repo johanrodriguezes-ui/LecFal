@@ -76,6 +76,21 @@ const tests = [
     name: 'Settings UI Redesign Phase 2 Catalog Manager Suite',
     cmd: 'npx',
     args: ['electron', path.join(__dirname, 'test_settings_catalog_manager.js')]
+  },
+  {
+    name: 'Settings UI Redesign Phase 3 All Catalogs Suite',
+    cmd: 'npx',
+    args: ['electron', path.join(__dirname, 'test_settings_all_catalogs.js')]
+  },
+  {
+    name: 'Settings UI Redesign Phase 4 UX Polish Suite',
+    cmd: 'npx',
+    args: ['electron', path.join(__dirname, 'test_settings_ux_polish.js')]
+  },
+  {
+    name: 'Storage & Portability Isolation Suite (Phase 5.1)',
+    cmd: process.execPath,
+    args: [path.join(__dirname, 'test_storage.js')]
   }
 ];
 

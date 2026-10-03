@@ -224,7 +224,7 @@ function setupEventListeners() {
     getActiveSeries,
     showToast,
     refreshSeries,
-    onGoToSettings: () => openSettingsView(),
+    onGoToSettings: (targetSectionId) => openSettingsView(targetSectionId),
     onMetadataUpdated: {
       tag: (series) => updateDetailMetadata('tag', series),
       author: (series) => updateDetailMetadata('author', series),

@@ -88,7 +88,7 @@ export const CATALOG_CONFIGS = {
   parody: {
     type: 'parody',
     sectionId: 'sectionParodies',
-    typeLabel: 'Serie o Parodia',
+    typeLabel: 'Serie / Parodia',
     pluralLabel: 'Series / Parodias',
     title: 'Gestión de Series / Parodias',
     desc: 'Configura los universos, obras originales o parodias a las que pertenecen los mangas (ej. Original, Naruto, One Piece).',
@@ -170,6 +170,18 @@ let callbacks = {
   refreshSeries: () => {},
   onRenameLibrary: () => {}
 };
+
+const catalogChangeListeners = [];
+
+/**
+ * Registers a listener to be notified when any catalog is refreshed or updated.
+ * @param {Function} fn
+ */
+export function onCatalogChange(fn) {
+  if (typeof fn === 'function' && !catalogChangeListeners.includes(fn)) {
+    catalogChangeListeners.push(fn);
+  }
+}
 
 let pendingRename = null; // { type, id, currentName, typeLabel, onRenamed }
 
@@ -588,7 +600,28 @@ export async function renderCatalog(type) {
 export async function refreshCatalog(type) {
   const canonicalType = resolveType(type);
   catalogState[canonicalType].items = null;
-  return renderCatalog(canonicalType);
+  const result = await renderCatalog(canonicalType);
+  for (const fn of catalogChangeListeners) {
+    try {
+      fn(canonicalType);
+    } catch (e) {
+      console.error('Error in onCatalogChange callback:', e);
+    }
+  }
+  return result;
+}
+
+/**
+ * Ensures all 5 catalogs have their lists loaded in memory.
+ */
+export async function ensureAllCatalogsLoaded() {
+  const types = ['author', 'tag', 'language', 'parody', 'group'];
+  await Promise.all(types.map(t => {
+    if (catalogState[t].items === null) {
+      return renderCatalog(t);
+    }
+    return Promise.resolve();
+  }));
 }
 
 /**
@@ -916,6 +949,8 @@ if (typeof window !== 'undefined') {
     normalizeText,
     groupItemsAlphabetically,
     filterItems,
-    CATALOG_CONFIGS
+    CATALOG_CONFIGS,
+    onCatalogChange,
+    ensureAllCatalogsLoaded
   };
 }
