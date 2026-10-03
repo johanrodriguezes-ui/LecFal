@@ -148,6 +148,22 @@ async function runCatalogManagerTests() {
   ipcMain.handle('system:get-logs', async () => []);
   ipcMain.handle('system:get-version', () => '1.0.0');
   ipcMain.handle('system:is-fullscreen', async () => false);
+  ipcMain.handle('storage:get-info', async () => ({
+    mode: 'standard',
+    isPortable: false,
+    storageRoot: tempDir,
+    standardPath: tempDir,
+    portablePath: path.join(tempDir, 'data'),
+    isPortableAvailable: true,
+    appDir: tempDir
+  }));
+  ipcMain.handle('storage:check-destination', async () => ({
+    targetMode: 'portable',
+    targetPath: path.join(tempDir, 'data'),
+    isWritable: true,
+    hasExistingData: false,
+    existingFiles: []
+  }));
 
   win = new BrowserWindow({
     width: 1280,

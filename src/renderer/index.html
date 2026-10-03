@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="css/catalog-manager.css">
   <link rel="stylesheet" href="css/all-catalogs.css">
+  <link rel="stylesheet" href="css/storage-settings.css">
   <link rel="stylesheet" href="css/modals.css">
   <link rel="stylesheet" href="css/terminal.css">
   <link rel="stylesheet" href="css/reader.css">
@@ -660,6 +661,14 @@
                 </svg>
                 <span>Valores ignorados</span>
               </button>
+              <button type="button" class="settings-nav-item" data-section="sectionStorage" id="navItemStorage">
+                <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                </svg>
+                <span>Ubicación de datos</span>
+              </button>
             </div>
           </nav>
         </aside>
@@ -854,6 +863,130 @@
             <div class="settings-card-body">
               <div class="settings-tags-list" id="settingsIgnoredAuthorsList">
                 <!-- Injected dynamically -->
+              </div>
+            </div>
+          </section>
+
+          <!-- 11. DATOS: UBICACIÓN DE DATOS -->
+          <section class="settings-section settings-card" id="sectionStorage" style="display: none;">
+            <div class="settings-card-header">
+              <div class="settings-card-icon-title">
+                <div class="settings-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="settings-card-title">Ubicación de datos</h3>
+                  <p class="settings-card-desc">Gestiona la ubicación donde LecFal almacena la base de datos SQLite, miniaturas y archivos de configuración.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-card-body">
+              <div class="storage-settings-container">
+                <!-- Feedback / Status Banner -->
+                <div class="storage-feedback-banner" id="storageFeedbackBanner" style="display: none;"></div>
+
+                <!-- Overview Grid -->
+                <div class="storage-overview-grid">
+                  <!-- Current Active Mode Card -->
+                  <div class="storage-status-card">
+                    <div class="storage-card-title-row">
+                      <div class="storage-card-title-group">
+                        <div class="storage-card-icon">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+                            <line x1="6" y1="6" x2="6.01" y2="6"/>
+                            <line x1="6" y1="18" x2="6.01" y2="18"/>
+                          </svg>
+                        </div>
+                        <h4 class="storage-card-title">Modo Activo</h4>
+                      </div>
+                      <span class="storage-badge storage-badge-standard" id="storageCurrentModeBadge">Estándar</span>
+                    </div>
+
+                    <div class="storage-path-container">
+                      <span class="storage-field-label">Ruta actual de almacenamiento:</span>
+                      <div class="storage-path-box" id="storageCurrentPath">Cargando ruta...</div>
+                    </div>
+
+                    <p class="storage-desc-text">
+                      Esta ubicación almacena la base de datos principal (<code style="font-family: inherit; color: #a5b4fc;">lecfal.db</code>), miniaturas de carátulas (<code style="font-family: inherit; color: #a5b4fc;">thumbnails/</code>), archivos de configuración y registros de diagnóstico.
+                    </p>
+
+                    <div class="storage-safe-note">
+                      <svg style="width: 16px; height: 16px; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      </svg>
+                      <span>Tus archivos y cómics originales en las carpetas de biblioteca nunca son movidos ni modificados.</span>
+                    </div>
+                  </div>
+
+                  <!-- Alternate Target Destination Card -->
+                  <div class="storage-status-card">
+                    <div class="storage-card-title-row">
+                      <div class="storage-card-title-group">
+                        <div class="storage-card-icon">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 16 12 12 8 16"/>
+                            <line x1="12" y1="12" x2="12" y2="21"/>
+                            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+                          </svg>
+                        </div>
+                        <h4 class="storage-card-title">Ubicación Alternativa</h4>
+                      </div>
+                    </div>
+
+                    <div class="storage-dest-preview">
+                      <div class="storage-path-container">
+                        <span class="storage-field-label">Ruta de destino alternativa:</span>
+                        <div class="storage-path-box" id="storageDestPath">—</div>
+                      </div>
+
+                      <div class="storage-dest-status" id="storageDestStatus">
+                        <span class="status-indicator-dot status-dot-available" id="storageDestStatusDot"></span>
+                        <span id="storageDestStatusText">Comprobando disponibilidad...</span>
+                      </div>
+                    </div>
+
+                    <p class="storage-desc-text">
+                      Puedes cambiar entre el modo Estándar (configuración del sistema de usuario) y el modo Portable (carpeta de datos junto a la aplicación), o migrar todos tus datos de forma segura entre ambas ubicaciones.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Storage Actions Bar -->
+                <div class="storage-actions-bar">
+                  <button type="button" class="btn btn-secondary" id="btnSwitchToPortable" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                    <span>Cambiar a modo portable</span>
+                  </button>
+
+                  <button type="button" class="btn btn-secondary" id="btnSwitchToStandard" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                      <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span>Cambiar a modo estándar</span>
+                  </button>
+
+                  <button type="button" class="btn btn-primary" id="btnMigrateStorage">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                      <path d="M17 3v10"/>
+                      <path d="M21 7l-4-4-4 4"/>
+                      <path d="M7 21V11"/>
+                      <path d="M3 17l4 4 4-4"/>
+                    </svg>
+                    <span>Migrar datos</span>
+                  </button>
+                </div>
               </div>
             </div>
           </section>
@@ -1219,6 +1352,130 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btnCancelCatalogPicker">Cancelar</button>
         <button class="btn btn-primary" id="btnSaveCatalogPicker">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Migrar Datos de Almacenamiento -->
+  <div class="modal-backdrop" id="modalMigrateStorage" role="dialog" aria-modal="true" aria-labelledby="migrateModalTitle" style="display: none;">
+    <div class="modal-card modal-storage-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg class="modal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+          </svg>
+          <h3 id="migrateModalTitle">Migrar datos de almacenamiento</h3>
+        </div>
+        <button class="modal-close-btn" id="btnCloseMigrateModal" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description">
+          Esta operación copiará de manera segura todos los datos persistentes de LecFal hacia la nueva ubicación.
+        </p>
+
+        <!-- Migration Flow Visualization -->
+        <div class="storage-migration-flow-box">
+          <div class="flow-step">
+            <span class="flow-label">Ubicación de Origen (Actual):</span>
+            <div class="flow-path" id="migrateModalSource"></div>
+          </div>
+          <div class="flow-arrow-separator">
+            <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <polyline points="19 12 12 19 5 12"></polyline>
+            </svg>
+          </div>
+          <div class="flow-step">
+            <span class="flow-label">Ubicación de Destino:</span>
+            <div class="flow-path" id="migrateModalDestination"></div>
+          </div>
+        </div>
+
+        <div id="migrateModalNotice"></div>
+
+        <div class="storage-items-list">
+          <span class="flow-label">Elementos que se migrarán:</span>
+          <div class="storage-item-row">
+            <svg class="storage-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span><strong>Base de datos SQLite:</strong> series, colecciones, capítulos y progreso de lectura (lecfal.db).</span>
+          </div>
+          <div class="storage-item-row">
+            <svg class="storage-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span><strong>Configuración:</strong> preferencias de usuario y estado guardado.</span>
+          </div>
+          <div class="storage-item-row">
+            <svg class="storage-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span><strong>Miniaturas y caché:</strong> carátulas procesadas (thumbnails/, cache/).</span>
+          </div>
+          <div class="storage-item-row">
+            <svg class="storage-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span><strong>Registros de diagnóstico:</strong> historial de eventos y logs de sesión.</span>
+          </div>
+        </div>
+
+        <div class="storage-callout-safe">
+          <strong>Garantía de seguridad:</strong> Los datos actuales en el origen permanecerán intactos (no se borrarán ni modificarán). Los archivos que ya existan en el destino nunca serán sobrescritos.
+        </div>
+
+        <div id="migrateModalError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelMigrateStorage">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmMigrateStorage">Confirmar migración</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Cambiar Modo de Almacenamiento -->
+  <div class="modal-backdrop" id="modalChangeStorageMode" role="dialog" aria-modal="true" aria-labelledby="changeModeModalTitle" style="display: none;">
+    <div class="modal-card modal-small-card">
+      <div class="modal-header">
+        <h3 id="changeModeModalTitle">Cambiar modo de almacenamiento</h3>
+        <button class="modal-close-btn" id="btnCloseChangeModeModal" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description" id="changeModeModalDesc">
+          ¿Deseas cambiar el modo de almacenamiento a la siguiente ubicación?
+        </p>
+
+        <div class="storage-path-container" style="margin: 10px 0;">
+          <span class="storage-field-label">Nueva ruta:</span>
+          <div class="storage-path-box" id="changeModeModalTargetPath"></div>
+        </div>
+
+        <div class="storage-callout-warning">
+          <strong>Atención:</strong> Cambiar el modo no transfiere tus archivos existentes. Si deseas conservar tus bibliotecas en la nueva ubicación, utiliza la opción <strong>"Migrar datos"</strong>.
+        </div>
+
+        <div id="changeModeModalError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelChangeMode">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmChangeMode">Confirmar cambio de modo</button>
       </div>
     </div>
   </div>

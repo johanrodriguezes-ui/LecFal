@@ -159,5 +159,11 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
   },
 
   // System
-  getAppVersion: () => ipcRenderer.invoke('system:get-version')
+  getAppVersion: () => ipcRenderer.invoke('system:get-version'),
+
+  // Storage & Portability
+  getStorageInfo: () => ipcRenderer.invoke('storage:get-info'),
+  checkStorageDestination: (params) => ipcRenderer.invoke('storage:check-destination', params),
+  migrateStorageData: (params) => ipcRenderer.invoke('storage:migrate', params),
+  setStorageMode: (params) => ipcRenderer.invoke('storage:set-mode', params)
 });

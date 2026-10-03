@@ -76,6 +76,18 @@ import {
   getUnifiedCatalogItems
 } from './all-catalogs.js';
 
+import {
+  initStorageSettings,
+  renderStorageSettings,
+  getStorageSettingsState,
+  openMigrateModal,
+  closeMigrateModal,
+  handleConfirmMigrate,
+  openChangeModeModal,
+  closeChangeModeModal,
+  handleConfirmChangeMode
+} from './storage-settings.js';
+
 export {
   openRenameModal,
   closeRenameModal,
@@ -94,7 +106,16 @@ export {
   setAllCatalogsFilter,
   setAllCatalogsSort,
   getAllCatalogsState,
-  getUnifiedCatalogItems
+  getUnifiedCatalogItems,
+  initStorageSettings,
+  renderStorageSettings,
+  getStorageSettingsState,
+  openMigrateModal,
+  closeMigrateModal,
+  handleConfirmMigrate,
+  openChangeModeModal,
+  closeChangeModeModal,
+  handleConfirmChangeMode
 };
 
 // ==================== CREATE LIBRARY MODAL ====================
@@ -478,7 +499,8 @@ export async function renderAllSettings() {
     renderSettingsLibraries(),
     renderSettingsFolders(),
     renderSettingsIgnoredAuthors(),
-    renderAllCatalogs()
+    renderAllCatalogs(),
+    renderStorageSettings()
   ]);
 }
 
@@ -539,6 +561,11 @@ export function switchSettingsSection(sectionId) {
   // Render unified catalogs when switching to sectionAllCatalogs
   if (finalSectionId === 'sectionAllCatalogs') {
     renderAllCatalogs();
+  }
+
+  // Render storage settings when switching to sectionStorage
+  if (finalSectionId === 'sectionStorage') {
+    renderStorageSettings();
   }
 
   // 3. Reset scroll of content area to top
@@ -661,6 +688,11 @@ export function initSettings(options = {}) {
     }
   });
 
+  // Initialize Storage Settings Module
+  initStorageSettings({
+    showToast: callbacks.showToast
+  });
+
   // Ensure initial active section is properly activated
   switchSettingsSection(currentSettingsSection);
 
@@ -668,6 +700,7 @@ export function initSettings(options = {}) {
   window.switchSettingsSection = switchSettingsSection;
   window.getCurrentSettingsSection = getCurrentSettingsSection;
   window.renderAllCatalogs = renderAllCatalogs;
+  window.renderStorageSettings = renderStorageSettings;
 }
 
 

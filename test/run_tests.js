@@ -91,6 +91,11 @@ const tests = [
     name: 'Storage & Portability Isolation Suite (Phase 5.1)',
     cmd: process.execPath,
     args: [path.join(__dirname, 'test_storage.js')]
+  },
+  {
+    name: 'Storage & Portability Settings UI Suite (Phase 5.2)',
+    cmd: 'npx',
+    args: ['electron', path.join(__dirname, 'test_storage_settings.js')]
   }
 ];
 

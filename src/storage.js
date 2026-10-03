@@ -224,6 +224,15 @@ class StorageManager {
   }
 
   /**
+   * Returns the standard user data directory path.
+   *
+   * @returns {string}
+   */
+  getStandardDataPath() {
+    return this._resolveStandardDataRoot();
+  }
+
+  /**
    * Resolves the standard user data directory based on the OS environment.
    * - Checks process.env.LECFAL_DATA_DIR first.
    * - Next queries Electron app.getPath('userData') if available.

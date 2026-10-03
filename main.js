@@ -863,6 +863,125 @@ ipcMain.handle('settings:set', async (event, key, value) => {
   return true;
 });
 
+// Storage & Portability IPC
+ipcMain.handle('storage:get-info', async () => {
+  return {
+    mode: storage.getStorageMode(),
+    isPortable: storage.isPortableMode(),
+    storageRoot: storage.getStorageRoot(),
+    standardPath: storage.getStandardDataPath(),
+    portablePath: storage.getPortableDataPath(),
+    isPortableAvailable: storage.isPortableModeAvailable(),
+    appDir: storage.getAppDirectory()
+  };
+});
+
+ipcMain.handle('storage:check-destination', async (event, { targetMode } = {}) => {
+  const mode = targetMode || (storage.isPortableMode() ? 'standard' : 'portable');
+  const targetPath = (mode === 'portable') ? storage.getPortableDataPath() : storage.getStandardDataPath();
+  const isWritable = storage.isWritable(targetPath);
+  let hasExistingData = false;
+  const existingFiles = [];
+
+  if (fs.existsSync(targetPath)) {
+    try {
+      const entries = fs.readdirSync(targetPath);
+      if (entries.length > 0) {
+        hasExistingData = true;
+        for (const e of entries) {
+          existingFiles.push(e);
+        }
+      }
+    } catch (_) {}
+  }
+
+  return {
+    targetMode: mode,
+    targetPath,
+    isWritable,
+    hasExistingData,
+    existingFiles
+  };
+});
+
+ipcMain.handle('storage:migrate', async (event, options = {}) => {
+  const targetMode = options.targetMode || (storage.isPortableMode() ? 'standard' : 'portable');
+  const sourceRoot = storage.getStorageRoot();
+  const targetRoot = (targetMode === 'portable') ? storage.getPortableDataPath() : storage.getStandardDataPath();
+
+  if (!storage.isWritable(targetRoot)) {
+    return {
+      success: false,
+      error: `El directorio de destino no tiene permisos de escritura: ${targetRoot}`,
+      copied: [],
+      skipped: [],
+      errors: [`El directorio de destino no tiene permisos de escritura: ${targetRoot}`]
+    };
+  }
+
+  const result = storage.migrateStorage(sourceRoot, targetRoot, {
+    includeRegenerable: options.includeRegenerable !== false,
+    includeLogs: options.includeLogs !== false,
+    dryRun: options.dryRun === true
+  });
+
+  if (result.success && options.switchModeAfter === true) {
+    try {
+      const appDir = storage.getAppDirectory();
+      const markerPath = path.join(appDir, '.portable');
+      const flagPath = path.join(appDir, 'portable.flag');
+      if (targetMode === 'portable') {
+        if (!fs.existsSync(markerPath)) {
+          fs.writeFileSync(markerPath, '');
+        }
+      } else {
+        try { if (fs.existsSync(markerPath)) fs.unlinkSync(markerPath); } catch (_) {}
+        try { if (fs.existsSync(flagPath)) fs.unlinkSync(flagPath); } catch (_) {}
+      }
+      storage.setStorageMode(targetMode);
+    } catch (modeErr) {
+      console.warn('[main] Error updating storage mode after migration:', modeErr.message);
+    }
+  }
+
+  return result;
+});
+
+ipcMain.handle('storage:set-mode', async (event, { mode } = {}) => {
+  if (mode !== 'standard' && mode !== 'portable') {
+    return { success: false, error: `Modo de almacenamiento inválido: "${mode}"` };
+  }
+
+  if (mode === 'portable' && !storage.isPortableModeAvailable()) {
+    return {
+      success: false,
+      error: `El directorio de la aplicación ("${storage.getPortableDataPath()}") no tiene permisos de escritura para modo portable.`
+    };
+  }
+
+  try {
+    const appDir = storage.getAppDirectory();
+    const markerPath = path.join(appDir, '.portable');
+    const flagPath = path.join(appDir, 'portable.flag');
+    if (mode === 'portable') {
+      if (!fs.existsSync(markerPath)) {
+        fs.writeFileSync(markerPath, '');
+      }
+    } else {
+      try { if (fs.existsSync(markerPath)) fs.unlinkSync(markerPath); } catch (_) {}
+      try { if (fs.existsSync(flagPath)) fs.unlinkSync(flagPath); } catch (_) {}
+    }
+    storage.setStorageMode(mode);
+    return {
+      success: true,
+      mode: storage.getStorageMode(),
+      storageRoot: storage.getStorageRoot()
+    };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 // Logging IPC
 ipcMain.handle('system:get-logs', async () => {
   return logger.getLogs();
