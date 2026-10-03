@@ -151,8 +151,8 @@
   color: var(--text-muted);
 }
 
-.adv-field input,
-.adv-field select {
+.adv-field > input,
+.adv-field > select {
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -162,10 +162,12 @@
   outline: none;
   font-family: var(--font-sans);
   transition: border-color var(--transition-fast);
+  min-height: 38px;
+  height: 38px;
 }
 
-.adv-field input:focus,
-.adv-field select:focus {
+.adv-field > input:focus,
+.adv-field > select:focus {
   border-color: var(--border-focus);
 }
 
@@ -293,7 +295,8 @@
   align-items: center;
 }
 
-.autocomplete-input {
+.autocomplete-input,
+.autocomplete-box .autocomplete-input {
   width: 100%;
   background: transparent;
   border: none;

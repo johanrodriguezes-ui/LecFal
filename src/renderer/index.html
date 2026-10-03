@@ -14,14 +14,14 @@
   <link rel="stylesheet" href="css/search.css">
   <link rel="stylesheet" href="css/library.css">
   <link rel="stylesheet" href="css/scanner.css">
-  <link rel="stylesheet" href="css/detail.css">
-  <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="detail/detail.css">
+  <link rel="stylesheet" href="settings/settings.css">
   <link rel="stylesheet" href="css/catalog-manager.css">
   <link rel="stylesheet" href="css/all-catalogs.css">
   <link rel="stylesheet" href="css/storage-settings.css">
   <link rel="stylesheet" href="css/modals.css">
-  <link rel="stylesheet" href="css/terminal.css">
-  <link rel="stylesheet" href="css/reader.css">
+  <link rel="stylesheet" href="reader/reader.css">
+  <link rel="stylesheet" href="history/history.css">
 </head>
 <body>
   <div class="app-container">
@@ -37,6 +37,26 @@
             <span class="brand-subtitle">Tu biblioteca de mangas y comics</span>
           </div>
         </div>
+
+        <!-- Top-level Navigation Tabs -->
+        <nav class="top-nav-tabs" id="topNavTabs" aria-label="Navegación principal">
+          <button class="top-nav-tab active" id="navTabLibrary" title="Ir a la biblioteca">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m16 6 4 14"/>
+              <path d="M12 6v14"/>
+              <path d="M8 8v12"/>
+              <path d="M4 4v16"/>
+            </svg>
+            <span>Biblioteca</span>
+          </button>
+          <button class="top-nav-tab" id="navTabHistory" title="Ver historial de lectura">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>Historial</span>
+          </button>
+        </nav>
       </div>
 
       <!-- Search Field (Visible in Library View) -->
@@ -340,7 +360,75 @@
       </main>
     </div>
 
-    <!-- ==================== VIEW 2: TACHIYOMI-STYLE MANGA DETAIL VIEW ==================== -->
+    <!-- ==================== VIEW: HISTORIAL VIEW ==================== -->
+    <div class="view-container history-view" id="historyView" style="display: none;">
+      <div class="history-scroll-container">
+        <div class="history-content">
+          <!-- Section A: Continuar leyendo -->
+          <section class="history-section" id="sectionContinueReading" aria-labelledby="continueReadingTitle">
+            <div class="history-section-header">
+              <div class="history-section-header-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                <h2 id="continueReadingTitle">Continuar leyendo</h2>
+              </div>
+              <span class="history-badge-count" id="continueReadingCount" style="display: none;">0</span>
+            </div>
+
+            <!-- Grid of Continue Reading Cards -->
+            <div class="continue-reading-grid" id="continueReadingGrid">
+              <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Empty state for Continue Reading -->
+            <div class="history-empty-inline" id="continueReadingEmpty" style="display: none;">
+              <div class="empty-state-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 6v6l4 2"/>
+                  <circle cx="12" cy="12" r="10"/>
+                </svg>
+              </div>
+              <h3>Sin lecturas pendientes</h3>
+              <p>Los capítulos que empieces a leer aparecerán aquí.</p>
+            </div>
+          </section>
+
+          <!-- Section B: Recientemente leído -->
+          <section class="history-section" id="sectionRecentHistory" aria-labelledby="recentHistoryTitle">
+            <div class="history-section-header">
+              <div class="history-section-header-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <h2 id="recentHistoryTitle">Recientemente leído</h2>
+              </div>
+              <span class="history-badge-count" id="recentHistoryCount" style="display: none;">0</span>
+            </div>
+
+            <!-- Grouped Recent History List -->
+            <div class="recent-history-container" id="recentHistoryContainer">
+              <!-- Rendered dynamically grouped by date (Hoy, Ayer, Esta semana, etc.) -->
+            </div>
+
+            <!-- Empty state for Recent History -->
+            <div class="history-empty-inline" id="recentHistoryEmpty" style="display: none;">
+              <div class="empty-state-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                  <path d="M6 2v20"/>
+                </svg>
+              </div>
+              <h3>Aún no hay historial</h3>
+              <p>Cuando leas un capítulo, aparecerá aquí.</p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== VIEW 2: STYLE MANGA DETAIL VIEW ==================== -->
     <div class="view-container manga-detail-view" id="mangaView" style="display: none;">
       <!-- Manga Detail Navigation Sub-bar -->
       <div class="manga-nav-bar">
@@ -363,6 +451,15 @@
               <polyline points="20 6 9 17 4 12"/>
             </svg>
             <span id="btnMarkAllText">Marcar todo leído</span>
+          </button>
+          <button class="btn btn-secondary btn-danger-subtle" id="btnDeleteManga" title="Eliminar este manga">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+            <span>Eliminar manga</span>
           </button>
         </div>
       </div>
@@ -987,6 +1084,34 @@
                     <span>Migrar datos</span>
                   </button>
                 </div>
+
+                <!-- Reset Application Card (Danger Zone) -->
+                <div class="storage-reset-card">
+                  <div class="storage-card-title-row">
+                    <div class="storage-card-title-group">
+                      <div class="storage-card-icon storage-card-icon-danger">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                          <line x1="12" y1="9" x2="12" y2="13"/>
+                          <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 class="storage-card-title">Restablecer aplicación</h4>
+                        <p class="storage-desc-text" style="margin: 4px 0 0 0;">
+                          Restablece la base de datos de LecFal, carátulas procesadas, miniaturas, caché y preferencias internas. Tus cómics y carpetas originales <strong>nunca se eliminarán</strong>.
+                        </p>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-danger-subtle" id="btnOpenResetModal" style="flex-shrink: 0;">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                        <path d="M3 3v5h5"/>
+                      </svg>
+                      <span>Restablecer aplicación</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -1140,58 +1265,7 @@
         <span class="status-dot">•</span>
         <span class="status-item" id="statusFolderCount">0 carpetas</span>
       </div>
-      <div class="status-right">
-        <button class="btn-status-logs" id="btnToggleLogs" title="Ver registro de escaneo y diagnóstico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="4 17 10 11 4 5"/>
-            <line x1="12" y1="19" x2="20" y2="19"/>
-          </svg>
-          <span>Logs de Escaneo</span>
-          <span class="log-indicator-dot" id="logIndicatorDot"></span>
-        </button>
-        <span class="status-dot">•</span>
-        <span class="status-item keyboard-hint">Doble clic para abrir</span>
-      </div>
     </footer>
-  </div>
-
-  <!-- Realtime Log & Diagnostics Drawer -->
-  <div class="log-drawer" id="logDrawer" style="display: none;">
-    <div class="log-drawer-header">
-      <div class="log-drawer-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="4 17 10 11 4 5"/>
-          <line x1="12" y1="19" x2="20" y2="19"/>
-        </svg>
-        <h4>Registro de Escaneo y Diagnóstico</h4>
-        <span class="log-count-badge" id="logCountBadge">0 eventos</span>
-      </div>
-      <div class="log-drawer-actions">
-        <button class="btn-log-action" id="btnOpenLogFile" title="Abrir archivo lecfal.log en tu editor">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-          </svg>
-          <span>Abrir .log</span>
-        </button>
-        <button class="btn-log-action" id="btnClearLogs" title="Limpiar registro">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 6h18"/>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-          </svg>
-          <span>Limpiar</span>
-        </button>
-        <button class="btn-log-close" id="btnCloseLogDrawer" title="Cerrar panel de logs">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6 6 18"/>
-            <path d="m6 6 12 12"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-    <div class="log-terminal" id="logTerminal">
-      <!-- Live logs injected here -->
-    </div>
   </div>
 
   <!-- Folder Management Modal -->
@@ -1476,6 +1550,159 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btnCancelChangeMode">Cancelar</button>
         <button class="btn btn-primary" id="btnConfirmChangeMode">Confirmar cambio de modo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Opciones para Eliminar Manga -->
+  <div class="modal-backdrop" id="modalDeleteMangaChoice" role="dialog" aria-modal="true" aria-labelledby="deleteMangaChoiceTitle" style="display: none;">
+    <div class="modal-card modal-medium-card">
+      <div class="modal-header">
+        <h3 id="deleteMangaChoiceTitle">Eliminar manga</h3>
+        <button class="modal-close-btn" id="btnCloseDeleteMangaChoice" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description">¿Qué deseas hacer con este manga?</p>
+
+        <div class="delete-options-grid">
+          <!-- Option A -->
+          <div class="delete-option-card">
+            <div class="delete-option-header">
+              <div class="delete-option-icon delete-icon-library">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                  <line x1="10" y1="10" x2="16" y2="10"/>
+                </svg>
+              </div>
+              <div class="delete-option-info">
+                <h4 class="delete-option-title">Quitar de la biblioteca</h4>
+                <p class="delete-option-desc">
+                  Elimina el manga de LecFal, pero conserva sus archivos. Podrás volver a encontrarlo al escanear la carpeta.
+                </p>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-full" id="btnConfirmRemoveFromLibrary">
+              Quitar de la biblioteca
+            </button>
+          </div>
+
+          <!-- Option B -->
+          <div class="delete-option-card delete-option-card-danger">
+            <div class="delete-option-header">
+              <div class="delete-option-icon delete-icon-permanent">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+              </div>
+              <div class="delete-option-info">
+                <h4 class="delete-option-title">Eliminar definitivamente</h4>
+                <p class="delete-option-desc">
+                  Elimina el manga de LecFal y sus archivos asociados del disco. Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+            <button type="button" class="btn btn-danger-subtle btn-full" id="btnChooseDeletePermanently">
+              Eliminar definitivamente...
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelDeleteChoice">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmación Fuerte de Eliminación Definitiva -->
+  <div class="modal-backdrop" id="modalConfirmDeletePermanently" role="dialog" aria-modal="true" aria-labelledby="confirmPermanentTitle" style="display: none;">
+    <div class="modal-card modal-small-card">
+      <div class="modal-header">
+        <h3 id="confirmPermanentTitle" style="color: #ff5c7c;">Eliminar definitivamente</h3>
+        <button class="modal-close-btn" id="btnClosePermanentDelete" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description" style="margin-bottom: 12px;">
+          Se eliminará de forma permanente el siguiente contenido:
+        </p>
+
+        <div class="delete-summary-box">
+          <div class="delete-summary-row">
+            <span class="delete-summary-label">Manga:</span>
+            <strong id="permanentDeleteMangaTitle" class="delete-summary-val">—</strong>
+          </div>
+          <div class="delete-summary-row">
+            <span class="delete-summary-label">Capítulos:</span>
+            <span id="permanentDeleteChapterCount" class="delete-summary-val">—</span>
+          </div>
+          <div class="delete-summary-row">
+            <span class="delete-summary-label">Tamaño aprox.:</span>
+            <span id="permanentDeleteSize" class="delete-summary-val">—</span>
+          </div>
+        </div>
+
+        <div class="storage-callout-warning" style="margin-top: 14px; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); color: #fca5a5;">
+          <strong>Atención:</strong> Estos archivos se eliminarán del disco. Esta acción no se puede deshacer.
+        </div>
+
+        <div id="permanentDeleteError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelPermanentDelete">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmPermanentDelete">Eliminar definitivamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Restablecer Aplicación -->
+  <div class="modal-backdrop" id="modalResetApplication" role="dialog" aria-modal="true" aria-labelledby="resetAppModalTitle" style="display: none;">
+    <div class="modal-card modal-small-card">
+      <div class="modal-header">
+        <h3 id="resetAppModalTitle" style="color: #ff5c7c;">Restablecer LecFal</h3>
+        <button class="modal-close-btn" id="btnCloseResetModal" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description" style="margin-bottom: 12px;">
+          Esta acción restablecerá por completo el estado de LecFal. Se borrará la base de datos de la aplicación, las bibliotecas, catálogos, progreso de lectura, miniaturas y caché.
+        </p>
+
+        <div class="storage-callout-safe" style="margin: 12px 0;">
+          <strong>Archivos seguros:</strong> Tus archivos CBZ/PDF originales y las carpetas de tus cómics <strong>NO</strong> se eliminarán.
+        </div>
+
+        <div class="storage-callout-warning" style="margin-bottom: 12px;">
+          <strong>Reinicio:</strong> La aplicación se reiniciará automáticamente para inicializar una base de datos limpia.
+        </div>
+
+        <div id="resetAppModalError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelResetApp">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmResetApp">Restablecer aplicación</button>
       </div>
     </div>
   </div>

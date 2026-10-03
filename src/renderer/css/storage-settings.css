@@ -319,3 +319,24 @@
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Reset Card (Danger Zone) */
+.storage-reset-card {
+  background: rgba(239, 68, 68, 0.04);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.2s ease;
+}
+
+.storage-reset-card:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.storage-card-icon-danger {
+  color: #ef4444;
+}

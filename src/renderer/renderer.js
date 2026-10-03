@@ -1,9 +1,13 @@
 import * as pdfjsLib from '../../node_modules/pdfjs-dist/build/pdf.min.mjs';
-import webtoonReader from './reader.js';
+import webtoonReader from './reader/reader.js';
 import {
   escapeHtml,
   showToast
-} from './ui-utils.js';
+} from './utils/ui-utils.js';
+import {
+  initHistory,
+  loadAndRenderHistory
+} from './history/history.js';
 import {
   initLibrary,
   loadLibraryPreferences,
@@ -14,14 +18,14 @@ import {
   hasSearchQuery,
   isLibraryDropdownOpen,
   closeLibraryDropdown
-} from './library.js';
+} from './library/library.js';
 import {
   initCatalogPicker,
   openCatalogPicker,
   closeCatalogPickerModal,
   handleSaveCatalogPicker,
   isCatalogPickerOpen
-} from './catalog-picker.js';
+} from './settings/catalog-picker.js';
 import {
   initAdvancedSearch,
   populateAdvSearchOptions,
@@ -35,7 +39,7 @@ import {
   isAdvSearchPanelOpen,
   toggleAdvancedSearchPanel,
   handleClearAdvancedSearch
-} from './advanced-search.js';
+} from './library/advanced-search.js';
 import {
   initSettings,
   renderAllSettings,
@@ -47,19 +51,13 @@ import {
   closeCreateLibraryModal,
   switchSettingsSection,
   getCurrentSettingsSection
-} from './settings.js';
+} from './settings/settings.js';
 import {
   initScannerUI,
   runFolderScan,
   runAllScan,
   updateRescanButtonVisibility
-} from './scanner-ui.js';
-import {
-  initLogDrawer,
-  closeLogDrawer,
-  isLogDrawerOpen,
-  setLogIndicatorActive
-} from './log-drawer.js';
+} from './components/scanner-ui.js';
 import {
   initDetail,
   renderMangaDetail,
@@ -71,7 +69,7 @@ import {
   closeEditFieldModal,
   focusChapterFilter,
   updateDetailMetadata
-} from './detail.js';
+} from './detail/detail.js';
 
 // Configure PDF.js worker
 try {
@@ -83,8 +81,9 @@ try {
 // ==================== APPLICATION STATE ====================
 let folders = [];
 
-// Current Active View: 'library', 'manga', or 'settings'
+// Current Active View: 'library', 'manga', 'settings', or 'history'
 let currentView = 'library';
+let lastTopLevelView = 'library';
 
 // ==================== DOM ELEMENTS ====================
 // Views
@@ -93,8 +92,11 @@ const libraryView = document.getElementById('libraryView');
 const mangaView = document.getElementById('mangaView');
 const settingsView = document.getElementById('settingsView');
 const readerView = document.getElementById('readerView');
+const historyView = document.getElementById('historyView');
 const navSearchContainer = document.getElementById('navSearchContainer');
 const brandHomeBtn = document.getElementById('brandHomeBtn');
+const navTabLibrary = document.getElementById('navTabLibrary');
+const navTabHistory = document.getElementById('navTabHistory');
 
 // Settings Navigation & Sections
 const btnOpenSettings = document.getElementById('btnOpenSettings');
@@ -126,15 +128,12 @@ async function init() {
     refreshSeries: (immediate) => scheduleSeriesRefresh(immediate),
     refreshFolders,
     getFolders: () => folders,
-    onScanStateChange: ({ isScanning: scanning }) => setLogIndicatorActive(scanning),
     onSeriesBatch: () => {
       if (currentView === 'library') {
         scheduleSeriesRefresh(false);
       }
     }
   });
-
-  initLogDrawer();
 
   initDetail({
     navigateToLibrary,
@@ -145,6 +144,13 @@ async function init() {
     showToast
   });
 
+  // Initialize History module
+  initHistory({
+    openReader: (chapterId) => openReader(chapterId),
+    openMangaView: (seriesId) => openMangaView(seriesId),
+    showToast
+  });
+
   // Initialize Webtoon reader
   webtoonReader.init({
     pdfjsLib,
@@ -152,6 +158,8 @@ async function init() {
       const series = getActiveSeries();
       if (series) {
         openMangaView(series.id);
+      } else if (lastTopLevelView === 'history') {
+        navigateToHistory();
       } else if (closedChapter && (closedChapter.seriesId || closedChapter.series_id)) {
         openMangaView(closedChapter.seriesId || closedChapter.series_id);
       } else {
@@ -168,6 +176,8 @@ async function init() {
 
   window.webtoonReader = webtoonReader;
   window.openReader = openReader;
+  window.navigateToLibrary = navigateToLibrary;
+  window.navigateToHistory = navigateToHistory;
 
   // Load preferences
   await loadLibraryPreferences();
@@ -186,8 +196,16 @@ async function init() {
 function setupEventListeners() {
   // Navigation
   brandHomeBtn.addEventListener('click', navigateToLibrary);
-  btnOpenSettings?.addEventListener('click', openSettingsView);
-  btnBackFromSettings?.addEventListener('click', navigateToLibrary);
+  navTabLibrary?.addEventListener('click', navigateToLibrary);
+  navTabHistory?.addEventListener('click', navigateToHistory);
+  btnOpenSettings?.addEventListener('click', () => openSettingsView());
+  btnBackFromSettings?.addEventListener('click', () => {
+    if (lastTopLevelView === 'history') {
+      navigateToHistory();
+    } else {
+      navigateToLibrary();
+    }
+  });
 
   // Folder management
   btnAddAnotherFolder?.addEventListener('click', handleAddFolder);
@@ -254,9 +272,12 @@ function setupEventListeners() {
       else if (isLibraryDropdownOpen()) closeLibraryDropdown();
       else if (isEditFieldModalOpen()) closeEditFieldModal();
       else if (modalFolders.style.display !== 'none') closeFoldersModal();
-      else if (isLogDrawerOpen()) closeLogDrawer();
       else if (isAdvSearchPanelOpen()) toggleAdvancedSearchPanel(false);
-      else if (currentView === 'settings') navigateToLibrary();
+      else if (currentView === 'settings') {
+        if (lastTopLevelView === 'history') navigateToHistory();
+        else navigateToLibrary();
+      }
+      else if (currentView === 'history') navigateToLibrary();
       else if (currentView === 'manga') navigateToLibrary();
       else if (hasSearchQuery() || hasActiveAdvFilters()) {
         clearSearch();
@@ -267,16 +288,39 @@ function setupEventListeners() {
 }
 
 // ==================== VIEW NAVIGATION ====================
+function updateTopNavTabs() {
+  if (navTabLibrary) navTabLibrary.classList.toggle('active', currentView === 'library');
+  if (navTabHistory) navTabHistory.classList.toggle('active', currentView === 'history');
+}
+
 function navigateToLibrary() {
   currentView = 'library';
+  lastTopLevelView = 'library';
+  updateTopNavTabs();
   if (topNav) topNav.style.display = 'flex';
   if (mangaView) mangaView.style.display = 'none';
   if (settingsView) settingsView.style.display = 'none';
   if (readerView) readerView.style.display = 'none';
+  if (historyView) historyView.style.display = 'none';
   if (libraryView) libraryView.style.display = 'flex';
   if (navSearchContainer) navSearchContainer.style.visibility = 'visible';
   clearActiveSeries();
   refreshSeries(false);
+}
+
+async function navigateToHistory() {
+  currentView = 'history';
+  lastTopLevelView = 'history';
+  updateTopNavTabs();
+  if (topNav) topNav.style.display = 'flex';
+  if (libraryView) libraryView.style.display = 'none';
+  if (mangaView) mangaView.style.display = 'none';
+  if (settingsView) settingsView.style.display = 'none';
+  if (readerView) readerView.style.display = 'none';
+  if (historyView) historyView.style.display = 'flex';
+  if (navSearchContainer) navSearchContainer.style.visibility = 'hidden';
+  clearActiveSeries();
+  await loadAndRenderHistory();
 }
 
 async function openReader(chapterId) {
@@ -284,6 +328,7 @@ async function openReader(chapterId) {
   if (topNav) topNav.style.display = 'none';
   libraryView.style.display = 'none';
   if (settingsView) settingsView.style.display = 'none';
+  if (historyView) historyView.style.display = 'none';
   mangaView.style.display = 'none';
   navSearchContainer.style.visibility = 'hidden';
 
@@ -296,8 +341,9 @@ async function openMangaView(seriesId) {
   if (libraryView) libraryView.style.display = 'none';
   if (settingsView) settingsView.style.display = 'none';
   if (readerView) readerView.style.display = 'none';
+  if (historyView) historyView.style.display = 'none';
   if (mangaView) mangaView.style.display = 'flex';
-  if (navSearchContainer) navSearchContainer.style.visibility = 'hidden';
+  navSearchContainer.style.visibility = 'hidden';
 
   await renderMangaDetail(seriesId);
 }
@@ -308,6 +354,7 @@ async function openSettingsView(targetSectionId = null) {
   libraryView.style.display = 'none';
   mangaView.style.display = 'none';
   if (readerView) readerView.style.display = 'none';
+  if (historyView) historyView.style.display = 'none';
   if (settingsView) settingsView.style.display = 'flex';
   navSearchContainer.style.visibility = 'hidden';
 

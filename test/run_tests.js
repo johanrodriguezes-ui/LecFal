@@ -15,92 +15,103 @@ const tests = [
   {
     name: 'Scanner E2E Isolation Tests',
     cmd: process.execPath, // node
-    args: [path.join(__dirname, 'scanner', 'test_scanner_e2e.js')]
+    args: [path.join(__dirname, 'e2e', 'test_scanner_e2e.js')]
   },
   {
     name: 'Phase 7.1 Catalog Autocomplete Tests',
     cmd: process.execPath, // node
-    args: [path.join(__dirname, 'phase71', 'test_catalog_autocomplete.js')]
+    args: [path.join(__dirname, 'unit', 'test_catalog_autocomplete.js')]
   },
   {
     name: 'Advanced Search Boolean Semantics Tests',
     cmd: process.execPath, // node
-    args: [path.join(__dirname, 'test_advanced_search_semantics.js')]
+    args: [path.join(__dirname, 'integration', 'test_advanced_search_semantics.js')]
   },
   {
     name: 'Ignored Authors Detection & Precedence Tests',
     cmd: process.execPath, // node
-    args: [path.join(__dirname, 'test_ignored_authors.js')]
+    args: [path.join(__dirname, 'integration', 'test_ignored_authors.js')]
   },
   {
     name: 'Phase 1 Library Backend & Data Model Tests',
     cmd: process.execPath, // node
-    args: [path.join(__dirname, 'test_libraries.js')]
+    args: [path.join(__dirname, 'integration', 'test_libraries.js')]
   },
   {
     name: 'Phase 2 Library Settings UI & Management Tests',
     cmd: process.execPath, // node
-    args: [path.join(__dirname, 'test_settings_libraries.js')]
+    args: [path.join(__dirname, 'integration', 'test_settings_libraries.js')]
   },
   {
     name: 'Phase 3 Library Toolbar & Filtering Tests',
     cmd: process.execPath, // node
-    args: [path.join(__dirname, 'test_toolbar_libraries.js')]
+    args: [path.join(__dirname, 'integration', 'test_toolbar_libraries.js')]
   },
+  {
+    name: 'Historial & Continuar Leyendo Suite',
+    cmd: process.execPath, // node
+    args: [path.join(__dirname, 'integration', 'test_history.js')]
+  },
+
   {
     name: 'Reader Persistent Reading Position Suite',
     cmd: 'npx',
-    args: ['electron', path.join(__dirname, 'phase41', 'test_reader_position.js')]
+    args: ['electron', path.join(__dirname, 'integration', 'test_reader_position.js')]
   },
   {
     name: 'Reader UX & Invariants Suite',
     cmd: 'npx',
-    args: ['electron', path.join(__dirname, 'phase42', 'test_reader_ux.js')]
+    args: ['electron', path.join(__dirname, 'integration', 'test_reader_ux.js')]
   },
   {
     name: 'Library Grid Virtualization & UX Suite',
     cmd: 'npx',
-    args: ['electron', path.join(__dirname, 'phase56', 'test_library_ux.js')]
+    args: ['electron', path.join(__dirname, 'integration', 'test_library_ux.js')]
   },
   {
     name: 'Advanced Search Result Rendering & Race Guard Suite',
     cmd: 'npx',
-    args: ['electron', path.join(__dirname, 'test_advanced_search_results.js')]
+    args: ['electron', path.join(__dirname, 'integration', 'test_advanced_search_results.js')]
   },
   {
     name: 'Settings UI Redesign Phase 1 Navigation Suite',
     cmd: 'npx',
-    args: ['electron', path.join(__dirname, 'test_settings_navigation.js')]
+    args: ['electron', path.join(__dirname, 'integration', 'test_settings_navigation.js')]
   },
   {
     name: 'Settings UI Redesign Phase 2 Catalog Manager Suite',
     cmd: 'npx',
-    args: ['electron', path.join(__dirname, 'test_settings_catalog_manager.js')]
+    args: ['electron', path.join(__dirname, 'integration', 'test_settings_catalog_manager.js')]
   },
   {
     name: 'Settings UI Redesign Phase 3 All Catalogs Suite',
     cmd: 'npx',
-    args: ['electron', path.join(__dirname, 'test_settings_all_catalogs.js')]
+    args: ['electron', path.join(__dirname, 'integration', 'test_settings_all_catalogs.js')]
   },
   {
     name: 'Settings UI Redesign Phase 4 UX Polish Suite',
     cmd: 'npx',
-    args: ['electron', path.join(__dirname, 'test_settings_ux_polish.js')]
+    args: ['electron', path.join(__dirname, 'integration', 'test_settings_ux_polish.js')]
   },
   {
     name: 'Storage & Portability Isolation Suite (Phase 5.1)',
     cmd: process.execPath,
-    args: [path.join(__dirname, 'test_storage.js')]
+    args: [path.join(__dirname, 'integration', 'test_storage.js')]
   },
   {
     name: 'Storage & Portability Settings UI Suite (Phase 5.2)',
     cmd: 'npx',
-    args: ['electron', path.join(__dirname, 'test_storage_settings.js')]
+    args: ['electron', path.join(__dirname, 'integration', 'test_storage_settings.js')]
   },
   {
     name: 'Scanner Synchronization & Pruning Suite (Phase 6)',
     cmd: process.execPath,
-    args: [path.join(__dirname, 'test_scanner_pruning.js')]
+    args: [path.join(__dirname, 'integration', 'test_scanner_pruning.js')]
+  },
+  {
+    name: 'Data Management Suite (Removal & Reset)',
+    cmd: process.execPath,
+    args: [path.join(__dirname, 'integration', 'test_data_management.js')]
   }
 ];
 

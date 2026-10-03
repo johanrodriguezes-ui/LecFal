@@ -3,12 +3,12 @@ const path = require('path');
 const url = require('url');
 const fs = require('fs');
 const { Readable } = require('stream');
-const DatabaseManager = require('./src/db');
-const LibraryScanner = require('./src/scanner');
-const logger = require('./src/logger');
-const storage = require('./src/storage');
-const cbzProvider = require('./src/cbz-provider');
-const thumbnailGenerator = require('./src/thumbnail-generator');
+const DatabaseManager = require('./src/core/db');
+const LibraryScanner = require('./src/scanner/scanner');
+const logger = require('./src/core/logger');
+const storage = require('./src/core/storage');
+const cbzProvider = require('./src/readers/cbz-provider');
+const thumbnailGenerator = require('./src/media/thumbnail-generator');
 
 let mainWindow = null;
 let db = null;
@@ -76,14 +76,13 @@ async function createWindow() {
     title: 'LecFal - Tu biblioteca de mangas y comics',
     icon: path.join(__dirname, 'assets', 'icon.png'),
     webPreferences: {
-      preload: path.join(__dirname, 'src', 'preload.js'),
+      preload: path.join(__dirname, 'src', 'preload', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false
     }
   });
 
-  logger.setWebContents(mainWindow.webContents);
   mainWindow.setMenuBarVisibility(false);
 
   mainWindow.on('close', () => {
@@ -820,6 +819,28 @@ ipcMain.handle('library:mark-all-read', async (event, { seriesId, isRead }) => {
   return db.markAllChaptersRead(seriesId, isRead);
 });
 
+// Remove series from library (preserve original files)
+ipcMain.handle('series:remove-from-library', async (event, seriesId) => {
+  logger.info('LIBRARY', `Quitando manga ID ${seriesId} de la biblioteca (conservando archivos)`);
+  try {
+    return db.removeFromLibrary(seriesId);
+  } catch (err) {
+    logger.error('LIBRARY', `Error al quitar manga ID ${seriesId}: ${err.message}`);
+    return { success: false, error: err.message };
+  }
+});
+
+// Permanently delete series and associated files from disk
+ipcMain.handle('series:delete-permanently', async (event, seriesId) => {
+  logger.info('LIBRARY', `Eliminando definitivamente manga ID ${seriesId} y sus archivos`);
+  try {
+    return db.deletePermanently(seriesId);
+  } catch (err) {
+    logger.error('LIBRARY', `Error al eliminar definitivamente manga ID ${seriesId}: ${err.message}`);
+    return { success: false, error: err.message };
+  }
+});
+
 // Save PDF cover for series
 ipcMain.handle('library:save-series-cover', async (event, { seriesId, filePath, dataUrl }) => {
   try {
@@ -1004,27 +1025,70 @@ ipcMain.handle('storage:set-mode', async (event, { mode } = {}) => {
   }
 });
 
-// Logging IPC
-ipcMain.handle('system:get-logs', async () => {
-  return logger.getLogs();
-});
-
-ipcMain.handle('system:open-log-file', async () => {
-  const logPath = logger.getLogPath();
-  if (logPath && fs.existsSync(logPath)) {
-    return shell.openPath(logPath);
-  }
-  return false;
-});
-
-ipcMain.handle('system:clear-logs', async () => {
-  logger.clearLogs();
-  return true;
-});
-
 // System info
 ipcMain.handle('system:get-version', () => {
   return app.getVersion();
+});
+
+// Complete application reset
+ipcMain.handle('system:reset-application', async () => {
+  logger.info('APP', 'Iniciando restablecimiento completo de la aplicación LecFal');
+  try {
+    // 1. Gather all registered library folder paths to protect against accidental overlap
+    const registeredFolders = [];
+    try {
+      const folders = db.getFolders();
+      for (const f of folders) {
+        if (f && f.path) registeredFolders.push(f.path);
+      }
+    } catch (_) {}
+
+    // 2. Safely close database connection
+    db.close();
+
+    // 3. Reset application storage
+    const resetResult = storage.resetApplicationStorage(registeredFolders);
+
+    // 4. Initialize fresh database
+    db = new DatabaseManager(storage.getDatabasePath());
+    await db.init();
+
+    // 5. Initialize clean scanner instance
+    scanner = new LibraryScanner(storage.getThumbnailsPath());
+
+    logger.info('APP', 'Restablecimiento de la aplicación completado con éxito');
+
+    // 6. Relaunch application cleanly if in packaged/electron runtime
+    setTimeout(() => {
+      try {
+        if (app && typeof app.relaunch === 'function') {
+          app.relaunch();
+          app.exit(0);
+        }
+      } catch (e) {
+        logger.error('APP', `Error al reiniciar tras reset: ${e.message}`);
+      }
+    }, 500);
+
+    return {
+      success: true,
+      restarted: true,
+      storageRoot: resetResult.storageRoot
+    };
+  } catch (err) {
+    logger.error('APP', `Fallo al restablecer la aplicación: ${err.message}`);
+    // If DB was closed but reset failed, try to recover DB connection
+    try {
+      if (!db.db) {
+        db = new DatabaseManager(storage.getDatabasePath());
+        await db.init();
+      }
+    } catch (_) {}
+    return {
+      success: false,
+      error: err.message
+    };
+  }
 });
 
 // Fullscreen controls
@@ -1152,4 +1216,13 @@ ipcMain.handle('reader:set-reading-position', async (event, { chapterId, positio
     return pos;
   }
   return db.setChapterReadingPosition(Number(chapterId) || chapterId, pos);
+});
+
+// History & Continue Reading IPC
+ipcMain.handle('history:get-continue-reading', async (event, limit = 20) => {
+  return db.getContinueReading(limit);
+});
+
+ipcMain.handle('history:get-reading-history', async (event, limit = 50) => {
+  return db.getReadingHistory(limit);
 });
