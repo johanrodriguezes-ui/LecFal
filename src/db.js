@@ -38,12 +38,25 @@ class DatabaseManager {
         value TEXT
       );
 
+      -- Libraries model (logical groupings of scanned root folders)
+      CREATE TABLE IF NOT EXISTS libraries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE COLLATE NOCASE NOT NULL,
+        icon TEXT DEFAULT 'book',
+        color TEXT DEFAULT '#6366f1',
+        sort_order INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_libraries_name ON libraries(name);
+
       CREATE TABLE IF NOT EXISTS library_folders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         path TEXT UNIQUE,
         name TEXT,
+        library_id INTEGER DEFAULT NULL,
         added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        last_scanned DATETIME
+        last_scanned DATETIME,
+        FOREIGN KEY (library_id) REFERENCES libraries(id) ON DELETE SET NULL
       );
 
       -- Series / Manga model (represents a manga subfolder or standalone title)
@@ -222,6 +235,14 @@ class DatabaseManager {
       this.db.run('CREATE INDEX IF NOT EXISTS idx_ignored_authors_name ON ignored_authors(name)');
     } catch (e) {}
 
+    try {
+      this.db.run('ALTER TABLE library_folders ADD COLUMN library_id INTEGER DEFAULT NULL');
+    } catch (e) {}
+
+    try {
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_folders_library ON library_folders(library_id)');
+    } catch (e) {}
+
     this.seedDefaultLanguages();
     this.seedDefaultParodies();
     this.migrateExistingTags();
@@ -300,6 +321,169 @@ class DatabaseManager {
     this.save();
   }
 
+  // ==================== LIBRARIES ====================
+  getLibraries() {
+    const res = [];
+    const sql = `
+      SELECT l.*, COUNT(lf.id) AS folder_count
+      FROM libraries l
+      LEFT JOIN library_folders lf ON l.id = lf.library_id
+      GROUP BY l.id
+      ORDER BY l.sort_order ASC, l.name COLLATE NOCASE ASC
+    `;
+    const stmt = this.db.prepare(sql);
+    while (stmt.step()) {
+      res.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return res;
+  }
+
+  getLibraryById(id) {
+    if (!id) return null;
+    const sql = `
+      SELECT l.*, COUNT(lf.id) AS folder_count
+      FROM libraries l
+      LEFT JOIN library_folders lf ON l.id = lf.library_id
+      WHERE l.id = ?
+      GROUP BY l.id
+    `;
+    const stmt = this.db.prepare(sql);
+    stmt.bind([Number(id)]);
+    let library = null;
+    if (stmt.step()) {
+      library = stmt.getAsObject();
+    }
+    stmt.free();
+    return library;
+  }
+
+  createLibrary(name, options = {}) {
+    const cleanName = (name || '').trim();
+    if (!cleanName) {
+      throw new Error('El nombre de la biblioteca no puede estar vacío');
+    }
+
+    const checkStmt = this.db.prepare('SELECT id, name FROM libraries WHERE name = ? COLLATE NOCASE');
+    checkStmt.bind([cleanName]);
+    if (checkStmt.step()) {
+      checkStmt.free();
+      throw new Error(`La biblioteca "${cleanName}" ya existe`);
+    }
+    checkStmt.free();
+
+    const icon = options.icon || 'book';
+    const color = options.color || '#6366f1';
+    const sortOrder = typeof options.sort_order === 'number' ? options.sort_order : 0;
+
+    this.db.run(
+      'INSERT INTO libraries (name, icon, color, sort_order) VALUES (?, ?, ?, ?)',
+      [cleanName, icon, color, sortOrder]
+    );
+
+    const idStmt = this.db.prepare('SELECT * FROM libraries WHERE name = ? COLLATE NOCASE');
+    idStmt.bind([cleanName]);
+    let newLib = null;
+    if (idStmt.step()) {
+      newLib = idStmt.getAsObject();
+      newLib.folder_count = 0;
+    }
+    idStmt.free();
+
+    this.save();
+    return newLib || { id: Date.now(), name: cleanName, icon, color, sort_order: sortOrder, folder_count: 0 };
+  }
+
+  renameLibrary(id, newName) {
+    const cleanName = (newName || '').trim();
+    if (!cleanName) {
+      throw new Error('El nombre de la biblioteca no puede estar vacío');
+    }
+
+    const checkStmt = this.db.prepare('SELECT id, name FROM libraries WHERE name = ? COLLATE NOCASE AND id != ?');
+    checkStmt.bind([cleanName, Number(id)]);
+    if (checkStmt.step()) {
+      checkStmt.free();
+      throw new Error(`Ya existe otra biblioteca con el nombre "${cleanName}"`);
+    }
+    checkStmt.free();
+
+    const existStmt = this.db.prepare('SELECT id FROM libraries WHERE id = ?');
+    existStmt.bind([Number(id)]);
+    if (!existStmt.step()) {
+      existStmt.free();
+      throw new Error('Biblioteca no encontrada');
+    }
+    existStmt.free();
+
+    this.db.run('UPDATE libraries SET name = ? WHERE id = ?', [cleanName, Number(id)]);
+    this.save();
+    return { id: Number(id), name: cleanName };
+  }
+
+  deleteLibrary(id) {
+    const numId = Number(id);
+    this.db.run('UPDATE library_folders SET library_id = NULL WHERE library_id = ?', [numId]);
+    this.db.run('DELETE FROM libraries WHERE id = ?', [numId]);
+    this.save();
+    return true;
+  }
+
+  assignFolderToLibrary(folderId, libraryId) {
+    const numFolderId = Number(folderId);
+    const numLibId = (libraryId === null || libraryId === undefined || libraryId === '') ? null : Number(libraryId);
+
+    const fStmt = this.db.prepare('SELECT id FROM library_folders WHERE id = ?');
+    fStmt.bind([numFolderId]);
+    if (!fStmt.step()) {
+      fStmt.free();
+      throw new Error('Carpeta no encontrada');
+    }
+    fStmt.free();
+
+    if (numLibId !== null) {
+      const lStmt = this.db.prepare('SELECT id FROM libraries WHERE id = ?');
+      lStmt.bind([numLibId]);
+      if (!lStmt.step()) {
+        lStmt.free();
+        throw new Error('Biblioteca no encontrada');
+      }
+      lStmt.free();
+    }
+
+    this.db.run('UPDATE library_folders SET library_id = ? WHERE id = ?', [numLibId, numFolderId]);
+    this.save();
+    return true;
+  }
+
+  getFoldersByLibrary(libraryId) {
+    const res = [];
+    let stmt;
+    if (libraryId === null || libraryId === undefined || libraryId === '') {
+      stmt = this.db.prepare('SELECT * FROM library_folders WHERE library_id IS NULL ORDER BY name COLLATE NOCASE ASC');
+    } else {
+      stmt = this.db.prepare('SELECT * FROM library_folders WHERE library_id = ? ORDER BY name COLLATE NOCASE ASC');
+      stmt.bind([Number(libraryId)]);
+    }
+    while (stmt.step()) {
+      res.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return res;
+  }
+
+  getFolderById(folderId) {
+    if (!folderId) return null;
+    const stmt = this.db.prepare('SELECT * FROM library_folders WHERE id = ?');
+    stmt.bind([Number(folderId)]);
+    let folder = null;
+    if (stmt.step()) {
+      folder = stmt.getAsObject();
+    }
+    stmt.free();
+    return folder;
+  }
+
   // ==================== LIBRARY FOLDERS ====================
   getFolders() {
     const res = [];
@@ -311,12 +495,13 @@ class DatabaseManager {
     return res;
   }
 
-  addFolder(folderPath) {
+  addFolder(folderPath, libraryId = null) {
     const folderName = path.basename(folderPath) || folderPath;
+    const numLibId = (libraryId === null || libraryId === undefined || libraryId === '') ? null : Number(libraryId);
     try {
       this.db.run(
-        'INSERT OR IGNORE INTO library_folders (path, name, last_scanned) VALUES (?, ?, CURRENT_TIMESTAMP)',
-        [folderPath, folderName]
+        'INSERT OR IGNORE INTO library_folders (path, name, library_id, last_scanned) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+        [folderPath, folderName, numLibId]
       );
       this.save();
       const stmt = this.db.prepare('SELECT * FROM library_folders WHERE path = ?');
@@ -550,6 +735,7 @@ class DatabaseManager {
     search = '',
     format = 'all',
     folderId = null,
+    libraryId = null,
     sortBy = 'title_asc',
     favoriteOnly = false,
     tag = '',
@@ -582,15 +768,10 @@ class DatabaseManager {
     }
 
     if (authorId) {
-      if (Array.isArray(authorId)) {
-        if (authorId.length > 0) {
-          const placeholders = authorId.map(() => '?').join(',');
-          sql += ` AND id IN (SELECT series_id FROM series_authors WHERE author_id IN (${placeholders}))`;
-          params.push(...authorId);
-        }
-      } else {
+      const ids = Array.isArray(authorId) ? authorId : [authorId];
+      for (const aid of ids) {
         sql += ' AND id IN (SELECT series_id FROM series_authors WHERE author_id = ?)';
-        params.push(authorId);
+        params.push(aid);
       }
     } else if (advAuthor && advAuthor.trim() !== '') {
       sql += ' AND (id IN (SELECT series_id FROM series_authors sa JOIN authors a ON sa.author_id = a.id WHERE a.name = ? COLLATE NOCASE) OR author LIKE ?)';
@@ -599,15 +780,10 @@ class DatabaseManager {
     }
 
     if (groupId) {
-      if (Array.isArray(groupId)) {
-        if (groupId.length > 0) {
-          const placeholders = groupId.map(() => '?').join(',');
-          sql += ` AND id IN (SELECT series_id FROM series_groups WHERE group_id IN (${placeholders}))`;
-          params.push(...groupId);
-        }
-      } else {
+      const ids = Array.isArray(groupId) ? groupId : [groupId];
+      for (const gid of ids) {
         sql += ' AND id IN (SELECT series_id FROM series_groups WHERE group_id = ?)';
-        params.push(groupId);
+        params.push(gid);
       }
     } else if (advGroup && advGroup.trim() !== '') {
       sql += ' AND (id IN (SELECT series_id FROM series_groups sg JOIN groups g ON sg.group_id = g.id WHERE g.name = ? COLLATE NOCASE) OR group_name LIKE ?)';
@@ -616,15 +792,10 @@ class DatabaseManager {
     }
 
     if (parodyId) {
-      if (Array.isArray(parodyId)) {
-        if (parodyId.length > 0) {
-          const placeholders = parodyId.map(() => '?').join(',');
-          sql += ` AND id IN (SELECT series_id FROM series_parodies_rel WHERE parody_id IN (${placeholders}))`;
-          params.push(...parodyId);
-        }
-      } else {
+      const ids = Array.isArray(parodyId) ? parodyId : [parodyId];
+      for (const pid of ids) {
         sql += ' AND id IN (SELECT series_id FROM series_parodies_rel WHERE parody_id = ?)';
-        params.push(parodyId);
+        params.push(pid);
       }
     } else if (advParody && advParody.trim() !== '') {
       sql += ' AND (id IN (SELECT series_id FROM series_parodies_rel spr JOIN series_parodies sp ON spr.parody_id = sp.id WHERE sp.name = ? COLLATE NOCASE) OR parody LIKE ? OR title LIKE ?)';
@@ -633,8 +804,16 @@ class DatabaseManager {
     }
 
     if (languageId) {
-      sql += ' AND id IN (SELECT series_id FROM series_languages WHERE language_id = ?)';
-      params.push(languageId);
+      if (Array.isArray(languageId)) {
+        if (languageId.length > 0) {
+          const placeholders = languageId.map(() => '?').join(',');
+          sql += ` AND id IN (SELECT series_id FROM series_languages WHERE language_id IN (${placeholders}))`;
+          params.push(...languageId);
+        }
+      } else {
+        sql += ' AND id IN (SELECT series_id FROM series_languages WHERE language_id = ?)';
+        params.push(languageId);
+      }
     } else if (advLanguage && advLanguage.trim() !== '') {
       sql += ' AND (id IN (SELECT series_id FROM series_languages sl JOIN languages l ON sl.language_id = l.id WHERE l.name = ? COLLATE NOCASE) OR language LIKE ?)';
       const langVal = advLanguage.trim();
@@ -651,21 +830,21 @@ class DatabaseManager {
       params.push(folderId);
     }
 
+    if (libraryId && libraryId !== 'all') {
+      sql += ' AND folder_id IN (SELECT id FROM library_folders WHERE library_id = ?)';
+      params.push(Number(libraryId));
+    }
+
     if (favoriteOnly) {
       sql += ' AND favorite = 1';
     }
 
     // Tag filtering using relation series_tags or denormalized tags
     if (tagId) {
-      if (Array.isArray(tagId)) {
-        if (tagId.length > 0) {
-          const placeholders = tagId.map(() => '?').join(',');
-          sql += ` AND id IN (SELECT series_id FROM series_tags WHERE tag_id IN (${placeholders}))`;
-          params.push(...tagId);
-        }
-      } else {
+      const ids = Array.isArray(tagId) ? tagId : [tagId];
+      for (const tid of ids) {
         sql += ' AND id IN (SELECT series_id FROM series_tags WHERE tag_id = ?)';
-        params.push(tagId);
+        params.push(tid);
       }
     } else if (tag && tag.trim() !== '') {
       sql += ' AND (id IN (SELECT series_id FROM series_tags st JOIN tags t ON st.tag_id = t.id WHERE t.name = ? COLLATE NOCASE) OR tags LIKE ?)';

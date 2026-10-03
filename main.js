@@ -480,6 +480,47 @@ ipcMain.handle('groups:set-series-groups', async (event, { seriesId, groupIds })
   return updated;
 });
 
+// ==================== LIBRARY MANAGEMENT IPC ====================
+ipcMain.handle('libraries:get-all', async () => {
+  return db.getLibraries();
+});
+
+ipcMain.handle('libraries:get-by-id', async (event, id) => {
+  return db.getLibraryById(id);
+});
+
+ipcMain.handle('libraries:create', async (event, payload) => {
+  const name = typeof payload === 'object' && payload !== null ? payload.name : payload;
+  const options = typeof payload === 'object' && payload !== null ? payload.options : undefined;
+  const newLib = db.createLibrary(name, options);
+  if (newLib) {
+    logger.info('LIBRARIES', `Biblioteca creada: "${newLib.name}" (ID ${newLib.id})`);
+  }
+  return newLib;
+});
+
+ipcMain.handle('libraries:rename', async (event, { id, name }) => {
+  const result = db.renameLibrary(id, name);
+  logger.info('LIBRARIES', `Biblioteca ID ${id} renombrada a: "${name}"`);
+  return result;
+});
+
+ipcMain.handle('libraries:delete', async (event, id) => {
+  const result = db.deleteLibrary(id);
+  logger.info('LIBRARIES', `Biblioteca eliminada ID: ${id}`);
+  return result;
+});
+
+ipcMain.handle('libraries:assign-folder', async (event, { folderId, libraryId }) => {
+  const result = db.assignFolderToLibrary(folderId, libraryId);
+  logger.info('LIBRARIES', `Carpeta ID ${folderId} asignada a biblioteca ID: ${libraryId}`);
+  return result;
+});
+
+ipcMain.handle('libraries:get-folders-by-library', async (event, libraryId) => {
+  return db.getFoldersByLibrary(libraryId);
+});
+
 // Helper for scanning a folder and saving Series + Chapters with progressive UI updates
 async function scanFolderWithSeries(folder, options = {}) {
   const mode = options.mode || 'incremental';

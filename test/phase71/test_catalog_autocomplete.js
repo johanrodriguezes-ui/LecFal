@@ -187,27 +187,38 @@ async function testDatabase() {
   db.setSeriesParodies(s4, [p1.id]);
   db.setSeriesTags(s4, [t3.id]);
 
+  const s5 = db.upsertSeries({
+    folder_id: folder.id,
+    title: 'Manga Five',
+    primary_format: 'cbz',
+    path: path.join(tempDir, 'manga', 'five')
+  });
+  db.setSeriesAuthors(s5, [a1.id, a2.id]);
+  db.setSeriesGroups(s5, [g1.id]);
+  db.setSeriesParodies(s5, [p1.id, p2.id]);
+  db.setSeriesTags(s5, [t1.id, t3.id]);
+
   // Case A: Backward compatibility - scalar authorId
   const resScalar = db.getSeriesList({ authorId: a1.id });
-  assert.strictEqual(resScalar.length, 2, 'Scalar authorId returns s1 and s3');
-  assert.deepStrictEqual(resScalar.map(s => s.id).sort(), [s1, s3].sort());
+  assert.strictEqual(resScalar.length, 3, 'Scalar authorId returns s1, s3, and s5');
+  assert.deepStrictEqual(resScalar.map(s => s.id).sort(), [s1, s3, s5].sort());
 
-  // Case B: Multi-selection - array authorId [a1.id, a2.id] (OR semantics within filter)
+  // Case B: Multi-selection - array authorId [a1.id, a2.id] (AND semantics within filter)
   const resMultiAuthor = db.getSeriesList({ authorId: [a1.id, a2.id] });
-  assert.strictEqual(resMultiAuthor.length, 3, 'Multi-select authorId returns s1, s2, and s3');
-  assert.deepStrictEqual(resMultiAuthor.map(s => s.id).sort(), [s1, s2, s3].sort());
+  assert.strictEqual(resMultiAuthor.length, 1, 'Multi-select authorId (AND) returns only s5');
+  assert.deepStrictEqual(resMultiAuthor.map(s => s.id).sort(), [s5].sort());
 
   // Case C: Multi-category combination (AND semantics between filters)
-  // author in [a1, a2] AND group in [g1] -> s1 (author a1, group g1) and s2 (author a2, group g1)
+  // author in [a1, a2] (both) AND group in [g1] -> s5 (authors a1+a2, group g1)
   const resMultiCategory = db.getSeriesList({ authorId: [a1.id, a2.id], groupId: [g1.id] });
-  assert.strictEqual(resMultiCategory.length, 2, 'Author [a1, a2] AND Group [g1] returns s1 and s2');
-  assert.deepStrictEqual(resMultiCategory.map(s => s.id).sort(), [s1, s2].sort());
+  assert.strictEqual(resMultiCategory.length, 1, 'Author [a1, a2] (AND) and Group [g1] returns s5');
+  assert.deepStrictEqual(resMultiCategory.map(s => s.id).sort(), [s5].sort());
 
-  // Case D: Tag multi-selection (OR semantics within tag filter)
-  // tag in [t1 (Action), t3 (Drama)] -> s1 (t1, t2), s3 (t1, t3), s4 (t3)
+  // Case D: Tag multi-selection (AND semantics within tag filter)
+  // tags [t1 (Action), t3 (Drama)] -> series with both: s3 (t1, t3) and s5 (t1, t3)
   const resMultiTag = db.getSeriesList({ tagId: [t1.id, t3.id] });
-  assert.strictEqual(resMultiTag.length, 3, 'Tags [t1, t3] returns s1, s3, and s4');
-  assert.deepStrictEqual(resMultiTag.map(s => s.id).sort(), [s1, s3, s4].sort());
+  assert.strictEqual(resMultiTag.length, 2, 'Tags [t1, t3] (AND) returns s3 and s5');
+  assert.deepStrictEqual(resMultiTag.map(s => s.id).sort(), [s3, s5].sort());
 
   // Case E: Single tag scalar compatibility
   const resScalarTag = db.getSeriesList({ tagId: t2.id });
@@ -215,7 +226,7 @@ async function testDatabase() {
 
   // Case F: Empty array should not filter out results
   const resEmptyArray = db.getSeriesList({ authorId: [] });
-  assert.strictEqual(resEmptyArray.length, 4, 'Empty array authorId returns all series');
+  assert.strictEqual(resEmptyArray.length, 5, 'Empty array authorId returns all series');
 
   // Clean up
   try {

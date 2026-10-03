@@ -480,43 +480,36 @@ async function runValidation() {
   // ----------------------------------------------------
   // TEST 6: Filter Interactions
   // ----------------------------------------------------
-  console.log(`[Test 6] Filter Verification (Format Chips, Advanced Tag/Author Filters)...`);
+  console.log(`[Test 6] Filter Verification (Library Selector, Favorites Toggle, Advanced Tag Filters)...`);
   const filterResults = await win.webContents.executeJavaScript(`
     (async () => {
+      const btnLibrary = document.getElementById('btnLibrarySelect');
+      const btnFav = document.getElementById('btnFilterFavorite');
       const chipCbz = document.querySelector('.filter-chip[data-filter="cbz"]');
       const chipPdf = document.querySelector('.filter-chip[data-filter="pdf"]');
-      const chipAll = document.querySelector('.filter-chip[data-filter="all"]');
       const emptyNoResults = document.getElementById('emptyStateNoResults');
       const comicsGrid = document.getElementById('comicsGrid');
 
       let cbzPass = false, pdfPass = false, allPass = false, advTagPass = false;
 
-      // 1. Filter CBZ
-      if (chipCbz) {
-        chipCbz.click();
-        await new Promise(r => setTimeout(r, 650));
-        const cards = Array.from(document.querySelectorAll('.comic-card'));
-        const total = window.seriesList ? window.seriesList.length : 0;
-        cbzPass = total === 1036 && cards.length > 0 && cards.every(c => c.querySelector('.badge-cbz'));
-      }
+      // 1. Format chips removed from toolbar, new controls present
+      const obsoleteChipsRemoved = !chipCbz && !chipPdf && !!btnLibrary && !!btnFav;
+      cbzPass = obsoleteChipsRemoved;
 
-      // 2. Filter PDF (0 in DB -> shows empty state)
-      if (chipPdf) {
-        chipPdf.click();
+      // 2. Favorite toggle filter
+      if (btnFav) {
+        btnFav.click(); // Toggle Favorites ON
         await new Promise(r => setTimeout(r, 650));
         const total = window.seriesList ? window.seriesList.length : 0;
         const emptyVisible = emptyNoResults ? (emptyNoResults.style.display !== 'none') : false;
         const gridHidden = comicsGrid ? (comicsGrid.style.display === 'none') : false;
-        pdfPass = total === 0 && emptyVisible && gridHidden;
-      }
+        pdfPass = total === 0 ? (emptyVisible && gridHidden) : (total > 0 && !gridHidden);
 
-      // 3. Reset chip to All before testing advanced filter
-      if (chipAll) {
-        chipAll.click();
+        btnFav.click(); // Toggle Favorites OFF
         await new Promise(r => setTimeout(r, 650));
       }
 
-      // 4. Test Advanced Tag Filter
+      // 3. Test Advanced Tag Filter
       const selectTag = document.getElementById('advSelectTag');
       const btnApplyAdv = document.getElementById('btnApplyAdvSearch');
       const btnClearAdv = document.getElementById('btnClearAdvSearch');
@@ -536,14 +529,15 @@ async function runValidation() {
         advTagPass = true; // No tags in dropdown to test
       }
 
-      // 5. Restore All
-      if (chipAll) {
-        chipAll.click();
-        await new Promise(r => setTimeout(r, 650));
-        const total = window.seriesList ? window.seriesList.length : 0;
-        const mounted = document.querySelectorAll('.comic-card').length;
-        allPass = total === 1036 && mounted > 0 && comicsGrid.style.display !== 'none';
+      // 4. Restore All
+      if (window.resetLibraryFilters) {
+        window.resetLibraryFilters();
+        await window.refreshSeries(true);
       }
+      await new Promise(r => setTimeout(r, 650));
+      const total = window.seriesList ? window.seriesList.length : 0;
+      const mounted = document.querySelectorAll('.comic-card').length;
+      allPass = total === 1036 && mounted > 0 && comicsGrid.style.display !== 'none';
 
       return { cbzPass, pdfPass, advTagPass, allPass };
     })()
@@ -553,7 +547,7 @@ async function runValidation() {
     status: filterPass ? 'PASS' : 'FAIL',
     ...filterResults
   };
-  console.log(`  -> Filter Test: ${uxResults.filters.status} (CBZ: ${filterResults.cbzPass}, PDF Zero-State: ${filterResults.pdfPass}, AdvTag: ${filterResults.advTagPass}, All: ${filterResults.allPass})`);
+  console.log(`  -> Filter Test: ${uxResults.filters.status} (ObsoleteChipsRemoved: ${filterResults.cbzPass}, FavToggle: ${filterResults.pdfPass}, AdvTag: ${filterResults.advTagPass}, All: ${filterResults.allPass})`);
 
   // ----------------------------------------------------
   // TEST 7: Favorites & Card Interaction
@@ -705,8 +699,10 @@ async function runValidation() {
       await new Promise(r => setTimeout(r, 400));
 
       const tWarm0 = performance.now();
-      const chipAllBtn = document.querySelector('.filter-chip[data-filter="all"]');
-      if (chipAllBtn) chipAllBtn.click();
+      if (window.resetLibraryFilters) {
+        window.resetLibraryFilters();
+        await window.refreshSeries(true);
+      }
       await new Promise(r => setTimeout(r, 450));
       const warmRenderMs = (performance.now() - tWarm0).toFixed(1);
 

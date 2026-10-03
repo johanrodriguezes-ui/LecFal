@@ -11,7 +11,9 @@ import {
   scheduleSeriesRefresh,
   focusSearchInput,
   clearSearch,
-  hasSearchQuery
+  hasSearchQuery,
+  isLibraryDropdownOpen,
+  closeLibraryDropdown
 } from './library.js';
 import {
   initCatalogPicker,
@@ -40,7 +42,11 @@ import {
   renderSettingsFolders,
   applyTheme,
   isRenameModalOpen,
-  closeRenameModal
+  closeRenameModal,
+  isCreateLibraryModalOpen,
+  closeCreateLibraryModal,
+  switchSettingsSection,
+  getCurrentSettingsSection
 } from './settings.js';
 import {
   initScannerUI,
@@ -112,7 +118,8 @@ async function init() {
     onAddFolder: () => handleAddFolder(),
     getCurrentView: () => currentView,
     getActiveAdvFilters: () => getActiveAdvFilters(),
-    onClearAdvancedSearch: () => handleClearAdvancedSearch()
+    onClearAdvancedSearch: () => handleClearAdvancedSearch(),
+    onOpenSettings: (sectionId) => openSettingsView(sectionId)
   });
 
   initScannerUI({
@@ -243,6 +250,8 @@ function setupEventListeners() {
     if (e.key === 'Escape') {
       if (isCatalogPickerOpen()) closeCatalogPickerModal();
       else if (isRenameModalOpen()) closeRenameModal();
+      else if (isCreateLibraryModalOpen()) closeCreateLibraryModal();
+      else if (isLibraryDropdownOpen()) closeLibraryDropdown();
       else if (isEditFieldModalOpen()) closeEditFieldModal();
       else if (modalFolders.style.display !== 'none') closeFoldersModal();
       else if (isLogDrawerOpen()) closeLogDrawer();
@@ -293,7 +302,7 @@ async function openMangaView(seriesId) {
   await renderMangaDetail(seriesId);
 }
 
-async function openSettingsView() {
+async function openSettingsView(targetSectionId = null) {
   currentView = 'settings';
   if (topNav) topNav.style.display = 'none';
   libraryView.style.display = 'none';
@@ -302,11 +311,16 @@ async function openSettingsView() {
   if (settingsView) settingsView.style.display = 'flex';
   navSearchContainer.style.visibility = 'hidden';
 
-  // Load and render all 5 metadata catalogs + folders
+  // Load and render all metadata catalogs + libraries + folders + ignored values
   await renderAllSettings();
 
-  const scrollable = document.querySelector('.settings-view-scrollable');
-  if (scrollable) scrollable.scrollTop = 0;
+  // If a target section string is provided (e.g. 'sectionLibraries'), switch directly to it.
+  // Otherwise preserve the current active section or default to 'sectionAppearance'.
+  const target = (typeof targetSectionId === 'string' && targetSectionId)
+    ? targetSectionId
+    : (getCurrentSettingsSection() || 'sectionAppearance');
+
+  switchSettingsSection(target);
 }
 
 // ==================== FOLDERS & SCANNING ====================

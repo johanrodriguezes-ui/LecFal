@@ -90,6 +90,28 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
   deleteGroup: (id) => ipcRenderer.invoke('groups:delete', id),
   setSeriesGroups: (data) => ipcRenderer.invoke('groups:set-series-groups', data),
 
+  // Centralized Library Management
+  getAllLibraries: () => ipcRenderer.invoke('libraries:get-all'),
+  getLibraryById: (id) => ipcRenderer.invoke('libraries:get-by-id', id),
+  createLibrary: (nameOrObj, maybeOptions) => {
+    const payload = (typeof nameOrObj === 'object' && nameOrObj !== null)
+      ? nameOrObj
+      : { name: nameOrObj, options: maybeOptions };
+    return ipcRenderer.invoke('libraries:create', payload);
+  },
+  renameLibrary: (idOrObj, maybeName) => {
+    const payload = (typeof idOrObj === 'object' && idOrObj !== null) ? idOrObj : { id: idOrObj, name: maybeName };
+    return ipcRenderer.invoke('libraries:rename', payload);
+  },
+  deleteLibrary: (id) => ipcRenderer.invoke('libraries:delete', id),
+  assignFolderToLibrary: (folderIdOrObj, maybeLibraryId) => {
+    const payload = (typeof folderIdOrObj === 'object' && folderIdOrObj !== null)
+      ? folderIdOrObj
+      : { folderId: folderIdOrObj, libraryId: maybeLibraryId };
+    return ipcRenderer.invoke('libraries:assign-folder', payload);
+  },
+  getFoldersByLibrary: (libraryId) => ipcRenderer.invoke('libraries:get-folders-by-library', libraryId),
+
   // File interactions
   openFile: (filePath) => ipcRenderer.invoke('library:open-file', filePath),
   showInFolder: (filePath) => ipcRenderer.invoke('library:show-in-folder', filePath),

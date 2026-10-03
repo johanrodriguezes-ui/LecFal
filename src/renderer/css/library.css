@@ -77,6 +77,190 @@
   color: var(--color-fav);
 }
 
+.chip-favorite.active {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: rgba(244, 63, 94, 0.4);
+  color: #ffe4e6;
+}
+
+.chip-favorite.active .chip-heart-icon {
+  color: #fb7185;
+}
+
+/* ==================== LIBRARY SELECTOR POPOVER ==================== */
+.library-select-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.library-chip {
+  gap: 8px;
+  padding: 6px 14px;
+}
+
+.library-chip-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.library-chip .chip-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--text-dim);
+  transition: transform var(--transition-fast);
+}
+
+.library-select-wrapper.open .chip-chevron {
+  transform: rotate(180deg);
+}
+
+.library-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: #151a28;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.7);
+  z-index: 200;
+  min-width: 220px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: slideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.library-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.library-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  width: 100%;
+}
+
+.library-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.library-dropdown-item.active {
+  background: rgba(99, 102, 241, 0.14);
+  color: #c7d2fe;
+  font-weight: 600;
+}
+
+.library-dropdown-item .item-check {
+  width: 14px;
+  height: 14px;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  opacity: 0;
+}
+
+.library-dropdown-item.active .item-check {
+  opacity: 1;
+}
+
+.library-dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 0;
+}
+
+.library-dropdown-manage-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  width: 100%;
+}
+
+.library-dropdown-manage-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-main);
+}
+
+.library-dropdown-manage-btn .manage-gear-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--text-dim);
+}
+
+/* Light Theme Overrides */
+body[data-theme="light"] .library-dropdown-menu {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12);
+}
+
+body[data-theme="light"] .library-dropdown-item {
+  color: #1e293b;
+}
+
+body[data-theme="light"] .library-dropdown-item:hover {
+  background: #f1f5f9;
+}
+
+body[data-theme="light"] .library-dropdown-item.active {
+  background: #ede9fe;
+  color: #4f46e5;
+}
+
+body[data-theme="light"] .library-dropdown-divider {
+  background: #e2e8f0;
+}
+
+body[data-theme="light"] .library-dropdown-manage-btn {
+  color: #64748b;
+}
+
+body[data-theme="light"] .library-dropdown-manage-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+body[data-theme="light"] .chip-favorite.active {
+  background: #ffe4e6;
+  border-color: #fda4af;
+  color: #e11d48;
+}
+
+@media (max-width: 640px) {
+  .library-chip-label {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+
 .toolbar-controls-right {
   display: flex;
   align-items: center;
@@ -246,10 +430,16 @@
 
 /* Phase 5.2 — Virtualized Grid Architecture */
 .comics-grid.is-virtualized {
-  display: block !important;
+  display: block;
   position: relative;
   width: 100%;
   padding-bottom: 30px;
+}
+
+.comics-grid.hidden,
+.comics-grid[hidden],
+.comics-grid[style*="display: none"] {
+  display: none !important;
 }
 
 .comics-grid-track {
@@ -517,6 +707,12 @@
   margin: 0 auto;
   gap: 16px;
   animation: fadeIn 0.4s ease;
+}
+
+.empty-state.hidden,
+.empty-state[hidden],
+.empty-state[style*="display: none"] {
+  display: none !important;
 }
 
 @keyframes fadeIn {

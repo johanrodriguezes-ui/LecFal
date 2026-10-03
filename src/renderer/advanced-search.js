@@ -45,7 +45,8 @@ export const autocompletes = {
   author: null,
   group: null,
   parody: null,
-  tag: null
+  tag: null,
+  language: null
 };
 
 // ==================== EXTERNAL CALLBACKS ====================
@@ -135,7 +136,17 @@ export async function populateAdvSearchTags() {
 }
 
 export async function populateAdvSearchLanguages() {
-  return populateDropdown('language');
+  try {
+    const items = await window.lecfalAPI.getAllLanguages();
+    if (autocompletes.language) {
+      autocompletes.language.setCatalog(items);
+    }
+    if (elements.advSelectLanguage) {
+      populateDropdown('language');
+    }
+  } catch (e) {
+    console.warn('Error populating adv search language:', e);
+  }
 }
 
 export async function populateAdvSearchOptions() {
@@ -157,6 +168,7 @@ export function hasActiveAdvFilters() {
   const hasGroup = Array.isArray(activeAdvFilters.groupId) ? activeAdvFilters.groupId.length > 0 : !!activeAdvFilters.groupId;
   const hasParody = Array.isArray(activeAdvFilters.parodyId) ? activeAdvFilters.parodyId.length > 0 : !!activeAdvFilters.parodyId;
   const hasTag = Array.isArray(activeAdvFilters.tagId) ? activeAdvFilters.tagId.length > 0 : !!activeAdvFilters.tagId;
+  const hasLanguage = Array.isArray(activeAdvFilters.languageId) ? activeAdvFilters.languageId.length > 0 : !!activeAdvFilters.languageId;
 
   return !!(
     activeAdvFilters.title ||
@@ -167,7 +179,7 @@ export function hasActiveAdvFilters() {
     hasParody ||
     activeAdvFilters.parody ||
     hasTag ||
-    activeAdvFilters.languageId ||
+    hasLanguage ||
     activeAdvFilters.language
   );
 }
@@ -251,8 +263,13 @@ export function handleApplyAdvancedSearch() {
     activeAdvFilters.tagId = elements.advSelectTag.value;
   }
 
-  // Language remains select
-  activeAdvFilters.languageId = elements.advSelectLanguage ? elements.advSelectLanguage.value : '';
+  // Language autocomplete or fallback select
+  if (autocompletes.language) {
+    const languageIds = autocompletes.language.getSelectedIds();
+    activeAdvFilters.languageId = languageIds.length > 0 ? languageIds : '';
+  } else if (elements.advSelectLanguage) {
+    activeAdvFilters.languageId = elements.advSelectLanguage.value;
+  }
 
   updateAdvSearchUIState();
   callbacks.refreshSeries();
@@ -267,6 +284,7 @@ export function handleClearAdvancedSearch() {
   if (autocompletes.group) autocompletes.group.clear();
   if (autocompletes.parody) autocompletes.parody.clear();
   if (autocompletes.tag) autocompletes.tag.clear();
+  if (autocompletes.language) autocompletes.language.clear();
   if (elements.advSelectLanguage) elements.advSelectLanguage.value = '';
   if (elements.advSelectAuthor) elements.advSelectAuthor.value = '';
   if (elements.advSelectGroup) elements.advSelectGroup.value = '';
@@ -363,6 +381,19 @@ export function initAdvancedSearch(options = {}) {
       catalogType: 'tag',
       placeholder: 'Buscar tag...',
       noResultsText: 'No se encontraron tags',
+      maxSuggestions: 8,
+      onSelectionChange: () => updateAdvSearchUIState(),
+      onApply: () => handleApplyAdvancedSearch()
+    });
+  }
+
+  const elLanguage = document.getElementById('advAutocompleteLanguage');
+  if (elLanguage) {
+    autocompletes.language = new CatalogAutocomplete({
+      container: elLanguage,
+      catalogType: 'language',
+      placeholder: 'Buscar idioma...',
+      noResultsText: 'No se encontraron idiomas',
       maxSuggestions: 8,
       onSelectionChange: () => updateAdvSearchUIState(),
       onApply: () => handleApplyAdvancedSearch()
