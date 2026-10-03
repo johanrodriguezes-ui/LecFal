@@ -23,9 +23,29 @@ const tests = [
     args: [path.join(__dirname, 'phase71', 'test_catalog_autocomplete.js')]
   },
   {
+    name: 'Advanced Search Boolean Semantics Tests',
+    cmd: process.execPath, // node
+    args: [path.join(__dirname, 'test_advanced_search_semantics.js')]
+  },
+  {
     name: 'Ignored Authors Detection & Precedence Tests',
     cmd: process.execPath, // node
     args: [path.join(__dirname, 'test_ignored_authors.js')]
+  },
+  {
+    name: 'Phase 1 Library Backend & Data Model Tests',
+    cmd: process.execPath, // node
+    args: [path.join(__dirname, 'test_libraries.js')]
+  },
+  {
+    name: 'Phase 2 Library Settings UI & Management Tests',
+    cmd: process.execPath, // node
+    args: [path.join(__dirname, 'test_settings_libraries.js')]
+  },
+  {
+    name: 'Phase 3 Library Toolbar & Filtering Tests',
+    cmd: process.execPath, // node
+    args: [path.join(__dirname, 'test_toolbar_libraries.js')]
   },
   {
     name: 'Reader Persistent Reading Position Suite',
@@ -41,6 +61,21 @@ const tests = [
     name: 'Library Grid Virtualization & UX Suite',
     cmd: 'npx',
     args: ['electron', path.join(__dirname, 'phase56', 'test_library_ux.js')]
+  },
+  {
+    name: 'Advanced Search Result Rendering & Race Guard Suite',
+    cmd: 'npx',
+    args: ['electron', path.join(__dirname, 'test_advanced_search_results.js')]
+  },
+  {
+    name: 'Settings UI Redesign Phase 1 Navigation Suite',
+    cmd: 'npx',
+    args: ['electron', path.join(__dirname, 'test_settings_navigation.js')]
+  },
+  {
+    name: 'Settings UI Redesign Phase 2 Catalog Manager Suite',
+    cmd: 'npx',
+    args: ['electron', path.join(__dirname, 'test_settings_catalog_manager.js')]
   }
 ];
 

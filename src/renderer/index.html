@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="css/scanner.css">
   <link rel="stylesheet" href="css/detail.css">
   <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="css/catalog-manager.css">
   <link rel="stylesheet" href="css/modals.css">
   <link rel="stylesheet" href="css/terminal.css">
   <link rel="stylesheet" href="css/reader.css">
@@ -174,10 +175,8 @@
             <div id="advAutocompleteTag"></div>
           </div>
           <div class="adv-field">
-            <label for="advSelectLanguage">Idioma</label>
-            <select id="advSelectLanguage">
-              <option value="">Todos los idiomas</option>
-            </select>
+            <label>Idioma</label>
+            <div id="advAutocompleteLanguage"></div>
           </div>
         </div>
 
@@ -199,21 +198,41 @@
       <!-- Toolbar Bar: Filters, Sorting & Grid Sizing -->
       <section class="toolbar-bar">
         <div class="filter-group">
-          <button class="filter-chip active" data-filter="all">Todos <span class="counter-badge" id="countAll">0</span></button>
-          <button class="filter-chip" data-filter="cbz">
-            <span class="badge-dot dot-cbz"></span>
-            CBZ <span class="counter-badge" id="countCbz">0</span>
-          </button>
-          <button class="filter-chip" data-filter="pdf">
-            <span class="badge-dot dot-pdf"></span>
-            PDF <span class="counter-badge" id="countPdf">0</span>
-          </button>
-          <button class="filter-chip" data-filter="favorite">
+          <!-- Library Selector Popover Container -->
+          <div class="library-select-wrapper" id="librarySelectWrapper">
+            <button class="filter-chip library-chip" id="btnLibrarySelect" type="button" title="Filtrar por biblioteca">
+              <span class="library-chip-icon">📚</span>
+              <span class="library-chip-label" id="libraryChipLabel">Biblioteca: Todas</span>
+              <svg class="chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </button>
+
+            <!-- Popover Menu -->
+            <div class="library-dropdown-menu" id="libraryDropdownMenu" style="display: none;">
+              <div class="library-dropdown-list" id="libraryDropdownList">
+                <!-- Dynamically injected: Todas, divider, libraries -->
+              </div>
+              <div class="library-dropdown-divider"></div>
+              <button class="library-dropdown-manage-btn" id="btnManageLibraries" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="manage-gear-icon">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                <span>Gestionar bibliotecas...</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Independent Favorites Toggle Chip -->
+          <button class="filter-chip chip-favorite" id="btnFilterFavorite" data-filter="favorite" type="button" title="Mostrar solo favoritos">
             <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" class="chip-heart-icon">
               <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
             </svg>
-            Favoritos <span class="counter-badge" id="countFav">0</span>
+            <span>Favoritos</span>
+            <span class="counter-badge" id="countFav">0</span>
           </button>
+
           <div class="adv-active-badge" id="advActiveBadge" style="display: none;">
             <span>Filtros avanzados</span>
             <button id="btnQuickClearAdv" title="Eliminar filtros avanzados">×</button>
@@ -525,142 +544,155 @@
 
     <!-- ==================== VIEW 3: SETTINGS VIEW ==================== -->
     <div class="view-container settings-view" id="settingsView" style="display: none;">
-      <!-- Settings Navigation Header -->
+      <!-- Settings Top Navigation Bar -->
       <div class="settings-nav-bar">
-        <button class="btn btn-secondary btn-back" id="btnBackFromSettings">
+        <button class="btn btn-secondary btn-back" id="btnBackFromSettings" title="Volver a la biblioteca">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="m15 18-6-6 6-6"/>
           </svg>
           <span>Biblioteca</span>
         </button>
-        <h2 class="settings-nav-title">Configuración de la Biblioteca</h2>
+        <h2 class="settings-nav-title">Configuración</h2>
         <div style="width: 110px;"></div> <!-- visual balancer -->
       </div>
 
-      <div class="settings-view-scrollable">
-        <div class="settings-container">
-
-          <!-- Section A: GESTIÓN DE TAGS -->
-          <section class="settings-card" id="sectionTags">
-            <div class="settings-card-header">
-              <div class="settings-card-icon-title">
-                <div class="settings-card-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                    <line x1="7" y1="7" x2="7.01" y2="7"/>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="settings-card-title">Gestión de Tags y Géneros</h3>
-                  <p class="settings-card-desc">Crea, edita y administra los tags disponibles en la biblioteca. Es la fuente única de verdad.</p>
-                </div>
-              </div>
+      <!-- Settings Two-Column Layout -->
+      <div class="settings-layout">
+        <!-- Persistent Settings Sidebar -->
+        <aside class="settings-sidebar" id="settingsSidebar">
+          <nav class="settings-sidebar-nav" id="settingsSidebarNav">
+            <!-- GENERAL -->
+            <div class="settings-nav-group">
+              <span class="settings-nav-group-title">General</span>
+              <button type="button" class="settings-nav-item active" data-section="sectionAppearance">
+                <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="5"/>
+                  <line x1="12" y1="1" x2="12" y2="3"/>
+                  <line x1="12" y1="21" x2="12" y2="23"/>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                  <line x1="1" y1="12" x2="3" y2="12"/>
+                  <line x1="21" y1="12" x2="23" y2="12"/>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                <span>Apariencia</span>
+              </button>
             </div>
 
-            <div class="settings-card-body">
-              <!-- Create tag form -->
-              <form class="tag-create-form" id="formCreateTag">
-                <input type="text" id="inputNewTagName" placeholder="Nombre del nuevo tag (ej. Acción, Romance, Shonen)..." autocomplete="off" required>
-                <button type="submit" class="btn btn-primary" id="btnCreateTag">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>Añadir Tag</span>
-                </button>
-              </form>
-
-              <!-- Tags list table/grid -->
-              <div class="settings-tags-list" id="settingsTagsList">
-                <!-- Injected dynamically -->
-              </div>
+            <!-- BIBLIOTECA -->
+            <div class="settings-nav-group">
+              <span class="settings-nav-group-title">Biblioteca</span>
+              <button type="button" class="settings-nav-item" data-section="sectionLibraries">
+                <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+                <span>Bibliotecas</span>
+              </button>
+              <button type="button" class="settings-nav-item" data-section="sectionFolders">
+                <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span>Carpetas</span>
+              </button>
             </div>
+
+            <!-- CATÁLOGOS -->
+            <div class="settings-nav-group">
+              <span class="settings-nav-group-title">Catálogos</span>
+              <button type="button" class="settings-nav-item" data-section="sectionAuthors">
+                <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                <span>Autores</span>
+              </button>
+              <button type="button" class="settings-nav-item" data-section="sectionTags">
+                <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                  <line x1="7" y1="7" x2="7.01" y2="7"/>
+                </svg>
+                <span>Tags</span>
+              </button>
+              <button type="button" class="settings-nav-item" data-section="sectionLanguages">
+                <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="2" y1="12" x2="22" y2="12"/>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                <span>Idiomas</span>
+              </button>
+              <button type="button" class="settings-nav-item" data-section="sectionParodies">
+                <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+                <span>Series / Parodias</span>
+              </button>
+              <button type="button" class="settings-nav-item" data-section="sectionGroups">
+                <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span>Grupos</span>
+              </button>
+              <button type="button" class="settings-nav-item" data-section="sectionAllCatalogs">
+                <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                  <polyline points="2 17 12 22 22 17"/>
+                  <polyline points="2 12 12 17 22 12"/>
+                </svg>
+                <span>Todos los catálogos</span>
+              </button>
+            </div>
+
+            <!-- DATOS -->
+            <div class="settings-nav-group">
+              <span class="settings-nav-group-title">Datos</span>
+              <button type="button" class="settings-nav-item" data-section="sectionIgnoredAuthors">
+                <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+                <span>Valores ignorados</span>
+              </button>
+            </div>
+          </nav>
+        </aside>
+
+        <!-- Right Content Area (One Active Section at a Time) -->
+        <main class="settings-content" id="settingsContent">
+
+          <!-- Section: GESTIÓN DE TAGS -->
+          <section class="settings-section settings-card" id="sectionTags" style="display: none;">
+            <!-- Rendered dynamically by CatalogManager -->
           </section>
 
-          <!-- Section 2: GESTIÓN DE AUTORES -->
-          <section class="settings-card" id="sectionAuthors">
-            <div class="settings-card-header">
-              <div class="settings-card-icon-title">
-                <div class="settings-card-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="settings-card-title">Gestión de Autores</h3>
-                  <p class="settings-card-desc">Crea y administra el catálogo oficial de autores. Es la fuente única de verdad para asignar autores a tus mangas.</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="settings-card-body">
-              <form class="tag-create-form" id="formCreateAuthor">
-                <input type="text" id="inputNewAuthorName" placeholder="Nombre del nuevo autor (ej. Mikan Dou, Eiichiro Oda)..." autocomplete="off" required>
-                <button type="submit" class="btn btn-primary" id="btnCreateAuthor">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>Añadir Autor</span>
-                </button>
-              </form>
-
-              <div class="settings-tags-list" id="settingsAuthorsList">
-                <!-- Injected dynamically -->
-              </div>
-
-              <!-- Valores detectados ignorados -->
-              <div class="settings-subcard-header" style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.08));">
-                <div>
-                  <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Valores detectados ignorados</h4>
-                  <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Textos entre corchetes o paréntesis rechazados como autores (ej. temas, scans). Puedes restaurarlos si fueron ignorados por error.</p>
-                </div>
-              </div>
-              <div class="settings-tags-list" id="settingsIgnoredAuthorsList" style="margin-top: 12px;">
-                <!-- Injected dynamically -->
-              </div>
-            </div>
+          <!-- Section: GESTIÓN DE AUTORES -->
+          <section class="settings-section settings-card" id="sectionAuthors" style="display: none;">
+            <!-- Rendered dynamically by CatalogManager -->
           </section>
 
-          <!-- Section 3: GESTIÓN DE IDIOMAS -->
-          <section class="settings-card" id="sectionLanguages">
-            <div class="settings-card-header">
-              <div class="settings-card-icon-title">
-                <div class="settings-card-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="2" y1="12" x2="22" y2="12"/>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="settings-card-title">Gestión de Idiomas</h3>
-                  <p class="settings-card-desc">Configura los idiomas disponibles en tu biblioteca para filtrar y clasificar mangas.</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="settings-card-body">
-              <form class="tag-create-form" id="formCreateLanguage">
-                <input type="text" id="inputNewLanguageName" placeholder="Nombre del nuevo idioma (ej. Español, Inglés, Japonés)..." autocomplete="off" required>
-                <button type="submit" class="btn btn-primary" id="btnCreateLanguage">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>Añadir Idioma</span>
-                </button>
-              </form>
-
-              <div class="settings-tags-list" id="settingsLanguagesList">
-                <!-- Injected dynamically -->
-              </div>
-            </div>
+          <!-- Section: GESTIÓN DE IDIOMAS -->
+          <section class="settings-section settings-card" id="sectionLanguages" style="display: none;">
+            <!-- Rendered dynamically by CatalogManager -->
           </section>
 
-          <!-- Section 4: GESTIÓN DE SERIES / PARODIAS -->
-          <section class="settings-card" id="sectionParodies">
+          <!-- Section: GESTIÓN DE SERIES / PARODIAS -->
+          <section class="settings-section settings-card" id="sectionParodies" style="display: none;">
+            <!-- Rendered dynamically by CatalogManager -->
+          </section>
+
+          <!-- Section: GESTIÓN DE GRUPOS / CÍRCULOS -->
+          <section class="settings-section settings-card" id="sectionGroups" style="display: none;">
+            <!-- Rendered dynamically by CatalogManager -->
+          </section>
+
+          <!-- Section 6: BIBLIOTECAS -->
+          <section class="settings-section settings-card" id="sectionLibraries" style="display: none;">
             <div class="settings-card-header">
               <div class="settings-card-icon-title">
                 <div class="settings-card-icon">
@@ -670,69 +702,30 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="settings-card-title">Gestión de Series / Parodias</h3>
-                  <p class="settings-card-desc">Configura los universos, obras originales o parodias a las que pertenecen los mangas (ej. Original, Naruto, One Piece).</p>
+                  <h3 class="settings-card-title">Bibliotecas</h3>
+                  <p class="settings-card-desc">Crea colecciones lógicas para organizar y agrupar tus carpetas escaneadas (ej. Manga, Cómics, Manhwa).</p>
                 </div>
               </div>
-            </div>
-
-            <div class="settings-card-body">
-              <form class="tag-create-form" id="formCreateParody">
-                <input type="text" id="inputNewParodyName" placeholder="Nombre de la serie o parodia (ej. Original, Naruto)..." autocomplete="off" required>
-                <button type="submit" class="btn btn-primary" id="btnCreateParody">
+              <div class="settings-card-actions">
+                <button class="btn btn-primary" id="btnSettingsAddLibrary">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                   </svg>
-                  <span>Añadir Serie / Parodia</span>
+                  <span>Nueva biblioteca</span>
                 </button>
-              </form>
+              </div>
+            </div>
 
-              <div class="settings-tags-list" id="settingsParodiesList">
+            <div class="settings-card-body">
+              <div class="settings-libraries-list" id="settingsLibrariesList">
                 <!-- Injected dynamically -->
               </div>
             </div>
           </section>
 
-          <!-- Section 5: GESTIÓN DE GRUPOS / CÍRCULOS -->
-          <section class="settings-card" id="sectionGroups">
-            <div class="settings-card-header">
-              <div class="settings-card-icon-title">
-                <div class="settings-card-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="settings-card-title">Gestión de Grupos</h3>
-                  <p class="settings-card-desc">Crea y administra el catálogo oficial de grupos, círculos o colectivos de autores para tus mangas.</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="settings-card-body">
-              <form class="tag-create-form" id="formCreateGroup">
-                <input type="text" id="inputNewGroupName" placeholder="Nombre del nuevo grupo (ej. Studio X, Circle A)..." autocomplete="off" required>
-                <button type="submit" class="btn btn-primary" id="btnCreateGroup">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>Añadir Grupo</span>
-                </button>
-              </form>
-
-              <div class="settings-tags-list" id="settingsGroupsList">
-                <!-- Injected dynamically -->
-              </div>
-            </div>
-          </section>
-
-          <!-- Section 6: CARPETAS DE LA BIBLIOTECA -->
-          <section class="settings-card" id="sectionFolders">
+          <!-- Section 7: CARPETAS DE LA BIBLIOTECA -->
+          <section class="settings-section settings-card" id="sectionFolders" style="display: none;">
             <div class="settings-card-header">
               <div class="settings-card-icon-title">
                 <div class="settings-card-icon">
@@ -773,7 +766,7 @@
           </section>
 
           <!-- Section 6: APARIENCIA -->
-          <section class="settings-card" id="sectionAppearance">
+          <section class="settings-section settings-card active" id="sectionAppearance">
             <div class="settings-card-header">
               <div class="settings-card-icon-title">
                 <div class="settings-card-icon">
@@ -835,7 +828,64 @@
             </div>
           </section>
 
-        </div>
+          <!-- 9. CATÁLOGOS: TODOS LOS CATÁLOGOS (PLACEHOLDER PHASE 3) -->
+          <section class="settings-section settings-card" id="sectionAllCatalogs" style="display: none;">
+            <div class="settings-card-header">
+              <div class="settings-card-icon-title">
+                <div class="settings-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                    <polyline points="2 17 12 22 22 17"/>
+                    <polyline points="2 12 12 17 22 12"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="settings-card-title">Todos los Catálogos</h3>
+                  <p class="settings-card-desc">Búsqueda unificada y administración integral de todos los valores de catálogo.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-card-body">
+              <div class="settings-tags-empty" style="padding: 48px 24px; text-align: center;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 44px; height: 44px; margin-bottom: 12px; opacity: 0.35;">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                  <polyline points="2 17 12 22 22 17"/>
+                  <polyline points="2 12 12 17 22 12"/>
+                </svg>
+                <p style="font-weight: 700; margin-bottom: 6px; font-size: 1rem;">Vista unificada de catálogos</p>
+                <span style="font-size: 0.85rem; color: var(--text-muted); max-width: 440px; display: inline-block;">
+                  Esta sección unificada se implementará en la siguiente fase. Puedes gestionar cada catálogo individualmente desde los elementos de la barra lateral.
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <!-- 10. DATOS: VALORES IGNORADOS -->
+          <section class="settings-section settings-card" id="sectionIgnoredAuthors" style="display: none;">
+            <div class="settings-card-header">
+              <div class="settings-card-icon-title">
+                <div class="settings-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="settings-card-title">Valores Detectados Ignorados</h3>
+                  <p class="settings-card-desc">Textos entre corchetes o paréntesis rechazados como autores (ej. temas, scans, editoriales). Puedes restaurarlos si fueron ignorados por error.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-card-body">
+              <div class="settings-tags-list" id="settingsIgnoredAuthorsList">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
+          </section>
+
+        </main>
       </div>
     </div>
 
@@ -1123,6 +1173,30 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btnCancelRenameModal">Cancelar</button>
         <button class="btn btn-primary" id="btnConfirmRenameModal">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Crear Biblioteca -->
+  <div class="modal-backdrop" id="modalCreateLibrary" style="display: none;">
+    <div class="modal-card modal-small-card">
+      <div class="modal-header">
+        <h3 id="createLibraryModalTitle">Nueva Biblioteca</h3>
+        <button class="modal-close-btn" id="btnCloseCreateLibraryModal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label for="createLibraryModalInput" class="control-label">Nombre de la biblioteca:</label>
+        <input type="text" id="createLibraryModalInput" class="standard-input" placeholder="ej. Manga, Cómics, Manhwa..." autocomplete="off">
+        <div id="createLibraryModalError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelCreateLibraryModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmCreateLibraryModal">Crear</button>
       </div>
     </div>
   </div>

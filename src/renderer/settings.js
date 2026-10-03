@@ -45,6 +45,18 @@ const elements = {
   themeOptDark: null,
   themeOptLight: null,
 
+  // Libraries
+  settingsLibrariesList: null,
+  btnSettingsAddLibrary: null,
+
+  // Dedicated Create Library Modal
+  modalCreateLibrary: null,
+  createLibraryModalInput: null,
+  createLibraryModalError: null,
+  btnCloseCreateLibraryModal: null,
+  btnCancelCreateLibraryModal: null,
+  btnConfirmCreateLibraryModal: null,
+
   // Folders
   settingsFoldersList: null,
   btnSettingsScanAll: null,
@@ -75,158 +87,151 @@ let callbacks = {
   onAddFolder: () => {}
 };
 
-// ==================== CATALOG CONFIGURATION ====================
-const CATALOG_TYPES = {
-  tag: {
-    key: 'tag',
-    typeLabel: 'Tag',
-    listKey: 'settingsTagsList',
-    formKey: 'formCreateTag',
-    inputKey: 'inputNewTagName',
-    btnClassSuffix: 'tag',
-    fetchList: () => window.lecfalAPI.getAllTags(),
-    create: (name) => window.lecfalAPI.createTag(name),
-    rename: (id, name) => window.lecfalAPI.renameTag(id, name),
-    delete: (id) => window.lecfalAPI.deleteTag(id),
-    emptyTextTitle: 'No hay tags creados todavía.',
-    emptyTextDesc: 'Usa el formulario superior para registrar tags y géneros para tu biblioteca.',
-    emptyIcon: `<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>`,
-    rowIcon: `<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>`,
-    confirmDeleteMsg: (name) => `¿Eliminar el tag "${name}"?\nSe desvinculará de los mangas asignados de forma segura.`,
-    createdMsg: (name) => `Tag "${name}" creado exitosamente`,
-    deletedMsg: (name) => `Tag "${name}" eliminado`,
-    renamedMsg: (name) => `Tag renombrado a "${name}"`
-  },
-  author: {
-    key: 'author',
-    typeLabel: 'Autor',
-    listKey: 'settingsAuthorsList',
-    formKey: 'formCreateAuthor',
-    inputKey: 'inputNewAuthorName',
-    btnClassSuffix: 'author',
-    fetchList: () => window.lecfalAPI.getAllAuthors(),
-    create: (name) => window.lecfalAPI.createAuthor(name),
-    rename: (id, name) => window.lecfalAPI.renameAuthor(id, name),
-    delete: (id) => window.lecfalAPI.deleteAuthor(id),
-    emptyTextTitle: 'No hay autores registrados todavía.',
-    emptyTextDesc: 'Añade autores oficiales para tu biblioteca usando el formulario superior.',
-    emptyIcon: `<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
-    rowIcon: `<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
-    confirmDeleteMsg: (name) => `¿Eliminar el autor "${name}"?\nSe desvinculará de los mangas asignados de forma segura.`,
-    createdMsg: (name) => `Autor "${name}" creado exitosamente`,
-    deletedMsg: (name) => `Autor "${name}" eliminado`,
-    renamedMsg: (name) => `Autor renombrado a "${name}"`
-  },
-  group: {
-    key: 'group',
-    typeLabel: 'Grupo',
-    listKey: 'settingsGroupsList',
-    formKey: 'formCreateGroup',
-    inputKey: 'inputNewGroupName',
-    btnClassSuffix: 'group',
-    fetchList: () => window.lecfalAPI.getAllGroups(),
-    create: (name) => window.lecfalAPI.createGroup(name),
-    rename: (id, name) => window.lecfalAPI.renameGroup(id, name),
-    delete: (id) => window.lecfalAPI.deleteGroup(id),
-    emptyTextTitle: 'No hay grupos o círculos configurados todavía.',
-    emptyTextDesc: 'Añade círculos, editoriales o grupos usando el formulario superior.',
-    emptyIcon: `<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
-    rowIcon: `<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
-    confirmDeleteMsg: (name) => `¿Eliminar el grupo "${name}"?\nSe desvinculará de los mangas asignados de forma segura.`,
-    createdMsg: (name) => `Grupo "${name}" creado exitosamente`,
-    deletedMsg: (name) => `Grupo "${name}" eliminado`,
-    renamedMsg: (name) => `Grupo renombrado a "${name}"`
-  },
-  language: {
-    key: 'language',
-    typeLabel: 'Idioma',
-    listKey: 'settingsLanguagesList',
-    formKey: 'formCreateLanguage',
-    inputKey: 'inputNewLanguageName',
-    btnClassSuffix: 'lang',
-    fetchList: () => window.lecfalAPI.getAllLanguages(),
-    create: (name) => window.lecfalAPI.createLanguage(name),
-    rename: (id, name) => window.lecfalAPI.renameLanguage(id, name),
-    delete: (id) => window.lecfalAPI.deleteLanguage(id),
-    emptyTextTitle: 'No hay idiomas configurados todavía.',
-    emptyTextDesc: 'Añade los idiomas disponibles para tu biblioteca usando el formulario superior.',
-    emptyIcon: `<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/>`,
-    rowIcon: `<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>`,
-    confirmDeleteMsg: (name) => `¿Eliminar el idioma "${name}"?\nSe desvinculará de los mangas asignados de forma segura.`,
-    createdMsg: (name) => `Idioma "${name}" creado exitosamente`,
-    deletedMsg: (name) => `Idioma "${name}" eliminado`,
-    renamedMsg: (name) => `Idioma renombrado a "${name}"`
-  },
-  parody: {
-    key: 'parody',
-    typeLabel: 'Serie o Parodia',
-    listKey: 'settingsParodiesList',
-    formKey: 'formCreateParody',
-    inputKey: 'inputNewParodyName',
-    btnClassSuffix: 'parody',
-    fetchList: () => window.lecfalAPI.getAllParodies(),
-    create: (name) => window.lecfalAPI.createParody(name),
-    rename: (id, name) => window.lecfalAPI.renameParody(id, name),
-    delete: (id) => window.lecfalAPI.deleteParody(id),
-    emptyTextTitle: 'No hay series o parodias registradas todavía.',
-    emptyTextDesc: 'Añade series o parodias (ej. Original, Naruto) usando el formulario superior.',
-    emptyIcon: `<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>`,
-    rowIcon: `<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>`,
-    confirmDeleteMsg: (name) => `¿Eliminar la serie o parodia "${name}"?\nSe desvinculará de los mangas asignados de forma segura.`,
-    createdMsg: (name) => `Serie / Parodia "${name}" creada exitosamente`,
-    deletedMsg: (name) => `Serie / Parodia "${name}" eliminada`,
-    renamedMsg: (name) => `Serie / Parodia renombrada a "${name}"`
-  }
+// ==================== SHARED CATALOG MANAGER INTEGRATION ====================
+import {
+  initCatalogManager,
+  renderCatalog,
+  refreshCatalog,
+  setCatalogSearch,
+  getCatalogSearch,
+  getCatalogItems,
+  openRenameModal,
+  closeRenameModal,
+  isRenameModalOpen,
+  handleConfirmRename,
+  CATALOG_CONFIGS
+} from './catalog-manager.js';
+
+export {
+  openRenameModal,
+  closeRenameModal,
+  isRenameModalOpen,
+  handleConfirmRename,
+  initCatalogManager,
+  renderCatalog,
+  refreshCatalog,
+  setCatalogSearch,
+  getCatalogSearch,
+  getCatalogItems,
+  CATALOG_CONFIGS
 };
 
-/**
- * Render a single catalog list inside Settings.
- * @param {'tag'|'author'|'group'|'language'|'parody'} type
- */
-async function renderSettingsCatalog(type) {
-  const cfg = CATALOG_TYPES[type];
-  if (!cfg) return;
-  const listEl = elements[cfg.listKey];
-  if (!listEl) return;
+// ==================== CREATE LIBRARY MODAL ====================
+export function openCreateLibraryModal() {
+  if (elements.createLibraryModalInput) {
+    elements.createLibraryModalInput.value = '';
+  }
+  if (elements.createLibraryModalError) {
+    elements.createLibraryModalError.textContent = '';
+    elements.createLibraryModalError.style.display = 'none';
+  }
+  if (elements.modalCreateLibrary) {
+    elements.modalCreateLibrary.style.display = 'flex';
+  }
+  setTimeout(() => {
+    if (elements.createLibraryModalInput) {
+      elements.createLibraryModalInput.focus();
+    }
+  }, 50);
+}
+
+export function closeCreateLibraryModal() {
+  if (elements.modalCreateLibrary) {
+    elements.modalCreateLibrary.style.display = 'none';
+  }
+  if (elements.createLibraryModalError) {
+    elements.createLibraryModalError.textContent = '';
+    elements.createLibraryModalError.style.display = 'none';
+  }
+}
+
+export function isCreateLibraryModalOpen() {
+  return !!(elements.modalCreateLibrary && elements.modalCreateLibrary.style.display !== 'none');
+}
+
+export async function handleConfirmCreateLibrary() {
+  const name = elements.createLibraryModalInput ? elements.createLibraryModalInput.value.trim() : '';
+
+  if (!name) {
+    if (elements.createLibraryModalError) {
+      elements.createLibraryModalError.textContent = 'El nombre de la biblioteca no puede estar vacío.';
+      elements.createLibraryModalError.style.display = 'block';
+    }
+    return;
+  }
 
   try {
-    const items = await cfg.fetchList();
-    if (items.length === 0) {
-      listEl.innerHTML = `
+    const newLib = await window.lecfalAPI.createLibrary(name);
+    callbacks.showToast(`Biblioteca "${newLib.name}" creada exitosamente`);
+    closeCreateLibraryModal();
+    await renderSettingsLibraries();
+    await renderSettingsFolders();
+  } catch (err) {
+    console.error('Error creating library:', err);
+    if (elements.createLibraryModalError) {
+      elements.createLibraryModalError.textContent = err.message || 'Error al crear la biblioteca';
+      elements.createLibraryModalError.style.display = 'block';
+    } else {
+      callbacks.showToast(`Error: ${err.message}`);
+    }
+  }
+}
+
+// ==================== LIBRARIES MANAGEMENT ====================
+export async function renderSettingsLibraries() {
+  if (!elements.settingsLibrariesList) return;
+  try {
+    const libraries = await window.lecfalAPI.getAllLibraries();
+
+    if (!libraries || libraries.length === 0) {
+      elements.settingsLibrariesList.innerHTML = `
         <div class="settings-tags-empty">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:36px;height:36px;margin-bottom:8px;opacity:0.4;">
-            ${cfg.emptyIcon}
-          </svg>
-          <p>${cfg.emptyTextTitle}</p>
-          <span style="font-size:0.82rem; color:var(--text-muted);">${cfg.emptyTextDesc}</span>
+          <span style="font-size: 2rem; margin-bottom: 8px;">📚</span>
+          <p>No hay bibliotecas creadas.</p>
+          <span style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">Crea una biblioteca para organizar tus carpetas escaneadas en colecciones independientes.</span>
+          <button class="btn btn-primary btn-sm" id="btnEmptyAddLibrary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>+ Nueva biblioteca</span>
+          </button>
         </div>
       `;
+      const btnEmpty = elements.settingsLibrariesList.querySelector('#btnEmptyAddLibrary');
+      btnEmpty?.addEventListener('click', openCreateLibraryModal);
       return;
     }
 
     const fragment = document.createDocumentFragment();
-    items.forEach(item => {
+
+    libraries.forEach(lib => {
       const row = document.createElement('div');
-      row.className = 'settings-tag-row';
-      row.dataset.id = item.id;
+      row.className = 'settings-folder-item settings-folder-row settings-library-row';
+      row.dataset.id = lib.id;
+
+      const folderCountText = lib.folder_count === 1 ? '1 carpeta' : `${lib.folder_count || 0} carpetas`;
+
       row.innerHTML = `
-        <div class="tag-row-name">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--accent-purple-light);">
-            ${cfg.rowIcon}
-          </svg>
-          <span class="tag-name-text">${escapeHtml(item.name)}</span>
-          ${item.manga_count ? `<span class="settings-tag-count">${item.manga_count}</span>` : ''}
+        <div class="settings-folder-main folder-row-main">
+          <div class="settings-folder-title-row folder-row-title-line">
+            <span class="settings-library-icon">📚</span>
+            <span class="settings-folder-name folder-row-name">${escapeHtml(lib.name)}</span>
+          </div>
+          <div class="settings-folder-path folder-row-path" style="font-family: inherit; color: var(--text-muted);">
+            ${folderCountText}
+          </div>
         </div>
-        <div class="tag-row-actions">
-          <button class="btn btn-secondary btn-sm btn-rename-${cfg.btnClassSuffix}" data-id="${item.id}" title="Renombrar ${cfg.typeLabel.toLowerCase()}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+        <div class="settings-folder-actions folder-row-actions">
+          <button class="btn btn-secondary btn-sm btn-rename-library" data-id="${lib.id}" title="Renombrar biblioteca">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
               <path d="M12 20h9"/>
               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
             </svg>
             <span>Renombrar</span>
           </button>
-          <button class="btn btn-danger btn-sm btn-delete-${cfg.btnClassSuffix}" data-id="${item.id}" title="Eliminar ${cfg.typeLabel.toLowerCase()}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+          <button class="btn btn-danger btn-sm btn-delete-library" data-id="${lib.id}" title="Eliminar biblioteca">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
               <path d="M3 6h18"/>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
             </svg>
@@ -235,25 +240,18 @@ async function renderSettingsCatalog(type) {
         </div>
       `;
 
-      row.querySelector(`.btn-rename-${cfg.btnClassSuffix}`).addEventListener('click', () => {
-        openRenameModal({ type, id: item.id, currentName: item.name, typeLabel: cfg.typeLabel });
+      row.querySelector('.btn-rename-library').addEventListener('click', () => {
+        openRenameModal({ type: 'library', id: lib.id, currentName: lib.name, typeLabel: 'Biblioteca' });
       });
 
-      row.querySelector(`.btn-delete-${cfg.btnClassSuffix}`).addEventListener('click', async () => {
-        if (confirm(cfg.confirmDeleteMsg(item.name))) {
+      row.querySelector('.btn-delete-library').addEventListener('click', async () => {
+        const msg = `¿Eliminar la biblioteca "${lib.name}"?\n\nLas carpetas y mangas no se eliminarán. Las carpetas quedarán sin biblioteca.`;
+        if (confirm(msg)) {
           try {
-            await cfg.delete(item.id);
-            callbacks.showToast(cfg.deletedMsg(item.name));
-            await renderSettingsCatalog(type);
-            if (typeof callbacks.refreshAdvSearch === 'function') {
-              await callbacks.refreshAdvSearch(type);
-            }
-            if (callbacks.getActiveSeries && callbacks.getActiveSeries()) {
-              await callbacks.reloadActiveSeries();
-            }
-            if (typeof callbacks.refreshSeries === 'function') {
-              callbacks.refreshSeries(false);
-            }
+            await window.lecfalAPI.deleteLibrary(lib.id);
+            callbacks.showToast(`Biblioteca "${lib.name}" eliminada`);
+            await renderSettingsLibraries();
+            await renderSettingsFolders();
           } catch (err) {
             callbacks.showToast(`Error: ${err.message}`);
           }
@@ -263,133 +261,10 @@ async function renderSettingsCatalog(type) {
       fragment.appendChild(row);
     });
 
-    listEl.innerHTML = '';
-    listEl.appendChild(fragment);
-
-    if (type === 'author') {
-      await renderSettingsIgnoredAuthors();
-    }
+    elements.settingsLibrariesList.innerHTML = '';
+    elements.settingsLibrariesList.appendChild(fragment);
   } catch (err) {
-    console.error(`Error rendering settings ${type}:`, err);
-  }
-}
-
-/**
- * Handle form creation of a new catalog item.
- * @param {'tag'|'author'|'group'|'language'|'parody'} type
- * @param {Event} e
- */
-async function handleCreateCatalogItem(type, e) {
-  if (e && e.preventDefault) e.preventDefault();
-  const cfg = CATALOG_TYPES[type];
-  if (!cfg) return;
-  const inputEl = elements[cfg.inputKey];
-  if (!inputEl) return;
-  const name = inputEl.value.trim();
-  if (!name) return;
-
-  try {
-    const newItem = await cfg.create(name);
-    inputEl.value = '';
-    callbacks.showToast(cfg.createdMsg(newItem.name));
-    await renderSettingsCatalog(type);
-    if (typeof callbacks.refreshAdvSearch === 'function') {
-      await callbacks.refreshAdvSearch(type);
-    }
-    if (callbacks.getActiveSeries && callbacks.getActiveSeries()) {
-      await callbacks.reloadActiveSeries();
-    }
-  } catch (err) {
-    callbacks.showToast(`Error: ${err.message}`);
-  }
-}
-
-// ==================== DEDICATED METADATA RENAME MODAL ====================
-export function openRenameModal({ type, id, currentName, typeLabel }) {
-  pendingRenameConfig = { type, id, currentName, typeLabel };
-  if (elements.renameModalTitle) {
-    elements.renameModalTitle.textContent = `Renombrar ${typeLabel || 'Metadato'}`;
-  }
-  if (elements.renameModalLabel) {
-    elements.renameModalLabel.textContent = `Nuevo nombre para "${currentName}":`;
-  }
-  if (elements.renameModalInput) {
-    elements.renameModalInput.value = currentName;
-  }
-  if (elements.renameModalError) {
-    elements.renameModalError.textContent = '';
-    elements.renameModalError.style.display = 'none';
-  }
-  if (elements.modalRenameMetadata) {
-    elements.modalRenameMetadata.style.display = 'flex';
-  }
-  setTimeout(() => {
-    if (elements.renameModalInput) {
-      elements.renameModalInput.focus();
-      elements.renameModalInput.select();
-    }
-  }, 50);
-}
-
-export function closeRenameModal() {
-  if (elements.modalRenameMetadata) {
-    elements.modalRenameMetadata.style.display = 'none';
-  }
-  pendingRenameConfig = null;
-  if (elements.renameModalError) {
-    elements.renameModalError.textContent = '';
-    elements.renameModalError.style.display = 'none';
-  }
-}
-
-export function isRenameModalOpen() {
-  return !!(elements.modalRenameMetadata && elements.modalRenameMetadata.style.display !== 'none');
-}
-
-export async function handleConfirmRename() {
-  if (!pendingRenameConfig) return;
-  const { type, id, currentName } = pendingRenameConfig;
-  const cfg = CATALOG_TYPES[type];
-  if (!cfg) return;
-
-  const newName = elements.renameModalInput ? elements.renameModalInput.value.trim() : '';
-
-  if (!newName) {
-    if (elements.renameModalError) {
-      elements.renameModalError.textContent = 'El nombre no puede estar vacío.';
-      elements.renameModalError.style.display = 'block';
-    }
-    return;
-  }
-
-  if (newName === currentName) {
-    closeRenameModal();
-    return;
-  }
-
-  try {
-    await cfg.rename(id, newName);
-    callbacks.showToast(cfg.renamedMsg(newName));
-    await renderSettingsCatalog(type);
-    if (typeof callbacks.refreshAdvSearch === 'function') {
-      await callbacks.refreshAdvSearch(type);
-    }
-    closeRenameModal();
-
-    if (callbacks.getActiveSeries && callbacks.getActiveSeries()) {
-      await callbacks.reloadActiveSeries();
-    }
-    if (typeof callbacks.refreshSeries === 'function') {
-      callbacks.refreshSeries(false);
-    }
-  } catch (err) {
-    console.error('Error renaming metadata:', err);
-    if (elements.renameModalError) {
-      elements.renameModalError.textContent = err.message || 'Error al renombrar';
-      elements.renameModalError.style.display = 'block';
-    } else {
-      callbacks.showToast(`Error: ${err.message}`);
-    }
+    console.error('Error rendering settings libraries:', err);
   }
 }
 
@@ -397,7 +272,11 @@ export async function handleConfirmRename() {
 export async function renderSettingsFolders() {
   if (!elements.settingsFoldersList) return;
   try {
-    const folders = await window.lecfalAPI.getFolders();
+    const [folders, libraries] = await Promise.all([
+      window.lecfalAPI.getFolders(),
+      window.lecfalAPI.getAllLibraries()
+    ]);
+
     if (elements.statusFolderCount) {
       elements.statusFolderCount.textContent = `${folders.length} carpeta${folders.length === 1 ? '' : 's'}`;
     }
@@ -420,6 +299,12 @@ export async function renderSettingsFolders() {
       row.className = `settings-folder-item settings-folder-row ${isAccessible ? '' : 'is-unavailable'}`;
       row.dataset.id = f.id;
 
+      const libraryOptions = (libraries || []).map(lib => `
+        <option value="${lib.id}" ${Number(f.library_id) === Number(lib.id) ? 'selected' : ''}>
+          ${escapeHtml(lib.name)}
+        </option>
+      `).join('');
+
       row.innerHTML = `
         <div class="settings-folder-main folder-row-main">
           <div class="settings-folder-title-row folder-row-title-line">
@@ -436,6 +321,15 @@ export async function renderSettingsFolders() {
           }
         </div>
         <div class="settings-folder-actions folder-row-actions">
+          <div class="folder-library-assign select-container" title="Biblioteca asignada">
+            <select class="folder-library-select" data-id="${f.id}">
+              <option value="">Sin biblioteca</option>
+              ${libraryOptions}
+            </select>
+            <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </div>
           <button class="btn btn-secondary btn-sm btn-folder-scan-single" data-id="${f.id}" ${!isAccessible ? 'disabled title="Monta el disco o volumen para escanear"' : 'title="Escanear esta carpeta"'}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -455,6 +349,24 @@ export async function renderSettingsFolders() {
         </div>
       `;
 
+      const libSelect = row.querySelector('.folder-library-select');
+      libSelect?.addEventListener('change', async (e) => {
+        const selectedVal = e.target.value;
+        const targetLibId = selectedVal ? parseInt(selectedVal, 10) : null;
+        try {
+          await window.lecfalAPI.assignFolderToLibrary(f.id, targetLibId);
+          f.library_id = targetLibId;
+          const assignedLib = (libraries || []).find(l => l.id === targetLibId);
+          callbacks.showToast(targetLibId && assignedLib
+            ? `Carpeta asignada a "${assignedLib.name}"`
+            : 'Carpeta desvinculada de la biblioteca');
+          await renderSettingsLibraries();
+        } catch (err) {
+          callbacks.showToast(`Error: ${err.message}`);
+          await renderSettingsFolders();
+        }
+      });
+
       row.querySelector('.btn-folder-scan-single').addEventListener('click', async () => {
         if (typeof callbacks.runFolderScan === 'function') {
           await callbacks.runFolderScan(f.id);
@@ -469,6 +381,7 @@ export async function renderSettingsFolders() {
               await callbacks.refreshFolders();
             }
             await renderSettingsFolders();
+            await renderSettingsLibraries();
             if (typeof callbacks.refreshSeries === 'function') {
               await callbacks.refreshSeries();
             }
@@ -514,11 +427,11 @@ export function applyTheme(theme, save = true) {
 
 // ==================== PUBLIC RENDERERS ====================
 export async function renderSettingsTags() {
-  return renderSettingsCatalog('tag');
+  return renderCatalog('tag');
 }
 
 export async function renderSettingsAuthors() {
-  await renderSettingsCatalog('author');
+  await renderCatalog('author');
   await renderSettingsIgnoredAuthors();
 }
 
@@ -579,27 +492,91 @@ export async function renderSettingsIgnoredAuthors() {
 }
 
 export async function renderSettingsGroups() {
-  return renderSettingsCatalog('group');
+  return renderCatalog('group');
 }
 
 export async function renderSettingsLanguages() {
-  return renderSettingsCatalog('language');
+  return renderCatalog('language');
 }
 
 export async function renderSettingsParodies() {
-  return renderSettingsCatalog('parody');
+  return renderCatalog('parody');
 }
 
 export async function renderAllSettings() {
   await Promise.all([
-    renderSettingsCatalog('tag'),
-    renderSettingsCatalog('author'),
-    renderSettingsCatalog('group'),
-    renderSettingsCatalog('language'),
-    renderSettingsCatalog('parody'),
+    renderCatalog('tag'),
+    renderCatalog('author'),
+    renderCatalog('group'),
+    renderCatalog('language'),
+    renderCatalog('parody'),
+    renderSettingsLibraries(),
     renderSettingsFolders(),
     renderSettingsIgnoredAuthors()
   ]);
+}
+
+// ==================== SETTINGS SECTION NAVIGATION ====================
+let currentSettingsSection = 'sectionAppearance';
+
+/**
+ * Returns the currently active Settings section ID.
+ * @returns {string}
+ */
+export function getCurrentSettingsSection() {
+  return currentSettingsSection;
+}
+
+/**
+ * Switches the active Settings section, updating the sidebar and displaying only the target section.
+ * @param {string} sectionId - Target section ID (e.g. 'sectionLibraries')
+ * @returns {string} The active section ID that was switched to
+ */
+export function switchSettingsSection(sectionId) {
+  const targetId = sectionId || currentSettingsSection || 'sectionAppearance';
+
+  const navItems = document.querySelectorAll('.settings-nav-item');
+  const sections = document.querySelectorAll('.settings-section');
+
+  let targetExists = false;
+  sections.forEach((sec) => {
+    if (sec.id === targetId) {
+      targetExists = true;
+    }
+  });
+
+  const finalSectionId = targetExists ? targetId : 'sectionAppearance';
+  currentSettingsSection = finalSectionId;
+
+  // 1. Update active sidebar item
+  navItems.forEach((btn) => {
+    const isTarget = btn.dataset.section === finalSectionId;
+    btn.classList.toggle('active', isTarget);
+    if (isTarget) {
+      btn.setAttribute('aria-selected', 'true');
+    } else {
+      btn.removeAttribute('aria-selected');
+    }
+  });
+
+  // 2. Hide every Settings section and show only the requested section
+  sections.forEach((sec) => {
+    if (sec.id === finalSectionId) {
+      sec.style.display = 'flex';
+      sec.classList.add('active');
+    } else {
+      sec.style.display = 'none';
+      sec.classList.remove('active');
+    }
+  });
+
+  // 3. Reset scroll of content area to top
+  const contentArea = document.getElementById('settingsContent');
+  if (contentArea) {
+    contentArea.scrollTop = 0;
+  }
+
+  return finalSectionId;
 }
 
 // ==================== INITIALIZATION ====================
@@ -630,54 +607,51 @@ export function initSettings(options = {}) {
   };
 
   // Cache DOM elements
-  elements.formCreateTag = document.getElementById('formCreateTag');
-  elements.inputNewTagName = document.getElementById('inputNewTagName');
-  elements.settingsTagsList = document.getElementById('settingsTagsList');
-
-  elements.formCreateAuthor = document.getElementById('formCreateAuthor');
-  elements.inputNewAuthorName = document.getElementById('inputNewAuthorName');
-  elements.settingsAuthorsList = document.getElementById('settingsAuthorsList');
-  elements.settingsIgnoredAuthorsList = document.getElementById('settingsIgnoredAuthorsList');
-
-  elements.formCreateGroup = document.getElementById('formCreateGroup');
-  elements.inputNewGroupName = document.getElementById('inputNewGroupName');
-  elements.settingsGroupsList = document.getElementById('settingsGroupsList');
-
-  elements.formCreateLanguage = document.getElementById('formCreateLanguage');
-  elements.inputNewLanguageName = document.getElementById('inputNewLanguageName');
-  elements.settingsLanguagesList = document.getElementById('settingsLanguagesList');
-
-  elements.formCreateParody = document.getElementById('formCreateParody');
-  elements.inputNewParodyName = document.getElementById('inputNewParodyName');
-  elements.settingsParodiesList = document.getElementById('settingsParodiesList');
-
   elements.themeOptDark = document.getElementById('themeOptDark');
   elements.themeOptLight = document.getElementById('themeOptLight');
 
+  // Libraries
+  elements.settingsLibrariesList = document.getElementById('settingsLibrariesList');
+  elements.btnSettingsAddLibrary = document.getElementById('btnSettingsAddLibrary');
+
+  // Dedicated Create Library Modal
+  elements.modalCreateLibrary = document.getElementById('modalCreateLibrary');
+  elements.createLibraryModalInput = document.getElementById('createLibraryModalInput');
+  elements.createLibraryModalError = document.getElementById('createLibraryModalError');
+  elements.btnCloseCreateLibraryModal = document.getElementById('btnCloseCreateLibraryModal');
+  elements.btnCancelCreateLibraryModal = document.getElementById('btnCancelCreateLibraryModal');
+  elements.btnConfirmCreateLibraryModal = document.getElementById('btnConfirmCreateLibraryModal');
+
+  // Folders
   elements.settingsFoldersList = document.getElementById('settingsFoldersList');
   elements.btnSettingsScanAll = document.getElementById('btnSettingsScanAll');
   elements.btnSettingsAddFolder = document.getElementById('btnSettingsAddFolder');
   elements.statusFolderCount = document.getElementById('statusFolderCount');
-
-  elements.modalRenameMetadata = document.getElementById('modalRenameMetadata');
-  elements.renameModalTitle = document.getElementById('renameModalTitle');
-  elements.renameModalLabel = document.getElementById('renameModalLabel');
-  elements.renameModalInput = document.getElementById('renameModalInput');
-  elements.renameModalError = document.getElementById('renameModalError');
-  elements.btnCloseRenameModal = document.getElementById('btnCloseRenameModal');
-  elements.btnCancelRenameModal = document.getElementById('btnCancelRenameModal');
-  elements.btnConfirmRenameModal = document.getElementById('btnConfirmRenameModal');
-
-  // Register form listeners
-  elements.formCreateTag?.addEventListener('submit', (e) => handleCreateCatalogItem('tag', e));
-  elements.formCreateAuthor?.addEventListener('submit', (e) => handleCreateCatalogItem('author', e));
-  elements.formCreateGroup?.addEventListener('submit', (e) => handleCreateCatalogItem('group', e));
-  elements.formCreateLanguage?.addEventListener('submit', (e) => handleCreateCatalogItem('language', e));
-  elements.formCreateParody?.addEventListener('submit', (e) => handleCreateCatalogItem('parody', e));
+  elements.settingsIgnoredAuthorsList = document.getElementById('settingsIgnoredAuthorsList');
 
   // Theme listeners
   elements.themeOptDark?.addEventListener('click', () => applyTheme('dark'));
   elements.themeOptLight?.addEventListener('click', () => applyTheme('light'));
+
+  // Library buttons & modal listeners
+  elements.btnSettingsAddLibrary?.addEventListener('click', openCreateLibraryModal);
+  elements.btnCloseCreateLibraryModal?.addEventListener('click', closeCreateLibraryModal);
+  elements.btnCancelCreateLibraryModal?.addEventListener('click', closeCreateLibraryModal);
+  elements.btnConfirmCreateLibraryModal?.addEventListener('click', handleConfirmCreateLibrary);
+  elements.createLibraryModalInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleConfirmCreateLibrary();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeCreateLibraryModal();
+    }
+  });
+  elements.modalCreateLibrary?.addEventListener('click', (e) => {
+    if (e.target === elements.modalCreateLibrary) {
+      closeCreateLibraryModal();
+    }
+  });
 
   // Folder buttons
   elements.btnSettingsScanAll?.addEventListener('click', () => {
@@ -690,24 +664,38 @@ export function initSettings(options = {}) {
       await callbacks.onAddFolder();
     }
     await renderSettingsFolders();
+    await renderSettingsLibraries();
   });
 
-  // Dedicated Rename Modal listeners
-  elements.btnCloseRenameModal?.addEventListener('click', closeRenameModal);
-  elements.btnCancelRenameModal?.addEventListener('click', closeRenameModal);
-  elements.btnConfirmRenameModal?.addEventListener('click', handleConfirmRename);
-  elements.renameModalInput?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleConfirmRename();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      closeRenameModal();
+  // Settings Sidebar navigation listeners
+  const navItems = document.querySelectorAll('.settings-nav-item');
+  navItems.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const sectionId = btn.dataset.section;
+      if (sectionId) {
+        switchSettingsSection(sectionId);
+      }
+    });
+  });
+
+  // Initialize Shared Catalog Manager
+  initCatalogManager({
+    showToast: callbacks.showToast,
+    refreshAdvSearch: callbacks.refreshAdvSearch,
+    reloadActiveSeries: callbacks.reloadActiveSeries,
+    refreshSeries: callbacks.refreshSeries,
+    onRenameLibrary: async () => {
+      await renderSettingsLibraries();
+      await renderSettingsFolders();
     }
   });
-  elements.modalRenameMetadata?.addEventListener('click', (e) => {
-    if (e.target === elements.modalRenameMetadata) {
-      closeRenameModal();
-    }
-  });
+
+  // Ensure initial active section is properly activated
+  switchSettingsSection(currentSettingsSection);
+
+  // Expose navigation helpers globally for testing and inter-module access
+  window.switchSettingsSection = switchSettingsSection;
+  window.getCurrentSettingsSection = getCurrentSettingsSection;
 }
+
+
