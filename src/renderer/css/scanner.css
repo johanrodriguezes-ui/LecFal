@@ -190,3 +190,9 @@
   color: var(--text-muted);
   margin-top: 2px;
 }
+
+/* ==================== ACTIVE SCANNING ANIMATION ==================== */
+#btnRescan.scanning svg,
+#btnSettingsScanAll.scanning svg {
+  animation: spin 0.8s linear infinite;
+}

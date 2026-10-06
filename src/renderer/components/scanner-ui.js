@@ -19,6 +19,13 @@ const scanDropdownMenu = document.getElementById('scanDropdownMenu');
 const btnScanIncremental = document.getElementById('btnScanIncremental');
 const btnScanFull = document.getElementById('btnScanFull');
 const btnRescan = document.getElementById('btnRescan');
+const btnSettingsScanAll = document.getElementById('btnSettingsScanAll');
+
+function setScanButtonsSpinning(scanning) {
+  if (btnRescan) btnRescan.classList.toggle('scanning', scanning);
+  const settingsBtn = btnSettingsScanAll || document.getElementById('btnSettingsScanAll');
+  if (settingsBtn) settingsBtn.classList.toggle('scanning', scanning);
+}
 
 // ==================== MODULE STATE ====================
 let isScanningState = false;
@@ -93,7 +100,7 @@ function finishScanUI(isCancelled) {
   isScanningState = false;
   isCancellingState = false;
 
-  if (btnRescan) btnRescan.classList.remove('scanning');
+  setScanButtonsSpinning(false);
   if (scanProgressBanner) scanProgressBanner.classList.remove('cancelling');
 
   callbacks.onScanStateChange?.({ isScanning: false, isCancelling: false });
@@ -158,7 +165,7 @@ export async function runFolderScan(folderId, mode = 'incremental') {
   if (scanBannerCount) scanBannerCount.textContent = '0/0';
   if (scanBannerTitle) scanBannerTitle.textContent = 'Iniciando escaneo...';
   if (scanBannerFile) scanBannerFile.textContent = 'Analizando estructura de carpetas...';
-  if (btnRescan) btnRescan.classList.add('scanning');
+  setScanButtonsSpinning(true);
 
   callbacks.onScanStateChange?.({ isScanning: true, isCancelling: false });
   resetCancelButtonUI();
@@ -203,7 +210,7 @@ export async function runAllScan(mode = 'incremental') {
   if (scanBannerCount) scanBannerCount.textContent = '0/0';
   if (scanBannerTitle) scanBannerTitle.textContent = 'Iniciando escaneo...';
   if (scanBannerFile) scanBannerFile.textContent = 'Analizando biblioteca...';
-  if (btnRescan) btnRescan.classList.add('scanning');
+  setScanButtonsSpinning(true);
 
   callbacks.onScanStateChange?.({ isScanning: true, isCancelling: false });
   resetCancelButtonUI();
