@@ -7,6 +7,7 @@ build/
 
 # Application runtime & portable data directory
 data/
+.portable
 
 # Application cache and thumbnails
 cache/

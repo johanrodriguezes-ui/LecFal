@@ -27,6 +27,10 @@ class DatabaseManager {
       this.save();
     }
 
+    try {
+      this.db.run('PRAGMA foreign_keys = ON;');
+    } catch (_) {}
+
     this.createSchema(); // ensure all tables exist
     return this;
   }
@@ -210,6 +214,14 @@ class DatabaseManager {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
       CREATE INDEX IF NOT EXISTS idx_ignored_authors_name ON ignored_authors(name);
+
+      -- Dedicated reading history model (source of truth for reading activity)
+      CREATE TABLE IF NOT EXISTS reading_history (
+        chapter_id INTEGER PRIMARY KEY,
+        last_read_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_reading_history_time ON reading_history(last_read_at);
     `);
 
     // Backward-compatible schema migrations
@@ -257,6 +269,25 @@ class DatabaseManager {
     this.seedDefaultLanguages();
     this.seedDefaultParodies();
     this.migrateExistingTags();
+    this.migrateReadingHistory();
+  }
+
+  migrateReadingHistory() {
+    try {
+      this.db.run(`
+        INSERT INTO reading_history (chapter_id, last_read_at)
+        SELECT id, last_read_at
+        FROM chapters
+        WHERE last_read_at IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM reading_history
+            WHERE reading_history.chapter_id = chapters.id
+          )
+      `);
+    } catch (e) {
+      console.warn('Migration reading_history warning:', e);
+    }
   }
 
   save() {
@@ -709,6 +740,7 @@ class DatabaseManager {
     const numId = Number(chapterId);
     if (!numId) return false;
     try {
+      this.db.run('DELETE FROM reading_history WHERE chapter_id = ?', [numId]);
       this.db.run('DELETE FROM chapters WHERE id = ?', [numId]);
       if (!this.inTransaction) {
         this.save();
@@ -729,6 +761,7 @@ class DatabaseManager {
       this.db.run('DELETE FROM series_languages WHERE series_id = ?', [numId]);
       this.db.run('DELETE FROM series_parodies_rel WHERE series_id = ?', [numId]);
       this.db.run('DELETE FROM series_groups WHERE series_id = ?', [numId]);
+      this.db.run('DELETE FROM reading_history WHERE chapter_id IN (SELECT id FROM chapters WHERE series_id = ?)', [numId]);
       this.db.run('DELETE FROM chapters WHERE series_id = ?', [numId]);
       this.db.run('DELETE FROM series WHERE id = ?', [numId]);
       if (!this.inTransaction) {
@@ -2223,6 +2256,7 @@ class DatabaseManager {
 
   setChapterReadingPosition(chapterId, position) {
     if (!chapterId) return 0;
+    const numChapterId = Number(chapterId) || chapterId;
     let pos = Number(position);
     if (isNaN(pos)) pos = 0;
     pos = Math.max(0, Math.min(1.0, pos));
@@ -2232,17 +2266,29 @@ class DatabaseManager {
       pos = 1.0;
       this.db.run(
         'UPDATE chapters SET reading_position = 1.0, is_read = 1, last_read_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [chapterId]
+        [numChapterId]
+      );
+      this.db.run(
+        `INSERT INTO reading_history (chapter_id, last_read_at)
+         VALUES (?, CURRENT_TIMESTAMP)
+         ON CONFLICT(chapter_id) DO UPDATE SET last_read_at = CURRENT_TIMESTAMP`,
+        [numChapterId]
       );
     } else if (pos > 0) {
       this.db.run(
         'UPDATE chapters SET reading_position = ?, last_read_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [pos, chapterId]
+        [pos, numChapterId]
+      );
+      this.db.run(
+        `INSERT INTO reading_history (chapter_id, last_read_at)
+         VALUES (?, CURRENT_TIMESTAMP)
+         ON CONFLICT(chapter_id) DO UPDATE SET last_read_at = CURRENT_TIMESTAMP`,
+        [numChapterId]
       );
     } else {
       this.db.run(
         'UPDATE chapters SET reading_position = ? WHERE id = ?',
-        [pos, chapterId]
+        [pos, numChapterId]
       );
     }
     this.save();
@@ -2250,27 +2296,147 @@ class DatabaseManager {
   }
 
   setChapterRead(chapterId, isRead = 1) {
+    const numChapterId = Number(chapterId) || chapterId;
     const val = isRead ? 1 : 0;
     if (val === 1) {
       this.db.run(
         'UPDATE chapters SET is_read = 1, reading_position = 1.0, last_read_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [chapterId]
+        [numChapterId]
+      );
+      this.db.run(
+        `INSERT INTO reading_history (chapter_id, last_read_at)
+         VALUES (?, CURRENT_TIMESTAMP)
+         ON CONFLICT(chapter_id) DO UPDATE SET last_read_at = CURRENT_TIMESTAMP`,
+        [numChapterId]
       );
     } else {
       this.db.run(
         'UPDATE chapters SET is_read = 0, last_read_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [chapterId]
+        [numChapterId]
       );
     }
     this.save();
     return val;
   }
 
+    /**
+   * Records that a chapter was opened by the user, independent of reading progress.
+   *
+   * Inserts (or updates) a row in reading_history so the chapter appears in the
+   * reading activity lists even if the user hasn't scrolled past 0%.
+   *
+   * Does NOT modify reading_position or is_read.
+   *
+   * @param {number|string} chapterId
+   * @returns {boolean}
+   */
+  recordChapterOpened(chapterId) {
+    const numChapterId = Number(chapterId);
+    if (!numChapterId) return false;
+    try {
+      const check = this.db.prepare('SELECT id FROM chapters WHERE id = ?');
+      check.bind([numChapterId]);
+      const exists = check.step();
+      check.free();
+      if (!exists) return false;
+
+      this.db.run(
+        `INSERT INTO reading_history (chapter_id, last_read_at)
+         VALUES (?, CURRENT_TIMESTAMP)
+         ON CONFLICT(chapter_id) DO UPDATE SET last_read_at = CURRENT_TIMESTAMP`,
+        [numChapterId]
+      );
+
+      this.db.run(
+        'UPDATE chapters SET last_read_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [numChapterId]
+      );
+
+      this.save();
+      return true;
+    } catch (err) {
+      console.error('Error recording chapter opened:', err);
+      return false;
+    }
+  }
   markAllChaptersRead(seriesId, isRead = true) {
     const val = isRead ? 1 : 0;
     this.db.run('UPDATE chapters SET is_read = ?, last_read_at = CURRENT_TIMESTAMP WHERE series_id = ?', [val, seriesId]);
+    if (val === 1) {
+      this.db.run(`
+        INSERT INTO reading_history (chapter_id, last_read_at)
+        SELECT id, CURRENT_TIMESTAMP FROM chapters WHERE series_id = ?
+        ON CONFLICT(chapter_id) DO UPDATE SET last_read_at = CURRENT_TIMESTAMP
+      `, [seriesId]);
+    }
     this.save();
     return true;
+  }
+
+  deleteReadingHistoryEntry(chapterId) {
+    const numId = Number(chapterId);
+    if (!numId) return false;
+    this.db.run('DELETE FROM reading_history WHERE chapter_id = ?', [numId]);
+    try {
+      this.db.run('UPDATE chapters SET last_read_at = NULL WHERE id = ?', [numId]);
+    } catch (_) {}
+    this.save();
+    return true;
+  }
+
+  resetSeriesReadingHistory(seriesId) {
+    const numId = Number(seriesId);
+    if (!numId) return false;
+    this.beginTransaction();
+    try {
+      this.db.run(
+        'DELETE FROM reading_history WHERE chapter_id IN (SELECT id FROM chapters WHERE series_id = ?)',
+        [numId]
+      );
+      this.db.run(
+        'UPDATE chapters SET reading_position = 0, is_read = 0, last_read_at = NULL WHERE series_id = ?',
+        [numId]
+      );
+      this.commit();
+      return true;
+    } catch (err) {
+      this.rollback();
+      console.error('Error resetting series reading history:', err);
+      throw err;
+    }
+  }
+
+  clearAllReadingHistory() {
+    this.beginTransaction();
+    try {
+      this.db.run('DELETE FROM reading_history');
+      try {
+        this.db.run('UPDATE chapters SET last_read_at = NULL');
+      } catch (_) {}
+      this.commit();
+      return true;
+    } catch (err) {
+      this.rollback();
+      console.error('Error clearing all reading history:', err);
+      throw err;
+    }
+  }
+
+  resetAllReadingHistoryAndProgress() {
+    this.beginTransaction();
+    try {
+      this.db.run('DELETE FROM reading_history');
+      this.db.run('UPDATE chapters SET reading_position = 0, is_read = 0');
+      try {
+        this.db.run('UPDATE chapters SET last_read_at = NULL');
+      } catch (_) {}
+      this.commit();
+      return true;
+    } catch (err) {
+      this.rollback();
+      console.error('Error resetting all reading history and progress:', err);
+      throw err;
+    }
   }
 
   // ==================== HISTORY & CONTINUE READING ====================
@@ -2281,7 +2447,7 @@ class DatabaseManager {
    * @param {number} [limit=20]
    * @returns {Array<Object>}
    */
-  getContinueReading(limit = 20) {
+    getContinueReading(limit = 20) {
     const numLimit = Math.max(1, parseInt(limit, 10) || 20);
     const stmt = this.db.prepare(`
       SELECT
@@ -2295,14 +2461,16 @@ class DatabaseManager {
         c.page_count,
         c.is_read,
         c.reading_position,
-        c.last_read_at,
+        h.last_read_at,
+        h.chapter_id,
         s.title AS series_title,
         s.cover_path AS series_cover_path,
         s.primary_format AS series_format
-      FROM chapters c
-      INNER JOIN series s ON c.series_id = s.id
-      WHERE c.reading_position > 0 AND c.is_read = 0
-      ORDER BY c.last_read_at DESC
+      FROM reading_history h
+      INNER JOIN chapters c ON c.id = h.chapter_id
+      INNER JOIN series s ON s.id = c.series_id
+      WHERE c.is_read = 0
+      ORDER BY h.last_read_at DESC
       LIMIT ?
     `);
     stmt.bind([numLimit]);
@@ -2313,7 +2481,6 @@ class DatabaseManager {
     stmt.free();
     return results;
   }
-
   /**
    * Retrieve reading history: chapters with recorded last_read_at ordered by last_read_at DESC.
    * Single join query with series, returning only required fields without N+1 overhead.
@@ -2334,14 +2501,15 @@ class DatabaseManager {
         c.page_count,
         c.is_read,
         c.reading_position,
-        c.last_read_at,
+        h.last_read_at,
+        h.chapter_id,
         s.title AS series_title,
         s.cover_path AS series_cover_path,
         s.primary_format AS series_format
-      FROM chapters c
-      INNER JOIN series s ON c.series_id = s.id
-      WHERE c.last_read_at IS NOT NULL
-      ORDER BY c.last_read_at DESC
+      FROM reading_history h
+      INNER JOIN chapters c ON c.id = h.chapter_id
+      INNER JOIN series s ON s.id = c.series_id
+      ORDER BY h.last_read_at DESC
       LIMIT ?
     `);
     stmt.bind([numLimit]);

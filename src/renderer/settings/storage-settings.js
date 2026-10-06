@@ -48,6 +48,9 @@ const elements = {
   sectionStorage: null,
   storageCurrentModeBadge: null,
   storageCurrentPath: null,
+  storagePortableRow: null,
+  storagePortablePathValue: null,
+  btnChoosePortablePath: null,
   storageDestPath: null,
   storageDestStatus: null,
   storageDestStatusText: null,
@@ -85,7 +88,23 @@ const elements = {
   btnCloseResetModal: null,
   btnCancelResetApp: null,
   btnConfirmResetApp: null,
-  resetAppModalError: null
+  resetAppModalError: null,
+
+  // Clear History Modal
+  btnOpenClearHistoryModal: null,
+  modalClearHistory: null,
+  btnCloseClearHistoryModal: null,
+  btnCancelClearHistory: null,
+  btnConfirmClearHistory: null,
+  clearHistoryModalError: null,
+
+  // Reset History and Progress Modal
+  btnOpenResetProgressModal: null,
+  modalResetProgress: null,
+  btnCloseResetProgressModal: null,
+  btnCancelResetProgress: null,
+  btnConfirmResetProgress: null,
+  resetProgressModalError: null
 };
 
 // ==================== INITIALIZATION ====================
@@ -98,6 +117,9 @@ export function initStorageSettings(options = {}) {
   elements.sectionStorage = document.getElementById('sectionStorage');
   elements.storageCurrentModeBadge = document.getElementById('storageCurrentModeBadge');
   elements.storageCurrentPath = document.getElementById('storageCurrentPath');
+  elements.storagePortableRow = document.getElementById('storagePortableRow');
+  elements.storagePortablePathValue = document.getElementById('storagePortablePathValue');
+  elements.btnChoosePortablePath = document.getElementById('btnChoosePortablePath');
   elements.storageDestPath = document.getElementById('storageDestPath');
   elements.storageDestStatus = document.getElementById('storageDestStatus');
   elements.storageDestStatusText = document.getElementById('storageDestStatusText');
@@ -137,11 +159,31 @@ export function initStorageSettings(options = {}) {
   elements.btnConfirmResetApp = document.getElementById('btnConfirmResetApp');
   elements.resetAppModalError = document.getElementById('resetAppModalError');
 
+  // Cache Clear History Elements
+  elements.btnOpenClearHistoryModal = document.getElementById('btnOpenClearHistoryModal');
+  elements.modalClearHistory = document.getElementById('modalClearHistory');
+  elements.btnCloseClearHistoryModal = document.getElementById('btnCloseClearHistoryModal');
+  elements.btnCancelClearHistory = document.getElementById('btnCancelClearHistory');
+  elements.btnConfirmClearHistory = document.getElementById('btnConfirmClearHistory');
+  elements.clearHistoryModalError = document.getElementById('clearHistoryModalError');
+
+  // Cache Reset History and Progress Elements
+  elements.btnOpenResetProgressModal = document.getElementById('btnOpenResetProgressModal');
+  elements.modalResetProgress = document.getElementById('modalResetProgress');
+  elements.btnCloseResetProgressModal = document.getElementById('btnCloseResetProgressModal');
+  elements.btnCancelResetProgress = document.getElementById('btnCancelResetProgress');
+  elements.btnConfirmResetProgress = document.getElementById('btnConfirmResetProgress');
+  elements.resetProgressModalError = document.getElementById('resetProgressModalError');
+
   // Button Listeners
   elements.btnSwitchToPortable?.addEventListener('click', () => openChangeModeModal('portable'));
   elements.btnSwitchToStandard?.addEventListener('click', () => openChangeModeModal('standard'));
   elements.btnMigrateStorage?.addEventListener('click', openMigrateModal);
+  elements.btnChoosePortablePath?.addEventListener('click', handleChoosePortablePath);
+  elements.btnChoosePortablePath?.addEventListener('click', handleChoosePortablePath);
   elements.btnOpenResetModal?.addEventListener('click', openResetModal);
+  elements.btnOpenClearHistoryModal?.addEventListener('click', openClearHistoryModal);
+  elements.btnOpenResetProgressModal?.addEventListener('click', openResetProgressModal);
 
   // Migration Modal Listeners
   elements.btnCloseMigrateModal?.addEventListener('click', closeMigrateModal);
@@ -173,12 +215,34 @@ export function initStorageSettings(options = {}) {
     }
   });
 
+  // Clear History Modal Listeners
+  elements.btnCloseClearHistoryModal?.addEventListener('click', closeClearHistoryModal);
+  elements.btnCancelClearHistory?.addEventListener('click', closeClearHistoryModal);
+  elements.btnConfirmClearHistory?.addEventListener('click', handleClearHistory);
+  elements.modalClearHistory?.addEventListener('click', (e) => {
+    if (e.target === elements.modalClearHistory) {
+      closeClearHistoryModal();
+    }
+  });
+
+  // Reset History and Progress Modal Listeners
+  elements.btnCloseResetProgressModal?.addEventListener('click', closeResetProgressModal);
+  elements.btnCancelResetProgress?.addEventListener('click', closeResetProgressModal);
+  elements.btnConfirmResetProgress?.addEventListener('click', handleResetProgress);
+  elements.modalResetProgress?.addEventListener('click', (e) => {
+    if (e.target === elements.modalResetProgress) {
+      closeResetProgressModal();
+    }
+  });
+
   // Escape key support for modals
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (isMigrateModalOpen()) closeMigrateModal();
       if (isChangeModeModalOpen()) closeChangeModeModal();
       if (isResetModalOpen()) closeResetModal();
+      if (isClearHistoryModalOpen()) closeClearHistoryModal();
+      if (isResetProgressModalOpen()) closeResetProgressModal();
     }
   });
 
@@ -192,12 +256,21 @@ export function initStorageSettings(options = {}) {
     openChangeModeModal,
     closeChangeModeModal,
     handleConfirmChangeMode,
+    handleChoosePortablePath,
     isMigrateModalOpen,
     isChangeModeModalOpen,
     openResetModal,
     closeResetModal,
     handleResetApplication,
-    isResetModalOpen
+    isResetModalOpen,
+    openClearHistoryModal,
+    closeClearHistoryModal,
+    handleClearHistory,
+    isClearHistoryModalOpen,
+    openResetProgressModal,
+    closeResetProgressModal,
+    handleResetProgress,
+    isResetProgressModalOpen
   };
 }
 
@@ -239,6 +312,34 @@ export async function renderStorageSettings() {
       elements.storageCurrentPath.textContent = storageState.storageRoot || 'Cargando...';
     }
 
+    // Update Portable data directory row (only meaningful in Portable mode)
+    if (elements.storagePortableRow) {
+  if (storageState.mode === 'portable') {
+    elements.storagePortableRow.style.display = 'flex';
+
+    const configured = storageState.configuredPortablePath || '';
+    if (elements.storagePortablePathValue) {
+      elements.storagePortablePathValue.textContent = configured || 'No configurado';
+    }
+    if (elements.btnChoosePortablePath) {
+      const label = elements.btnChoosePortablePath.querySelector('span');
+      if (label) {
+        label.textContent = configured ? 'Cambiar…' : 'Elegir carpeta…';
+      }
+    }
+
+    if (storageState.portablePathError) {
+      showStorageFeedback(
+        'error',
+        'Directorio portable no disponible',
+        `${escapeHtml(storageState.portablePathError)}<br>Selecciona otro directorio para continuar en modo portable. Tus datos no se han modificado.`
+      );
+    }
+  } else {
+    elements.storagePortableRow.style.display = 'none';
+  }
+}
+
     // Update Destination Preview
     if (elements.storageDestPath) {
       elements.storageDestPath.textContent = destinationCheck.targetPath || '—';
@@ -275,7 +376,75 @@ export async function renderStorageSettings() {
     console.error('[storage-settings] Error rendering storage settings:', err);
   }
 }
+// ==================== CHOOSE PORTABLE DATA DIRECTORY ====================
+export async function handleChoosePortablePath() {
+  if (!window.lecfalAPI || typeof window.lecfalAPI.selectStorageDirectory !== 'function') {
+    callbacks.showToast('Función de selección de directorio no disponible');
+    return;
+  }
 
+  // 1. Native folder picker
+  let chosen = null;
+  try {
+    chosen = await window.lecfalAPI.selectStorageDirectory();
+  } catch (err) {
+    callbacks.showToast(`Error al abrir el selector: ${err.message}`);
+    return;
+  }
+
+  if (!chosen) {
+    // User cancelled
+    return;
+  }
+
+  // 2. Persist the choice via StorageManager (does not copy or delete data)
+  let result = null;
+  try {
+    result = await window.lecfalAPI.setPortableDataPath(chosen);
+  } catch (err) {
+    showStorageFeedback(
+      'error',
+      'No se pudo configurar el directorio portable',
+      `${err.message}`
+    );
+    return;
+  }
+
+  if (!result || !result.success) {
+    showStorageFeedback(
+      'error',
+      'No se pudo configurar el directorio portable',
+      (result && result.error) || 'Error desconocido'
+    );
+    return;
+  }
+
+  // 3. Refresh UI and inform the user
+  await renderStorageSettings();
+
+  showStorageFeedback(
+    'success',
+    'Directorio portable configurado',
+    `Ubicación: <strong>${escapeHtml(result.path)}</strong><br>
+     Para que la base de datos y todos los servicios usen la nueva ubicación, reinicia LecFal manualmente.`
+  );
+
+  callbacks.showToast('Directorio portable configurado');
+}
+
+// ==================== FEEDBACK BANNER HELPER ====================
+function showStorageFeedback(kind, title, htmlBody) {
+  if (!elements.storageFeedbackBanner) return;
+  const cls = kind === 'error'
+    ? 'storage-banner storage-banner-error'
+    : (kind === 'warning' ? 'storage-banner storage-banner-warning' : 'storage-banner storage-banner-success');
+  elements.storageFeedbackBanner.className = cls;
+  elements.storageFeedbackBanner.innerHTML = `
+    <div class="storage-banner-title"><span>${escapeHtml(title)}</span></div>
+    <div>${htmlBody}</div>
+  `;
+  elements.storageFeedbackBanner.style.display = 'flex';
+}
 // ==================== STATE GETTER ====================
 export function getStorageSettingsState() {
   return {
@@ -489,6 +658,47 @@ export async function handleConfirmChangeMode() {
     const result = await window.lecfalAPI.setStorageMode({ mode: pendingTargetMode });
 
     if (!result || !result.success) {
+      // Special case: switching to Portable requires a configured data directory.
+      // Prompt for it via the native picker, persist, then retry once.
+      if (result && result.needsPortablePath && pendingTargetMode === 'portable') {
+        let chosen = null;
+        try {
+          chosen = await window.lecfalAPI.selectStorageDirectory();
+        } catch (err) {
+          chosen = null;
+        }
+
+        if (!chosen) {
+          if (elements.changeModeModalError) {
+            elements.changeModeModalError.textContent =
+              'Debes seleccionar un directorio de datos para usar el modo Portable.';
+            elements.changeModeModalError.style.display = 'block';
+          }
+          if (elements.btnConfirmChangeMode) {
+            elements.btnConfirmChangeMode.disabled = false;
+            elements.btnConfirmChangeMode.textContent = 'Cambiar a Modo Portable';
+          }
+          return;
+        }
+
+        const setRes = await window.lecfalAPI.setPortableDataPath(chosen);
+        if (!setRes || !setRes.success) {
+          if (elements.changeModeModalError) {
+            elements.changeModeModalError.textContent =
+              (setRes && setRes.error) || 'No se pudo configurar el directorio portable.';
+            elements.changeModeModalError.style.display = 'block';
+          }
+          if (elements.btnConfirmChangeMode) {
+            elements.btnConfirmChangeMode.disabled = false;
+            elements.btnConfirmChangeMode.textContent = 'Cambiar a Modo Portable';
+          }
+          return;
+        }
+
+        // Retry the mode switch now that a portable path is configured.
+        return handleConfirmChangeMode();
+      }
+
       const errMsg = (result && result.error) || 'No se pudo cambiar el modo de almacenamiento.';
       if (elements.changeModeModalError) {
         elements.changeModeModalError.textContent = errMsg;
@@ -596,6 +806,122 @@ export async function handleResetApplication() {
     if (elements.btnConfirmResetApp) {
       elements.btnConfirmResetApp.disabled = false;
       elements.btnConfirmResetApp.textContent = 'Restablecer aplicación';
+    }
+  }
+}
+
+// ==================== CLEAR HISTORY LOGIC ====================
+export function isClearHistoryModalOpen() {
+  return !!(elements.modalClearHistory && elements.modalClearHistory.style.display !== 'none');
+}
+
+export function openClearHistoryModal() {
+  if (elements.clearHistoryModalError) {
+    elements.clearHistoryModalError.style.display = 'none';
+    elements.clearHistoryModalError.textContent = '';
+  }
+  if (elements.btnConfirmClearHistory) {
+    elements.btnConfirmClearHistory.disabled = false;
+    elements.btnConfirmClearHistory.textContent = 'Limpiar historial';
+  }
+  if (elements.modalClearHistory) {
+    elements.modalClearHistory.style.display = 'flex';
+  }
+}
+
+export function closeClearHistoryModal() {
+  if (elements.modalClearHistory) {
+    elements.modalClearHistory.style.display = 'none';
+  }
+}
+
+export async function handleClearHistory() {
+  if (elements.btnConfirmClearHistory) {
+    elements.btnConfirmClearHistory.disabled = true;
+    elements.btnConfirmClearHistory.textContent = 'Limpiando...';
+  }
+  if (elements.clearHistoryModalError) {
+    elements.clearHistoryModalError.style.display = 'none';
+    elements.clearHistoryModalError.textContent = '';
+  }
+
+  try {
+    if (window.lecfalAPI && typeof window.lecfalAPI.clearAllReadingHistory === 'function') {
+      await window.lecfalAPI.clearAllReadingHistory();
+    }
+    closeClearHistoryModal();
+    if (callbacks.showToast) {
+      callbacks.showToast('Historial de lectura limpiado con éxito.');
+    }
+    if (window.historyModule && typeof window.historyModule.loadAndRenderHistory === 'function') {
+      window.historyModule.loadAndRenderHistory();
+    }
+  } catch (err) {
+    if (elements.clearHistoryModalError) {
+      elements.clearHistoryModalError.textContent = `Error: ${err.message}`;
+      elements.clearHistoryModalError.style.display = 'block';
+    }
+    if (elements.btnConfirmClearHistory) {
+      elements.btnConfirmClearHistory.disabled = false;
+      elements.btnConfirmClearHistory.textContent = 'Limpiar historial';
+    }
+  }
+}
+
+// ==================== RESET HISTORY AND PROGRESS ====================
+export function isResetProgressModalOpen() {
+  return !!(elements.modalResetProgress && elements.modalResetProgress.style.display !== 'none');
+}
+
+export function openResetProgressModal() {
+  if (elements.resetProgressModalError) {
+    elements.resetProgressModalError.style.display = 'none';
+    elements.resetProgressModalError.textContent = '';
+  }
+  if (elements.btnConfirmResetProgress) {
+    elements.btnConfirmResetProgress.disabled = false;
+    elements.btnConfirmResetProgress.textContent = 'Reiniciar todo';
+  }
+  if (elements.modalResetProgress) {
+    elements.modalResetProgress.style.display = 'flex';
+  }
+}
+
+export function closeResetProgressModal() {
+  if (elements.modalResetProgress) {
+    elements.modalResetProgress.style.display = 'none';
+  }
+}
+
+export async function handleResetProgress() {
+  if (elements.btnConfirmResetProgress) {
+    elements.btnConfirmResetProgress.disabled = true;
+    elements.btnConfirmResetProgress.textContent = 'Reiniciando...';
+  }
+  if (elements.resetProgressModalError) {
+    elements.resetProgressModalError.style.display = 'none';
+    elements.resetProgressModalError.textContent = '';
+  }
+
+  try {
+    if (window.lecfalAPI && typeof window.lecfalAPI.resetAllReadingHistoryAndProgress === 'function') {
+      await window.lecfalAPI.resetAllReadingHistoryAndProgress();
+    }
+    closeResetProgressModal();
+    if (callbacks.showToast) {
+      callbacks.showToast('Historial y progreso restablecidos con éxito.');
+    }
+    if (window.historyModule && typeof window.historyModule.loadAndRenderHistory === 'function') {
+      window.historyModule.loadAndRenderHistory();
+    }
+  } catch (err) {
+    if (elements.resetProgressModalError) {
+      elements.resetProgressModalError.textContent = `Error: ${err.message}`;
+      elements.resetProgressModalError.style.display = 'block';
+    }
+    if (elements.btnConfirmResetProgress) {
+      elements.btnConfirmResetProgress.disabled = false;
+      elements.btnConfirmResetProgress.textContent = 'Reiniciar todo';
     }
   }
 }

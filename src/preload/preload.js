@@ -141,15 +141,21 @@ contextBridge.exposeInMainWorld('lecfalAPI', {
   // History & Continue Reading
   getContinueReading: (limit) => ipcRenderer.invoke('history:get-continue-reading', limit),
   getReadingHistory: (limit) => ipcRenderer.invoke('history:get-reading-history', limit),
+  deleteReadingHistoryEntry: (chapterId) => ipcRenderer.invoke('history:delete-entry', chapterId),
+  resetSeriesReadingHistory: (seriesId) => ipcRenderer.invoke('history:reset-series', seriesId),
+  clearAllReadingHistory: () => ipcRenderer.invoke('history:clear-all'),
+  resetAllReadingHistoryAndProgress: () => ipcRenderer.invoke('history:reset-all-progress'),
 
   // System
   getAppVersion: () => ipcRenderer.invoke('system:get-version'),
 
-  // Storage & Portability
+    // Storage & Portability
   getStorageInfo: () => ipcRenderer.invoke('storage:get-info'),
   checkStorageDestination: (params) => ipcRenderer.invoke('storage:check-destination', params),
   migrateStorageData: (params) => ipcRenderer.invoke('storage:migrate', params),
   setStorageMode: (params) => ipcRenderer.invoke('storage:set-mode', params),
+  selectStorageDirectory: () => ipcRenderer.invoke('storage:select-directory'),
+  setPortableDataPath: (targetPath) => ipcRenderer.invoke('storage:set-portable-path', { path: targetPath }),
 
   // Data Management & Removal
   removeFromLibrary: (seriesId) => ipcRenderer.invoke('series:remove-from-library', seriesId),

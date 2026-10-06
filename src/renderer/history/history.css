@@ -270,7 +270,34 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 8px;
   margin-top: 4px;
+}
+
+.btn-delete-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border-subtle);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-delete-card svg {
+  width: 13px;
+  height: 13px;
+}
+
+.btn-delete-card:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  transform: translateY(-1px);
 }
 
 .btn-continue-card {
@@ -490,6 +517,32 @@
   border-color: var(--accent-primary);
   color: #ffffff;
 }
+
+.recent-item-btn-delete {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-dim);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.recent-item-btn-delete svg {
+  width: 13px;
+  height: 13px;
+}
+
+.recent-item-btn-delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
 
 /* ==================== EMPTY STATES ==================== */
 .history-empty-inline {

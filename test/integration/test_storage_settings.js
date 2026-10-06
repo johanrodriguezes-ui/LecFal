@@ -194,6 +194,9 @@ async function runStorageSettingsTests() {
     };
   });
 
+  ipcMain.handle('history:clear-all', async () => db.clearAllReadingHistory());
+  ipcMain.handle('history:reset-all-progress', async () => db.resetAllReadingHistoryAndProgress());
+
   // Launch BrowserWindow
   win = new BrowserWindow({
     width: 1200,
@@ -592,6 +595,7 @@ async function runStorageSettingsTests() {
     'languages',
     'libraries',
     'library_folders',
+    'reading_history',
     'series',
     'series_authors',
     'series_groups',
@@ -608,6 +612,95 @@ async function runStorageSettingsTests() {
   }
   assert.strictEqual(tables.filter(t => !t.startsWith('sqlite_')).length, canonicalTables.length, 'No extra tables may be added to schema');
   console.log('✓ Test N passed: Database schema is completely unchanged.');
+
+  // ====================================================
+  // TEST O: Two history actions + cancel does nothing
+  // ====================================================
+  console.log('\n--- Test O: Clear vs Reset Progress, cancel is a no-op ---');
+
+  const resetLibDir = path.join(tempBaseDir, 'reset_progress_lib');
+  fs.mkdirSync(resetLibDir, { recursive: true });
+  const resetCbzPath = path.join(resetLibDir, 'cap1.cbz');
+  fs.writeFileSync(resetCbzPath, 'RESET CBZ CONTENT');
+  const resetFolder = db.addFolder(resetLibDir);
+  db.db.run(
+    'INSERT INTO series (folder_id, title, path, cover_path, author, primary_format, favorite) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [resetFolder.id, 'Reset Serie', resetLibDir, '', 'Autor Reset', 'cbz', 1]
+  );
+  const resetSeriesStmt = db.db.prepare('SELECT id, favorite, author FROM series WHERE path = ?');
+  resetSeriesStmt.bind([resetLibDir]);
+  resetSeriesStmt.step();
+  const resetSeries = resetSeriesStmt.getAsObject();
+  resetSeriesStmt.free();
+  db.db.run(
+    'INSERT INTO chapters (series_id, title, file_name, file_path, format, chapter_number, page_count, reading_position, is_read, last_read_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [resetSeries.id, 'Capítulo 1', 'cap1.cbz', resetCbzPath, 'cbz', 1, 10, 0.42, 1, '2026-10-03 15:00:00']
+  );
+  const resetChStmt = db.db.prepare('SELECT id FROM chapters WHERE file_path = ?');
+  resetChStmt.bind([resetCbzPath]);
+  resetChStmt.step();
+  const resetChapterId = resetChStmt.getAsObject().id;
+  resetChStmt.free();
+  db.db.run('INSERT INTO reading_history (chapter_id, last_read_at) VALUES (?, ?)', [resetChapterId, '2026-10-03 15:00:00']);
+
+  await win.webContents.executeJavaScript(`window.switchSettingsSection('sectionStorage');`);
+  await new Promise(r => setTimeout(r, 100));
+
+  const historyActionUi = await win.webContents.executeJavaScript(`({
+    clearBtn: !!document.getElementById('btnOpenClearHistoryModal'),
+    resetBtn: !!document.getElementById('btnOpenResetProgressModal'),
+    clearModal: !!document.getElementById('modalClearHistory'),
+    resetModal: !!document.getElementById('modalResetProgress'),
+    clearTitle: !!Array.from(document.querySelectorAll('#sectionStorage h4.storage-card-title')).find(el => el.textContent.trim() === 'Limpiar historial'),
+    resetTitle: !!Array.from(document.querySelectorAll('#sectionStorage h4.storage-card-title')).find(el => el.textContent.trim() === 'Reiniciar historial y progreso')
+  })`);
+  assert.strictEqual(historyActionUi.clearBtn, true, 'Limpiar historial button remains');
+  assert.strictEqual(historyActionUi.resetBtn, true, 'Reiniciar historial y progreso button exists');
+  assert.strictEqual(historyActionUi.clearModal, true, 'Clear history modal remains');
+  assert.strictEqual(historyActionUi.resetModal, true, 'Reset progress has its own modal');
+  assert.strictEqual(historyActionUi.clearTitle, true, 'Limpiar historial card title remains');
+  assert.strictEqual(historyActionUi.resetTitle, true, 'Reset progress is a separate card');
+
+  const snapshotProgress = () => {
+    const hist = db.db.prepare('SELECT COUNT(*) as cnt FROM reading_history');
+    hist.step();
+    const histCnt = hist.getAsObject().cnt;
+    hist.free();
+    const ch = db.getChapterById(resetChapterId);
+    const series = db.getSeriesById(resetSeries.id);
+    return {
+      histCnt,
+      pos: ch.reading_position,
+      isRead: ch.is_read,
+      fav: series.favorite,
+      fileExists: fs.existsSync(resetCbzPath)
+    };
+  };
+
+  const beforeCancel = snapshotProgress();
+  await win.webContents.executeJavaScript(`document.getElementById('btnOpenResetProgressModal').click();`);
+  const modalOpen = await win.webContents.executeJavaScript(`window.storageSettings.isResetProgressModalOpen()`);
+  assert.strictEqual(modalOpen, true, 'Reset confirmation modal opens');
+  await win.webContents.executeJavaScript(`document.getElementById('btnCancelResetProgress').click();`);
+  const modalClosed = await win.webContents.executeJavaScript(`window.storageSettings.isResetProgressModalOpen()`);
+  assert.strictEqual(modalClosed, false, 'Cancel closes the reset modal');
+  const afterCancel = snapshotProgress();
+  assert.deepStrictEqual(afterCancel, beforeCancel, 'Canceling the reset performs no changes');
+  console.log('✓ Canceling the reset performs no changes.');
+
+  await win.webContents.executeJavaScript(`document.getElementById('btnOpenResetProgressModal').click();`);
+  await win.webContents.executeJavaScript(`document.getElementById('btnConfirmResetProgress').click();`);
+  await new Promise(r => setTimeout(r, 200));
+
+  const afterConfirm = snapshotProgress();
+  assert.strictEqual(afterConfirm.histCnt, 0, 'Confirming reset removes all History');
+  assert.strictEqual(afterConfirm.pos, 0, 'Confirming reset sets reading_position = 0');
+  assert.strictEqual(afterConfirm.isRead, 0, 'Confirming reset sets is_read = 0');
+  assert.strictEqual(afterConfirm.fav, 1, 'Confirming reset preserves favorites');
+  assert.strictEqual(afterConfirm.fileExists, true, 'Confirming reset does not delete source files');
+  assert.ok(db.getChapterById(resetChapterId), 'Confirming reset does not delete chapters');
+  assert.ok(db.getSeriesById(resetSeries.id), 'Confirming reset does not delete manga');
+  console.log('✓ Confirming global reset updates history/progress without deleting library data.');
 
   console.log('\n======================================================');
   console.log('  ALL PHASE 5.2 STORAGE SETTINGS UI TESTS PASSED (A - N)');

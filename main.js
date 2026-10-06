@@ -48,12 +48,52 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 async function createWindow() {
-  // Initialize storage layer and verify directories safely
+  // Initialize storage layer. This reads the persisted storage mode and,
+  // if Portable mode is active, the persisted Portable data path from an
+  // external config file (~/.config/lecfal/portable.json on Linux).
+  // It NEVER falls back to <appDir>/data, because in a packaged AppImage
+  // that directory lives inside a read-only mount.
   storage.init();
 
-  // Initialize logger with centralized log path
+  // If Portable mode is active but no usable data path is configured,
+  // we cannot initialize the database yet. Surface the problem to the
+  // user and open a minimal window that lets them choose a folder in
+  // Settings > Ubicación de datos.
+  const storageRoot = storage.getStorageRoot();
+  if (!storageRoot) {
+    logger.init(path.join(storage.getStandardDataPath(), 'logs', 'lecfal.log'));
+    logger.warn('APP', `Modo portable activo pero sin directorio de datos configurado. Se requiere selección del usuario.`);
+
+    mainWindow = new BrowserWindow({
+      width: 900,
+      height: 640,
+      minWidth: 720,
+      minHeight: 480,
+      backgroundColor: '#0c0f17',
+      title: 'LecFal - Configuración de almacenamiento requerida',
+      icon: path.join(__dirname, 'assets', 'icon.png'),
+      webPreferences: {
+        preload: path.join(__dirname, 'src', 'preload', 'preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: false
+      }
+    });
+
+    mainWindow.setMenuBarVisibility(false);
+    mainWindow.loadFile(path.join(__dirname, 'src', 'renderer', 'index.html'));
+
+    mainWindow.on('closed', () => {
+      mainWindow = null;
+    });
+
+    return;
+  }
+
+  // Initialize logger with centralized log path inside the active storage root
   logger.init(storage.getLogFilePath());
   logger.info('APP', `Iniciando LecFal v${app.getVersion()}`);
+  logger.info('APP', `Storage Mode: ${storage.getStorageMode()}`);
   logger.info('APP', `Data Root: ${storage.getDataRoot()}`);
   logger.info('APP', `Archivo de base de datos: ${storage.getDatabasePath()}`);
   logger.info('APP', `Directorio de thumbnails: ${storage.getThumbnailsPath()}`);
@@ -86,12 +126,13 @@ async function createWindow() {
   mainWindow.setMenuBarVisibility(false);
 
   mainWindow.on('close', () => {
-    if (mainWindow) {
-      db.setSetting('window_bounds', mainWindow.getBounds());
+    if (mainWindow && db) {
+      try {
+        db.setSetting('window_bounds', mainWindow.getBounds());
+      } catch (_) {}
     }
   });
 
-  // Track window fullscreen events
   mainWindow.on('enter-full-screen', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('window:fullscreen-changed', true);
@@ -116,6 +157,7 @@ async function createWindow() {
     mainWindow = null;
   });
 }
+
 
 // App lifecycle
 app.whenReady().then(() => {
@@ -907,13 +949,72 @@ ipcMain.handle('settings:set', async (event, key, value) => {
 });
 
 // Storage & Portability IPC
+
+// Opens a native folder picker dedicated to storage location selection.
+// Kept separate from dialog:select-folder (which is library-specific) to avoid
+// overloading unrelated IPC semantics.
+ipcMain.handle('storage:select-directory', async () => {
+  if (!mainWindow) return null;
+  logger.info('STORAGE', 'Abriendo selector nativo de directorio para datos portables');
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Seleccionar directorio de datos portables de LecFal',
+    properties: ['openDirectory', 'createDirectory'],
+    buttonLabel: 'Usar esta carpeta'
+  });
+
+  if (result.canceled || !result.filePaths.length) {
+    logger.info('STORAGE', 'Selección de directorio portable cancelada por el usuario');
+    return null;
+  }
+  logger.info('STORAGE', `Directorio portable seleccionado: ${result.filePaths[0]}`);
+  return result.filePaths[0];
+});
+
+// Persists a user-chosen portable data path via StorageManager.
+// Does NOT copy, migrate, or delete any data; migration must be triggered
+// separately via the existing storage:migrate handler.
+ipcMain.handle('storage:set-portable-path', async (event, payload = {}) => {
+  const targetPath = payload && typeof payload === 'object' ? payload.path : payload;
+  if (!targetPath || typeof targetPath !== 'string') {
+    return { success: false, error: 'Ruta no especificada' };
+  }
+
+  const result = storage.setPortableDataPath(targetPath);
+  if (result.success) {
+    logger.info('STORAGE', `Ruta portable configurada: ${result.path}`);
+
+    // If the app was started without a usable storage root (portable mode
+    // requested but unconfigured), we now need to (re)initialize the DB
+    // on the newly selected path. Simplest safe path: request a relaunch.
+    if (!db || !db.db) {
+      setTimeout(() => {
+        try {
+          if (app && typeof app.relaunch === 'function') {
+            app.relaunch();
+            app.exit(0);
+          }
+        } catch (e) {
+          logger.error('STORAGE', `Error al reiniciar tras configurar la ruta portable: ${e.message}`);
+        }
+      }, 600);
+    }
+  } else {
+    logger.warn('STORAGE', `Fallo al configurar ruta portable: ${result.error}`);
+  }
+  return result;
+});
+
 ipcMain.handle('storage:get-info', async () => {
   return {
     mode: storage.getStorageMode(),
     isPortable: storage.isPortableMode(),
     storageRoot: storage.getStorageRoot(),
     standardPath: storage.getStandardDataPath(),
-    portablePath: storage.getPortableDataPath(),
+    portablePath: storage.getPortableDataPath(),          // string | null
+    defaultPortablePath: storage.getDefaultPortableDataPath(), // legacy, no usar
+    configuredPortablePath: storage.getConfiguredPortablePath(),
+    portablePathConfigured: storage.hasConfiguredPortablePath(),
+    portablePathError: storage.getPortablePathError(),
     isPortableAvailable: storage.isPortableModeAvailable(),
     appDir: storage.getAppDirectory()
   };
@@ -921,7 +1022,16 @@ ipcMain.handle('storage:get-info', async () => {
 
 ipcMain.handle('storage:check-destination', async (event, { targetMode } = {}) => {
   const mode = targetMode || (storage.isPortableMode() ? 'standard' : 'portable');
-  const targetPath = (mode === 'portable') ? storage.getPortableDataPath() : storage.getStandardDataPath();
+
+  let targetPath;
+  if (mode === 'portable') {
+    // Prefer the configured path; fall back to the legacy default only as a
+    // display hint (NOT as an active root). If null, the UI must prompt.
+    targetPath = storage.getConfiguredPortablePath() || storage.getDefaultPortableDataPath();
+  } else {
+    targetPath = storage.getStandardDataPath();
+  }
+
   const isWritable = storage.isWritable(targetPath);
   let hasExistingData = false;
   const existingFiles = [];
@@ -931,34 +1041,46 @@ ipcMain.handle('storage:check-destination', async (event, { targetMode } = {}) =
       const entries = fs.readdirSync(targetPath);
       if (entries.length > 0) {
         hasExistingData = true;
-        for (const e of entries) {
-          existingFiles.push(e);
-        }
+        for (const e of entries) existingFiles.push(e);
       }
     } catch (_) {}
   }
 
-  return {
-    targetMode: mode,
-    targetPath,
-    isWritable,
-    hasExistingData,
-    existingFiles
-  };
+  return { targetMode: mode, targetPath, isWritable, hasExistingData, existingFiles };
 });
 
 ipcMain.handle('storage:migrate', async (event, options = {}) => {
   const targetMode = options.targetMode || (storage.isPortableMode() ? 'standard' : 'portable');
+
+  let targetRoot;
+  if (targetMode === 'portable') {
+    const configured = storage.getConfiguredPortablePath();
+    if (!configured) {
+      return {
+        success: false,
+        error: 'No hay un directorio portable configurado. Selecciona una carpeta antes de migrar.',
+        copied: [], skipped: [], errors: ['No hay un directorio portable configurado.']
+      };
+    }
+    targetRoot = configured;
+  } else {
+    targetRoot = storage.getStandardDataPath();
+  }
+
   const sourceRoot = storage.getStorageRoot();
-  const targetRoot = (targetMode === 'portable') ? storage.getPortableDataPath() : storage.getStandardDataPath();
+  if (!sourceRoot) {
+    return {
+      success: false,
+      error: 'No hay un directorio de almacenamiento activo.',
+      copied: [], skipped: [], errors: ['No hay un directorio de almacenamiento activo.']
+    };
+  }
 
   if (!storage.isWritable(targetRoot)) {
     return {
       success: false,
       error: `El directorio de destino no tiene permisos de escritura: ${targetRoot}`,
-      copied: [],
-      skipped: [],
-      errors: [`El directorio de destino no tiene permisos de escritura: ${targetRoot}`]
+      copied: [], skipped: [], errors: [`El directorio de destino no tiene permisos de escritura: ${targetRoot}`]
     };
   }
 
@@ -970,18 +1092,7 @@ ipcMain.handle('storage:migrate', async (event, options = {}) => {
 
   if (result.success && options.switchModeAfter === true) {
     try {
-      const appDir = storage.getAppDirectory();
-      const markerPath = path.join(appDir, '.portable');
-      const flagPath = path.join(appDir, 'portable.flag');
-      if (targetMode === 'portable') {
-        if (!fs.existsSync(markerPath)) {
-          fs.writeFileSync(markerPath, '');
-        }
-      } else {
-        try { if (fs.existsSync(markerPath)) fs.unlinkSync(markerPath); } catch (_) {}
-        try { if (fs.existsSync(flagPath)) fs.unlinkSync(flagPath); } catch (_) {}
-      }
-      storage.setStorageMode(targetMode);
+      storage.setStorageMode(targetMode); // persists mode externally
     } catch (modeErr) {
       console.warn('[main] Error updating storage mode after migration:', modeErr.message);
     }
@@ -995,25 +1106,28 @@ ipcMain.handle('storage:set-mode', async (event, { mode } = {}) => {
     return { success: false, error: `Modo de almacenamiento inválido: "${mode}"` };
   }
 
-  if (mode === 'portable' && !storage.isPortableModeAvailable()) {
-    return {
-      success: false,
-      error: `El directorio de la aplicación ("${storage.getPortableDataPath()}") no tiene permisos de escritura para modo portable.`
-    };
+  if (mode === 'portable') {
+    const configured = storage.getConfiguredPortablePath();
+    if (!configured) {
+      return {
+        success: false,
+        needsPortablePath: true,
+        error: 'El modo Portable requiere seleccionar un directorio de datos. Usa "Elegir carpeta…" para configurarlo.'
+      };
+    }
+    if (!storage.isWritable(configured)) {
+      return {
+        success: false,
+        portablePathUnavailable: true,
+        error: `El directorio portable configurado no está disponible o no es escribible: ${configured}`
+      };
+    }
   }
 
   try {
-    const appDir = storage.getAppDirectory();
-    const markerPath = path.join(appDir, '.portable');
-    const flagPath = path.join(appDir, 'portable.flag');
-    if (mode === 'portable') {
-      if (!fs.existsSync(markerPath)) {
-        fs.writeFileSync(markerPath, '');
-      }
-    } else {
-      try { if (fs.existsSync(markerPath)) fs.unlinkSync(markerPath); } catch (_) {}
-      try { if (fs.existsSync(flagPath)) fs.unlinkSync(flagPath); } catch (_) {}
-    }
+    // NEVER write .portable / portable.flag into the application directory.
+    // In a packaged AppImage that directory is a read-only mount.
+    // The mode is persisted externally by StorageManager.persistStorageMode().
     storage.setStorageMode(mode);
     return {
       success: true,
@@ -1149,6 +1263,9 @@ ipcMain.handle('reader:get-chapter', async (event, chapterId) => {
     logger.warn('READER', `Archivo no encontrado: ${chapter.file_path}`);
     throw new Error('El archivo del capítulo no existe en el disco.');
   }
+  // Record that the user opened this chapter, so it appears in "Recientemente leído"
+  // regardless of reading progress. Does not affect reading_position or is_read.
+  db.recordChapterOpened(chapter.id);
 
   let pages = [];
   let estimatedAspectRatio = 1.414;
@@ -1225,4 +1342,20 @@ ipcMain.handle('history:get-continue-reading', async (event, limit = 20) => {
 
 ipcMain.handle('history:get-reading-history', async (event, limit = 50) => {
   return db.getReadingHistory(limit);
+});
+
+ipcMain.handle('history:delete-entry', async (event, chapterId) => {
+  return db.deleteReadingHistoryEntry(chapterId);
+});
+
+ipcMain.handle('history:reset-series', async (event, seriesId) => {
+  return db.resetSeriesReadingHistory(seriesId);
+});
+
+ipcMain.handle('history:clear-all', async (event) => {
+  return db.clearAllReadingHistory();
+});
+
+ipcMain.handle('history:reset-all-progress', async (event) => {
+  return db.resetAllReadingHistoryAndProgress();
 });

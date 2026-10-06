@@ -4,10 +4,12 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "reset-data": "rm -rf ~/.config/lecfal",
-    "test": "node test/run_tests.js"
+  "start": "electron .",
+  "reset-data": "rm -rf ~/.config/lecfal",
+  "test": "node test/run_tests.js",
+  "build": "electron-builder --linux AppImage"
   },
+
   "repository": {
     "type": "git",
     "url": "git+https://github.com/johanrodriguezes-ui/LecFal.git"
@@ -27,5 +29,17 @@
     "pdfjs-dist": "^6.3.289",
     "sql.js": "^1.14.2",
     "yauzl": "^3.4.0"
+  },
+  "build": {
+  "appId": "com.lecfal.app",
+  "productName": "LecFal",
+  "linux": {
+    "target": "AppImage",
+    "category": "Utility",
+    "icon": "assets/icon_border.png"
+  },
+  "toolsets": {
+    "appimage": "1.0.3"
+  }
   }
 }

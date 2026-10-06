@@ -51,6 +51,9 @@ function insertTestChapter(db, { series_id, title, file_name, file_path, format 
   stmt.step();
   const id = stmt.getAsObject().id;
   stmt.free();
+  if (last_read_at) {
+    db.db.run('INSERT OR REPLACE INTO reading_history (chapter_id, last_read_at) VALUES (?, ?)', [id, last_read_at]);
+  }
   return { id, title };
 }
 

@@ -1,8 +1,9 @@
 /**
  * History & Continue Reading Module for LecFal Renderer
  *
- * Exposes reading history and in-progress chapters using the existing
- * SQLite reading progress system (reading_position, is_read, last_read_at).
+ * Exposes reading history and in-progress chapters using the dedicated
+ * reading_history SQLite model while preserving independent chapter reading
+ * state (reading_position, is_read).
  */
 
 import {
@@ -27,8 +28,24 @@ const elements = {
   continueReadingCount: null,
   recentHistoryContainer: null,
   recentHistoryEmpty: null,
-  recentHistoryCount: null
+  recentHistoryCount: null,
+  // Delete modal elements
+  modalDeleteHistory: null,
+  btnCloseDeleteHistoryModal: null,
+  btnCancelDeleteHistory: null,
+  btnConfirmDeleteHistory: null,
+  deleteHistoryMessage: null,
+  deleteHistorySeriesTitle: null,
+  deleteHistoryChapterTitle: null,
+  deleteHistoryTimestamp: null,
+  deleteHistorySafeNotice: null,
+  checkResetMangaHistory: null,
+  resetMangaWarning: null,
+  deleteHistoryModalError: null
 };
+
+// Currently tracked item for deletion modal
+let activeDeleteItem = null;
 
 /**
  * Initialize the History module with host callbacks.
@@ -47,6 +64,71 @@ export function initHistory(cbs = {}) {
   elements.recentHistoryContainer = document.getElementById('recentHistoryContainer');
   elements.recentHistoryEmpty = document.getElementById('recentHistoryEmpty');
   elements.recentHistoryCount = document.getElementById('recentHistoryCount');
+
+  // Cache delete modal elements
+  elements.modalDeleteHistory = document.getElementById('modalDeleteHistory');
+  elements.btnCloseDeleteHistoryModal = document.getElementById('btnCloseDeleteHistoryModal');
+  elements.btnCancelDeleteHistory = document.getElementById('btnCancelDeleteHistory');
+  elements.btnConfirmDeleteHistory = document.getElementById('btnConfirmDeleteHistory');
+  elements.deleteHistoryMessage = document.getElementById('deleteHistoryMessage');
+  elements.deleteHistorySeriesTitle = document.getElementById('deleteHistorySeriesTitle');
+  elements.deleteHistoryChapterTitle = document.getElementById('deleteHistoryChapterTitle');
+  elements.deleteHistoryTimestamp = document.getElementById('deleteHistoryTimestamp');
+  elements.deleteHistorySafeNotice = document.getElementById('deleteHistorySafeNotice');
+  elements.checkResetMangaHistory = document.getElementById('checkResetMangaHistory');
+  elements.resetMangaWarning = document.getElementById('resetMangaWarning');
+  elements.deleteHistoryModalError = document.getElementById('deleteHistoryModalError');
+
+  // Modal event listeners
+  elements.btnCloseDeleteHistoryModal?.addEventListener('click', closeDeleteHistoryModal);
+  elements.btnCancelDeleteHistory?.addEventListener('click', closeDeleteHistoryModal);
+  elements.btnConfirmDeleteHistory?.addEventListener('click', handleConfirmDeleteHistory);
+  elements.modalDeleteHistory?.addEventListener('click', (e) => {
+    if (e.target === elements.modalDeleteHistory) {
+      closeDeleteHistoryModal();
+    }
+  });
+
+  elements.checkResetMangaHistory?.addEventListener('change', () => {
+    const isReset = !!elements.checkResetMangaHistory.checked;
+    if (isReset) {
+      if (elements.resetMangaWarning) elements.resetMangaWarning.style.display = 'block';
+      if (elements.btnConfirmDeleteHistory) elements.btnConfirmDeleteHistory.textContent = 'Reiniciar manga';
+      if (elements.deleteHistorySafeNotice) {
+        elements.deleteHistorySafeNotice.innerHTML = '<strong>Atención:</strong> Se eliminará todo el historial de este manga y todos sus capítulos volverán a marcarse como no leídos (posición 0%). Tus archivos CBZ/PDF originales <strong>NO</strong> se modificarán ni eliminarán.';
+      }
+    } else {
+      if (elements.resetMangaWarning) elements.resetMangaWarning.style.display = 'none';
+      if (elements.btnConfirmDeleteHistory) elements.btnConfirmDeleteHistory.textContent = 'Quitar del historial';
+      if (elements.deleteHistorySafeNotice && activeDeleteItem) {
+        const timeFormatted = formatDateDetailed(activeDeleteItem.last_read_at);
+        elements.deleteHistorySafeNotice.innerHTML = `Se eliminará el registro de actividad de que viste este capítulo por última vez el <strong>${escapeHtml(timeFormatted)}</strong> y ya no aparecerá en tu historial.<br><br><strong>Tu progreso se conservará:</strong> El progreso de lectura de este capítulo no se perderá. Si abres el manga de nuevo desde la Biblioteca, podrás continuar desde la posición guardada.`;
+      }
+    }
+  });
+
+  // Global Escape key support
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (isDeleteHistoryModalOpen()) closeDeleteHistoryModal();
+    }
+  });
+
+  // Expose module globally for tests and host application
+  window.historyModule = {
+    initHistory,
+    loadAndRenderHistory,
+    renderContinueReading,
+    renderRecentHistory,
+    openDeleteHistoryModal,
+    closeDeleteHistoryModal,
+    handleConfirmDeleteHistory,
+    isDeleteHistoryModalOpen,
+    formatRelativeTime,
+    formatDateDetailed,
+    getDateGroupKey,
+    parseDbDate
+  };
 }
 
 /**
@@ -119,6 +201,28 @@ export function formatRelativeTime(dateVal) {
 }
 
 /**
+ * Format timestamp into Spanish human-readable detailed date string.
+ * Example: "1 de octubre de 2026 a las 10:00"
+ * @param {string|Date} dateVal
+ * @returns {string}
+ */
+export function formatDateDetailed(dateVal) {
+  const date = parseDbDate(dateVal);
+  if (!date) return 'Fecha no disponible';
+  try {
+    const day = date.getDate();
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day} de ${month} de ${year} a las ${hours}:${minutes}`;
+  } catch (_) {
+    return String(dateVal);
+  }
+}
+
+/**
  * Group key determination for chronological recent history.
  * Groups by "Hoy", "Ayer", "Esta semana", "Este mes", or "Anteriores".
  * @param {string|Date} dateVal
@@ -176,6 +280,127 @@ export async function loadAndRenderHistory() {
 }
 
 /**
+ * Check if the delete history modal is currently visible.
+ * @returns {boolean}
+ */
+export function isDeleteHistoryModalOpen() {
+  const modal = elements.modalDeleteHistory || document.getElementById('modalDeleteHistory');
+  return !!(modal && modal.style.display !== 'none');
+}
+
+/**
+ * Open the confirmation modal to delete a history entry.
+ * @param {Object} item History record
+ */
+export function openDeleteHistoryModal(item) {
+  if (!item) return;
+  activeDeleteItem = item;
+
+  const modal = elements.modalDeleteHistory || document.getElementById('modalDeleteHistory');
+  const seriesEl = elements.deleteHistorySeriesTitle || document.getElementById('deleteHistorySeriesTitle');
+  const chapterEl = elements.deleteHistoryChapterTitle || document.getElementById('deleteHistoryChapterTitle');
+  const timeEl = elements.deleteHistoryTimestamp || document.getElementById('deleteHistoryTimestamp');
+  const checkReset = elements.checkResetMangaHistory || document.getElementById('checkResetMangaHistory');
+  const resetWarning = elements.resetMangaWarning || document.getElementById('resetMangaWarning');
+  const safeNotice = elements.deleteHistorySafeNotice || document.getElementById('deleteHistorySafeNotice');
+  const confirmBtn = elements.btnConfirmDeleteHistory || document.getElementById('btnConfirmDeleteHistory');
+  const errorEl = elements.deleteHistoryModalError || document.getElementById('deleteHistoryModalError');
+
+  if (errorEl) {
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+  }
+
+  if (seriesEl) seriesEl.textContent = item.series_title || 'Manga';
+  if (chapterEl) chapterEl.textContent = item.title || item.file_name || 'Capítulo';
+
+  const formattedDate = formatDateDetailed(item.last_read_at);
+  if (timeEl) {
+    timeEl.textContent = `Última lectura: ${formattedDate}`;
+  }
+
+  if (checkReset) {
+    checkReset.checked = false;
+  }
+  if (resetWarning) {
+    resetWarning.style.display = 'none';
+  }
+  if (safeNotice) {
+    safeNotice.innerHTML = `Se eliminará el registro de actividad de que viste este capítulo por última vez el <strong>${escapeHtml(formattedDate)}</strong> y ya no aparecerá en tu historial.<br><br><strong>Tu progreso se conservará:</strong> El progreso de lectura de este capítulo no se perderá. Si abres el manga de nuevo desde la Biblioteca, podrás continuar desde la posición guardada.`;
+  }
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Quitar del historial';
+  }
+
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+/**
+ * Close the delete history confirmation modal.
+ */
+export function closeDeleteHistoryModal() {
+  activeDeleteItem = null;
+  const modal = elements.modalDeleteHistory || document.getElementById('modalDeleteHistory');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+/**
+ * Confirm and execute the deletion of a history entry or full manga reset.
+ */
+export async function handleConfirmDeleteHistory() {
+  if (!activeDeleteItem) return;
+  const item = activeDeleteItem;
+
+  const checkReset = elements.checkResetMangaHistory || document.getElementById('checkResetMangaHistory');
+  const isReset = !!(checkReset && checkReset.checked);
+  const confirmBtn = elements.btnConfirmDeleteHistory || document.getElementById('btnConfirmDeleteHistory');
+  const errorEl = elements.deleteHistoryModalError || document.getElementById('deleteHistoryModalError');
+
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = isReset ? 'Reiniciando...' : 'Quitando...';
+  }
+  if (errorEl) {
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+  }
+
+  try {
+    if (isReset) {
+      if (window.lecfalAPI && typeof window.lecfalAPI.resetSeriesReadingHistory === 'function') {
+        await window.lecfalAPI.resetSeriesReadingHistory(item.series_id);
+      }
+      closeDeleteHistoryModal();
+      callbacks.showToast?.('Historial y progreso del manga reiniciados con éxito.');
+    } else {
+      const chapterId = item.id || item.chapter_id;
+      if (window.lecfalAPI && typeof window.lecfalAPI.deleteReadingHistoryEntry === 'function') {
+        await window.lecfalAPI.deleteReadingHistoryEntry(chapterId);
+      }
+      closeDeleteHistoryModal();
+      callbacks.showToast?.('Capítulo quitado del historial.');
+    }
+
+    await loadAndRenderHistory();
+  } catch (err) {
+    console.error('[LecFal History] Error al eliminar registro:', err);
+    if (errorEl) {
+      errorEl.textContent = `Error: ${err.message}`;
+      errorEl.style.display = 'block';
+    }
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = isReset ? 'Reiniciar manga' : 'Quitar del historial';
+    }
+  }
+}
+
+/**
  * Render Section A: Continue Reading cards.
  * @param {Array<Object>} items
  */
@@ -207,14 +432,14 @@ export function renderContinueReading(items = []) {
     card.className = 'continue-card';
     card.tabIndex = 0;
     card.setAttribute('role', 'button');
-    card.setAttribute('aria-label', `Continuar leyendo ${item.series_title || 'Manga'} - ${item.title || 'Capítulo'}`);
+    card.setAttribute('aria-label', `Ver detalles de ${item.series_title || 'Manga'} - ${item.title || 'Capítulo'}`);
     card.dataset.chapterId = item.id;
     if (item.series_id) card.dataset.seriesId = item.series_id;
 
     const rawPos = (typeof item.reading_position === 'number' && !isNaN(item.reading_position))
       ? item.reading_position
       : 0;
-    const percent = Math.min(99, Math.max(1, Math.round(rawPos * 100)));
+    const percent = Math.round(rawPos * 100);
     const timeStr = formatRelativeTime(item.last_read_at);
     const formatUpper = (item.format || item.series_format || 'CBZ').toUpperCase();
 
@@ -228,19 +453,20 @@ export function renderContinueReading(items = []) {
     }
 
     card.innerHTML = `
-      <div class="continue-card-cover-wrapper">
+      <div class="continue-card-cover-wrapper" title="Ver detalles del manga">
         <span class="continue-card-format-badge">${formatUpper}</span>
         ${coverHtml}
         <div class="continue-card-overlay">
-          <div class="continue-card-overlay-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3"/>
+          <div class="continue-card-overlay-icon" aria-hidden="true" title="Ver detalles">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
             </svg>
           </div>
         </div>
       </div>
       <div class="continue-card-info">
-        <div class="continue-card-title-group">
+        <div class="continue-card-title-group" title="Ver detalles del manga">
           <div class="continue-card-manga" title="${escapeHtml(item.series_title || 'Manga')}">${escapeHtml(item.series_title || 'Manga')}</div>
           <div class="continue-card-chapter" title="${escapeHtml(item.title || '')}">${escapeHtml(item.title || 'Capítulo')}</div>
         </div>
@@ -254,6 +480,14 @@ export function renderContinueReading(items = []) {
           </div>
         </div>
         <div class="continue-card-actions">
+          <button class="btn-delete-card" type="button" title="Quitar del historial" aria-label="Quitar del historial">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+          </button>
           <button class="btn-continue-card" type="button" title="Continuar lectura">
             <svg viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5 3 19 12 5 21 5 3"/>
@@ -264,24 +498,33 @@ export function renderContinueReading(items = []) {
       </div>
     `;
 
-    // Open reader on click or Enter/Space
-    const triggerOpen = (e) => {
-      e?.preventDefault?.();
-      callbacks.openReader?.(item.id);
-    };
+    // Clicking the cover opens Manga Detail
+    const coverWrapper = card.querySelector('.continue-card-cover-wrapper');
 
-    card.addEventListener('click', triggerOpen);
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        triggerOpen(e);
-      }
-    });
+    if (coverWrapper) {
+      coverWrapper.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (item.series_id) {
+        callbacks.openMangaView?.(item.series_id);
+        }
+      });
+    }
 
+    // Clicking "Continuar" opens the exact chapter in the reader
     const continueBtn = card.querySelector('.btn-continue-card');
     if (continueBtn) {
       continueBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        triggerOpen(e);
+        callbacks.openReader?.(item.id);
+      });
+    }
+
+    // Clicking delete opens delete modal
+    const deleteBtn = card.querySelector('.btn-delete-card');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDeleteHistoryModal(item);
       });
     }
 
@@ -369,7 +612,7 @@ export function renderRecentHistory(items = []) {
       row.className = 'recent-item';
       row.tabIndex = 0;
       row.setAttribute('role', 'button');
-      row.setAttribute('aria-label', `Abrir ${item.series_title || 'Manga'} - ${item.title || 'Capítulo'}`);
+      row.setAttribute('aria-label', `Ver detalles de ${item.series_title || 'Manga'} - ${item.title || 'Capítulo'}`);
       row.dataset.chapterId = item.id;
       if (item.series_id) row.dataset.seriesId = item.series_id;
 
@@ -399,7 +642,7 @@ export function renderRecentHistory(items = []) {
 
       row.innerHTML = `
         <div class="recent-item-left">
-          <div class="recent-item-cover">
+          <div class="recent-item-cover" title="Ver detalles del manga">
             ${coverHtml}
           </div>
           <div class="recent-item-details">
@@ -410,6 +653,14 @@ export function renderRecentHistory(items = []) {
         <div class="recent-item-right">
           ${statusBadgeHtml}
           ${timeStr ? `<span class="recent-item-time">${escapeHtml(timeStr)}</span>` : ''}
+          <button class="recent-item-btn-delete" type="button" title="Quitar del historial" aria-label="Quitar del historial">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+          </button>
           <button class="recent-item-btn-open" type="button" title="Leer capítulo">
             <svg viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5 3 19 12 5 21 5 3"/>
@@ -418,23 +669,33 @@ export function renderRecentHistory(items = []) {
         </div>
       `;
 
-      const triggerOpen = (e) => {
-        e?.preventDefault?.();
-        callbacks.openReader?.(item.id);
-      };
+      // Clicking only the cover opens Manga Detail
+      const cover = row.querySelector('.recent-item-cover');
 
-      row.addEventListener('click', triggerOpen);
-      row.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          triggerOpen(e);
-        }
-      });
+      if (cover) {
+        cover.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (item.series_id) {
+            callbacks.openMangaView?.(item.series_id);
+          }
+        });
+      }
 
+      // Clicking open button triggers reader for exact chapter
       const openBtn = row.querySelector('.recent-item-btn-open');
       if (openBtn) {
         openBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          triggerOpen(e);
+          callbacks.openReader?.(item.id);
+        });
+      }
+
+      // Clicking delete button opens delete modal
+      const deleteBtn = row.querySelector('.recent-item-btn-delete');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openDeleteHistoryModal(item);
         });
       }
 
