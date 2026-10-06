@@ -44,6 +44,8 @@ import {
   initSettings,
   renderAllSettings,
   renderSettingsFolders,
+  renderSettingsIgnoredAuthors,
+  refreshCatalog,
   applyTheme,
   isRenameModalOpen,
   closeRenameModal,
@@ -61,6 +63,7 @@ import {
 import {
   initDetail,
   renderMangaDetail,
+  setDetailBackTarget,
   reloadActiveSeries,
   getActiveSeries,
   clearActiveSeries,
@@ -84,6 +87,12 @@ let folders = [];
 // Current Active View: 'library', 'manga', 'settings', or 'history'
 let currentView = 'library';
 let lastTopLevelView = 'library';
+
+// Manga Detail navigation origin: 'library' | 'history'.
+// Determines the label and destination of the Detail back button.
+let detailOrigin = 'library';
+// Scroll offset of the History view captured when opening Detail from History
+let historyScrollTop = 0;
 
 // ==================== DOM ELEMENTS ====================
 // Views
@@ -115,7 +124,7 @@ async function init() {
   setupEventListeners();
 
   initLibrary({
-    openMangaView: (seriesId) => openMangaView(seriesId),
+    openMangaView: (seriesId) => openMangaView(seriesId, { source: 'library' }),
     getFolders: () => folders,
     onAddFolder: () => handleAddFolder(),
     getCurrentView: () => currentView,
@@ -137,17 +146,27 @@ async function init() {
 
   initDetail({
     navigateToLibrary,
+    navigateBack: () => navigateBackFromDetail(),
     openReader,
     refreshSeries: (preserveScroll) => refreshSeries(preserveScroll),
     openCatalogPicker: (type) => openCatalogPicker(type),
-    refreshAdvSearch: () => populateAdvSearchOptions(),
+    refreshAdvSearch: (type) => {
+      if (type === 'author') return populateAdvSearchAuthors();
+      if (type === 'tag') return populateAdvSearchTags();
+      if (type === 'group') return populateAdvSearchGroups();
+      if (type === 'language') return populateAdvSearchLanguages();
+      if (type === 'parody') return populateAdvSearchParodies();
+      return populateAdvSearchOptions();
+    },
+    refreshCatalog: (type) => refreshCatalog(type),
+    refreshIgnoredAuthors: () => renderSettingsIgnoredAuthors(),
     showToast
   });
 
   // Initialize History module
   initHistory({
     openReader: (chapterId) => openReader(chapterId),
-    openMangaView: (seriesId) => openMangaView(seriesId),
+    openMangaView: (seriesId) => openMangaView(seriesId, { source: 'history' }),
     showToast
   });
 
@@ -278,7 +297,7 @@ function setupEventListeners() {
         else navigateToLibrary();
       }
       else if (currentView === 'history') navigateToLibrary();
-      else if (currentView === 'manga') navigateToLibrary();
+      else if (currentView === 'manga') navigateBackFromDetail();
       else if (hasSearchQuery() || hasActiveAdvFilters()) {
         clearSearch();
         handleClearAdvancedSearch();
@@ -296,6 +315,7 @@ function updateTopNavTabs() {
 function navigateToLibrary() {
   currentView = 'library';
   lastTopLevelView = 'library';
+  detailOrigin = 'library';
   updateTopNavTabs();
   if (topNav) topNav.style.display = 'flex';
   if (mangaView) mangaView.style.display = 'none';
@@ -335,7 +355,26 @@ async function openReader(chapterId) {
   await webtoonReader.open(chapterId);
 }
 
-async function openMangaView(seriesId) {
+/**
+ * Open the Manga Detail view.
+ * @param {number|string} seriesId
+ * @param {Object} [options]
+ * @param {'library'|'history'} [options.source] Navigation origin. When omitted,
+ *   the current origin is preserved (e.g. returning to Detail from the reader).
+ */
+async function openMangaView(seriesId, options = {}) {
+  const source = options && options.source;
+  if (source === 'history' || source === 'library') {
+    if (source === 'history') {
+      const historyScroll = historyView?.querySelector('.history-scroll-container');
+      if (currentView === 'history' && historyScroll) {
+        historyScrollTop = historyScroll.scrollTop;
+      }
+    }
+    detailOrigin = source;
+  }
+  setDetailBackTarget(detailOrigin);
+
   currentView = 'manga';
   if (topNav) topNav.style.display = 'none';
   if (libraryView) libraryView.style.display = 'none';
@@ -346,6 +385,19 @@ async function openMangaView(seriesId) {
   navSearchContainer.style.visibility = 'hidden';
 
   await renderMangaDetail(seriesId);
+}
+
+/**
+ * Leave Manga Detail towards the view it was opened from.
+ */
+async function navigateBackFromDetail() {
+  if (detailOrigin === 'history') {
+    await navigateToHistory();
+    const historyScroll = historyView?.querySelector('.history-scroll-container');
+    if (historyScroll) historyScroll.scrollTop = historyScrollTop;
+  } else {
+    navigateToLibrary();
+  }
 }
 
 async function openSettingsView(targetSectionId = null) {
@@ -359,7 +411,7 @@ async function openSettingsView(targetSectionId = null) {
   navSearchContainer.style.visibility = 'hidden';
 
   // Load and render all metadata catalogs + libraries + folders + ignored values
-  await renderAllSettings();
+  await renderAllSettings({ forceRefresh: true });
 
   // If a target section string is provided (e.g. 'sectionLibraries'), switch directly to it.
   // Otherwise preserve the current active section or default to 'sectionAppearance'.
@@ -490,6 +542,9 @@ async function renderFoldersList() {
 // Expose view functions on window for programmatic access and navigation
 window.lecfalViews = {
   navigateToLibrary,
+  navigateToHistory,
+  navigateBackFromDetail,
+  getDetailOrigin: () => detailOrigin,
   openMangaView,
   openSettingsView,
   openCatalogPicker,

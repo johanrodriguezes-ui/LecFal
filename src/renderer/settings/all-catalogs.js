@@ -20,6 +20,7 @@ import {
   deleteItem,
   openRenameModal,
   ensureAllCatalogsLoaded,
+  refreshAllCatalogs,
   onCatalogChange
 } from './catalog-manager.js';
 
@@ -160,6 +161,15 @@ export function ensureAllCatalogsFrameMounted() {
         </div>
       </div>
       <div class="settings-card-actions">
+        <button type="button" class="btn btn-secondary btn-all-catalogs-refresh" title="Refrescar todos los catálogos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 21h5v-5"/>
+          </svg>
+          <span>Refrescar</span>
+        </button>
         <button type="button" class="btn btn-primary btn-all-catalogs-add" title="Crear nuevo elemento en un catálogo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -240,6 +250,7 @@ export function ensureAllCatalogsFrameMounted() {
   `;
 
   // Attach event listeners to controls
+  const refreshBtn = section.querySelector('.btn-all-catalogs-refresh');
   const addBtn = section.querySelector('.btn-all-catalogs-add');
   const addForm = section.querySelector('.all-catalogs-add-form');
   const addTypeSelect = section.querySelector('.all-catalogs-add-type');
@@ -249,6 +260,22 @@ export function ensureAllCatalogsFrameMounted() {
   const clearBtn = section.querySelector('.all-catalogs-search-clear-btn');
   const sortSelect = section.querySelector('.all-catalogs-sort-select');
   const pills = section.querySelectorAll('.all-catalogs-pill');
+
+  // Refresh all catalogs action
+  refreshBtn?.addEventListener('click', async () => {
+    refreshBtn.disabled = true;
+    const svg = refreshBtn.querySelector('svg');
+    if (svg) svg.classList.add('spin-icon');
+    try {
+      await refreshAllCatalogs();
+      await renderAllCatalogs();
+    } catch (err) {
+      console.error('Error refreshing all catalogs:', err);
+    } finally {
+      if (svg) svg.classList.remove('spin-icon');
+      refreshBtn.disabled = false;
+    }
+  });
 
   // Add toggle
   addBtn?.addEventListener('click', () => {

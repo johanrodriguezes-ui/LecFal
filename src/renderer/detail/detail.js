@@ -101,6 +101,8 @@ let callbacks = {
   refreshSeries: null,
   openCatalogPicker: null,
   refreshAdvSearch: null,
+  refreshCatalog: null,
+  refreshIgnoredAuthors: null,
   showToast: null
 };
 
@@ -351,7 +353,12 @@ function renderDetectedAuthorHint(series, authors) {
           await window.lecfalAPI.createAuthor(detected);
           toast(`Autor "${detected}" creado y asignado`);
           await reloadActiveSeries();
-          callbacks.refreshAdvSearch?.();
+          callbacks.refreshAdvSearch?.('author');
+          if (typeof callbacks.refreshCatalog === 'function') {
+            await callbacks.refreshCatalog('author');
+          } else if (window.catalogManager?.refreshCatalog) {
+            await window.catalogManager.refreshCatalog('author');
+          }
         } catch (err) {
           toast(err.message);
         }
@@ -366,6 +373,11 @@ function renderDetectedAuthorHint(series, authors) {
           toast(`"${detected}" ignorado`);
           detectedAuthorHint.style.display = 'none';
           detectedAuthorHint.innerHTML = '';
+          if (typeof callbacks.refreshIgnoredAuthors === 'function') {
+            await callbacks.refreshIgnoredAuthors();
+          } else if (typeof window.renderSettingsIgnoredAuthors === 'function') {
+            await window.renderSettingsIgnoredAuthors();
+          }
         } catch (err) {
           toast(err.message);
         }
@@ -760,7 +772,13 @@ async function handlePermanentDelete() {
 
 // ==================== EVENT LISTENERS & INITIALIZATION ====================
 function setupDetailEventListeners() {
-  btnBackToLibrary?.addEventListener('click', () => callbacks.navigateToLibrary?.());
+  btnBackToLibrary?.addEventListener('click', () => {
+    if (typeof callbacks.navigateBack === 'function') {
+      callbacks.navigateBack();
+    } else {
+      callbacks.navigateToLibrary?.();
+    }
+  });
 
   btnMangaFav?.addEventListener('click', async () => {
     if (activeSeries) {
@@ -892,6 +910,7 @@ function setupDetailEventListeners() {
  * 
  * @param {Object} options
  * @param {Function} options.navigateToLibrary
+ * @param {Function} [options.navigateBack] Context-aware back navigation (Library or History)
  * @param {Function} options.openReader
  * @param {Function} options.refreshSeries
  * @param {Function} options.openCatalogPicker
@@ -901,4 +920,19 @@ function setupDetailEventListeners() {
 export function initDetail(options = {}) {
   callbacks = { ...callbacks, ...options };
   setupDetailEventListeners();
+}
+
+/**
+ * Update the Manga Detail back button to reflect the navigation origin.
+ * @param {'library'|'history'} origin
+ */
+export function setDetailBackTarget(origin = 'library') {
+  if (!btnBackToLibrary) return;
+  const isHistory = origin === 'history';
+  const label = isHistory ? 'Historial' : 'Biblioteca';
+  const labelSpan = btnBackToLibrary.querySelector('span');
+  if (labelSpan) labelSpan.textContent = label;
+  btnBackToLibrary.dataset.origin = isHistory ? 'history' : 'library';
+  btnBackToLibrary.title = isHistory ? 'Volver al historial' : 'Volver a la biblioteca';
+  btnBackToLibrary.setAttribute('aria-label', btnBackToLibrary.title);
 }

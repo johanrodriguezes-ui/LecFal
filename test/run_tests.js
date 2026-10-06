@@ -52,6 +52,16 @@ const tests = [
     cmd: process.execPath, // node
     args: [path.join(__dirname, 'integration', 'test_history.js')]
   },
+  {
+    name: 'Reading History Model & Invariants Suite',
+    cmd: process.execPath, // node
+    args: [path.join(__dirname, 'integration', 'test_reading_history.js')]
+  },
+  {
+    name: 'History → Manga Detail Navigation Context Suite',
+    cmd: 'npx',
+    args: ['electron', path.join(__dirname, 'integration', 'test_history_navigation.js')]
+  },
 
   {
     name: 'Reader Persistent Reading Position Suite',
@@ -92,6 +102,11 @@ const tests = [
     name: 'Settings UI Redesign Phase 4 UX Polish Suite',
     cmd: 'npx',
     args: ['electron', path.join(__dirname, 'integration', 'test_settings_ux_polish.js')]
+  },
+  {
+    name: 'Settings Author Suggestion & Refresh Suite',
+    cmd: 'npx',
+    args: ['electron', path.join(__dirname, 'integration', 'test_author_suggestion_refresh.js')]
   },
   {
     name: 'Storage & Portability Isolation Suite (Phase 5.1)',

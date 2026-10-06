@@ -19,6 +19,7 @@ const elements = {
   // Libraries
   settingsLibrariesList: null,
   btnSettingsAddLibrary: null,
+  btnSettingsRefreshLibraries: null,
 
   // Dedicated Create Library Modal
   modalCreateLibrary: null,
@@ -32,10 +33,12 @@ const elements = {
   settingsFoldersList: null,
   btnSettingsScanAll: null,
   btnSettingsAddFolder: null,
+  btnSettingsRefreshFolders: null,
   statusFolderCount: null,
 
   // Ignored Values
-  settingsIgnoredAuthorsList: null
+  settingsIgnoredAuthorsList: null,
+  btnRefreshIgnoredAuthors: null
 };
 
 // ==================== EXTERNAL CALLBACKS ====================
@@ -56,6 +59,7 @@ import {
   initCatalogManager,
   renderCatalog,
   refreshCatalog,
+  refreshAllCatalogs,
   setCatalogSearch,
   getCatalogSearch,
   getCatalogItems,
@@ -96,6 +100,7 @@ export {
   initCatalogManager,
   renderCatalog,
   refreshCatalog,
+  refreshAllCatalogs,
   setCatalogSearch,
   getCatalogSearch,
   getCatalogItems,
@@ -489,19 +494,34 @@ export async function renderSettingsIgnoredAuthors() {
   }
 }
 
-export async function renderAllSettings() {
-  await Promise.all([
-    renderCatalog('tag'),
-    renderCatalog('author'),
-    renderCatalog('group'),
-    renderCatalog('language'),
-    renderCatalog('parody'),
-    renderSettingsLibraries(),
-    renderSettingsFolders(),
-    renderSettingsIgnoredAuthors(),
-    renderAllCatalogs(),
-    renderStorageSettings()
-  ]);
+export async function renderAllSettings({ forceRefresh = true } = {}) {
+  if (forceRefresh) {
+    await Promise.all([
+      refreshCatalog('tag'),
+      refreshCatalog('author'),
+      refreshCatalog('group'),
+      refreshCatalog('language'),
+      refreshCatalog('parody'),
+      renderSettingsLibraries(),
+      renderSettingsFolders(),
+      renderSettingsIgnoredAuthors(),
+      renderAllCatalogs(),
+      renderStorageSettings()
+    ]);
+  } else {
+    await Promise.all([
+      renderCatalog('tag'),
+      renderCatalog('author'),
+      renderCatalog('group'),
+      renderCatalog('language'),
+      renderCatalog('parody'),
+      renderSettingsLibraries(),
+      renderSettingsFolders(),
+      renderSettingsIgnoredAuthors(),
+      renderAllCatalogs(),
+      renderStorageSettings()
+    ]);
+  }
 }
 
 // ==================== SETTINGS SECTION NAVIGATION ====================
@@ -558,17 +578,30 @@ export function switchSettingsSection(sectionId) {
     }
   });
 
-  // Render unified catalogs when switching to sectionAllCatalogs
-  if (finalSectionId === 'sectionAllCatalogs') {
+  // 3. Keep section data freshly loaded on navigation switch
+  const sectionCatalogMap = {
+    sectionAuthors: 'author',
+    sectionTags: 'tag',
+    sectionLanguages: 'language',
+    sectionParodies: 'parody',
+    sectionGroups: 'group'
+  };
+
+  if (sectionCatalogMap[finalSectionId]) {
+    refreshCatalog(sectionCatalogMap[finalSectionId]);
+  } else if (finalSectionId === 'sectionAllCatalogs') {
     renderAllCatalogs();
-  }
-
-  // Render storage settings when switching to sectionStorage
-  if (finalSectionId === 'sectionStorage') {
+  } else if (finalSectionId === 'sectionStorage') {
     renderStorageSettings();
+  } else if (finalSectionId === 'sectionLibraries') {
+    renderSettingsLibraries();
+  } else if (finalSectionId === 'sectionFolders') {
+    renderSettingsFolders();
+  } else if (finalSectionId === 'sectionIgnoredAuthors') {
+    renderSettingsIgnoredAuthors();
   }
 
-  // 3. Reset scroll of content area to top
+  // 4. Reset scroll of content area to top
   const contentArea = document.getElementById('settingsContent');
   if (contentArea) {
     contentArea.scrollTop = 0;
@@ -611,6 +644,7 @@ export function initSettings(options = {}) {
   // Libraries
   elements.settingsLibrariesList = document.getElementById('settingsLibrariesList');
   elements.btnSettingsAddLibrary = document.getElementById('btnSettingsAddLibrary');
+  elements.btnSettingsRefreshLibraries = document.getElementById('btnSettingsRefreshLibraries');
 
   // Dedicated Create Library Modal
   elements.modalCreateLibrary = document.getElementById('modalCreateLibrary');
@@ -624,8 +658,10 @@ export function initSettings(options = {}) {
   elements.settingsFoldersList = document.getElementById('settingsFoldersList');
   elements.btnSettingsScanAll = document.getElementById('btnSettingsScanAll');
   elements.btnSettingsAddFolder = document.getElementById('btnSettingsAddFolder');
+  elements.btnSettingsRefreshFolders = document.getElementById('btnSettingsRefreshFolders');
   elements.statusFolderCount = document.getElementById('statusFolderCount');
   elements.settingsIgnoredAuthorsList = document.getElementById('settingsIgnoredAuthorsList');
+  elements.btnRefreshIgnoredAuthors = document.getElementById('btnRefreshIgnoredAuthors');
 
   // Theme listeners
   elements.themeOptDark?.addEventListener('click', () => applyTheme('dark'));
@@ -633,6 +669,22 @@ export function initSettings(options = {}) {
 
   // Library buttons & modal listeners
   elements.btnSettingsAddLibrary?.addEventListener('click', openCreateLibraryModal);
+  elements.btnSettingsRefreshLibraries?.addEventListener('click', async () => {
+    const btn = elements.btnSettingsRefreshLibraries;
+    btn.disabled = true;
+    const svg = btn.querySelector('svg');
+    if (svg) svg.classList.add('spin-icon');
+    try {
+      await renderSettingsLibraries();
+      callbacks.showToast('Bibliotecas actualizadas');
+    } catch (err) {
+      console.error('Error refreshing libraries:', err);
+    } finally {
+      if (svg) svg.classList.remove('spin-icon');
+      btn.disabled = false;
+    }
+  });
+
   elements.btnCloseCreateLibraryModal?.addEventListener('click', closeCreateLibraryModal);
   elements.btnCancelCreateLibraryModal?.addEventListener('click', closeCreateLibraryModal);
   elements.btnConfirmCreateLibraryModal?.addEventListener('click', handleConfirmCreateLibrary);
@@ -657,12 +709,47 @@ export function initSettings(options = {}) {
       callbacks.runAllScan('incremental');
     }
   });
+  elements.btnSettingsRefreshFolders?.addEventListener('click', async () => {
+    const btn = elements.btnSettingsRefreshFolders;
+    btn.disabled = true;
+    const svg = btn.querySelector('svg');
+    if (svg) svg.classList.add('spin-icon');
+    try {
+      await renderSettingsFolders();
+      if (typeof callbacks.refreshFolders === 'function') {
+        await callbacks.refreshFolders();
+      }
+      callbacks.showToast('Carpetas actualizadas');
+    } catch (err) {
+      console.error('Error refreshing folders:', err);
+    } finally {
+      if (svg) svg.classList.remove('spin-icon');
+      btn.disabled = false;
+    }
+  });
   elements.btnSettingsAddFolder?.addEventListener('click', async () => {
     if (typeof callbacks.onAddFolder === 'function') {
       await callbacks.onAddFolder();
     }
     await renderSettingsFolders();
     await renderSettingsLibraries();
+  });
+
+  // Ignored authors refresh button
+  elements.btnRefreshIgnoredAuthors?.addEventListener('click', async () => {
+    const btn = elements.btnRefreshIgnoredAuthors;
+    btn.disabled = true;
+    const svg = btn.querySelector('svg');
+    if (svg) svg.classList.add('spin-icon');
+    try {
+      await renderSettingsIgnoredAuthors();
+      callbacks.showToast('Valores ignorados actualizados');
+    } catch (err) {
+      console.error('Error refreshing ignored authors:', err);
+    } finally {
+      if (svg) svg.classList.remove('spin-icon');
+      btn.disabled = false;
+    }
   });
 
   // Settings Sidebar navigation listeners
@@ -701,6 +788,12 @@ export function initSettings(options = {}) {
   window.getCurrentSettingsSection = getCurrentSettingsSection;
   window.renderAllCatalogs = renderAllCatalogs;
   window.renderStorageSettings = renderStorageSettings;
+  window.renderSettingsIgnoredAuthors = renderSettingsIgnoredAuthors;
+  window.renderSettingsLibraries = renderSettingsLibraries;
+  window.renderSettingsFolders = renderSettingsFolders;
+  window.renderAllSettings = renderAllSettings;
+  window.refreshCatalog = refreshCatalog;
+  window.refreshAllCatalogs = refreshAllCatalogs;
 }
 
 

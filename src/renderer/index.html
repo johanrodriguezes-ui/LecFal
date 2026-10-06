@@ -814,6 +814,15 @@
                 </div>
               </div>
               <div class="settings-card-actions">
+                <button class="btn btn-secondary" id="btnSettingsRefreshLibraries" title="Refrescar bibliotecas">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                    <path d="M16 21h5v-5"/>
+                  </svg>
+                  <span>Refrescar</span>
+                </button>
                 <button class="btn btn-primary" id="btnSettingsAddLibrary">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -846,6 +855,15 @@
                 </div>
               </div>
               <div class="settings-card-actions">
+                <button class="btn btn-secondary" id="btnSettingsRefreshFolders" title="Refrescar lista de carpetas">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                    <path d="M16 21h5v-5"/>
+                  </svg>
+                  <span>Refrescar</span>
+                </button>
                 <button class="btn btn-secondary" id="btnSettingsScanAll" title="Escanear todas las carpetas disponibles">
                   <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                     <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -955,6 +973,17 @@
                   <p class="settings-card-desc">Textos entre corchetes o paréntesis rechazados como autores (ej. temas, scans, editoriales). Puedes restaurarlos si fueron ignorados por error.</p>
                 </div>
               </div>
+              <div class="settings-card-actions">
+                <button type="button" class="btn btn-secondary" id="btnRefreshIgnoredAuthors" title="Refrescar valores ignorados">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                    <path d="M16 21h5v-5"/>
+                  </svg>
+                  <span>Refrescar</span>
+                </button>
+              </div>
             </div>
 
             <div class="settings-card-body">
@@ -1009,6 +1038,20 @@
                     <div class="storage-path-container">
                       <span class="storage-field-label">Ruta actual de almacenamiento:</span>
                       <div class="storage-path-box" id="storageCurrentPath">Cargando ruta...</div>
+                    </div>
+
+                    <!-- NUEVO: Directorio de datos portables (solo visible en modo Portable) -->
+                    <div class="storage-path-container" id="storagePortableRow" style="display: none;">
+                      <span class="storage-field-label">Directorio de datos portables:</span>
+                      <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+                        <div class="storage-path-box" id="storagePortablePathValue" style="flex: 1; min-width: 0;">No configurado</div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btnChoosePortablePath" style="flex-shrink: 0;">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                          </svg>
+                          <span>Elegir carpeta…</span>
+                        </button>
+                      </div>
                     </div>
 
                     <p class="storage-desc-text">
@@ -1083,6 +1126,60 @@
                     </svg>
                     <span>Migrar datos</span>
                   </button>
+                </div>
+
+                <!-- Clear History Card -->
+                <div class="storage-reset-card" style="margin-bottom: 16px; border-color: rgba(245, 158, 11, 0.25);">
+                  <div class="storage-card-title-row">
+                    <div class="storage-card-title-group">
+                      <div class="storage-card-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10"/>
+                          <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 class="storage-card-title">Limpiar historial</h4>
+                        <p class="storage-desc-text" style="margin: 4px 0 0 0;">
+                          Elimina todos los registros de actividad de lectura del historial. Tu progreso actual (posición guardada y capítulos leídos) y tus archivos de cómics <strong>se conservarán intactos</strong>.
+                        </p>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="btnOpenClearHistoryModal" style="flex-shrink: 0;">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                        <path d="M3 6h18"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                      <span>Limpiar historial</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Reset History and Progress Card -->
+                <div class="storage-reset-card" style="margin-bottom: 16px; border-color: rgba(239, 68, 68, 0.25);">
+                  <div class="storage-card-title-row">
+                    <div class="storage-card-title-group">
+                      <div class="storage-card-icon" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="1 4 1 10 7 10"/>
+                          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 class="storage-card-title">Reiniciar historial y progreso</h4>
+                        <p class="storage-desc-text" style="margin: 4px 0 0 0;">
+                          Elimina todo el historial de lectura y restablece el progreso de todos los mangas. Los capítulos volverán a aparecer como no leídos y se perderán las posiciones guardadas. Los mangas, metadatos y archivos CBZ/PDF <strong>permanecerán intactos</strong>.
+                        </p>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-danger" id="btnOpenResetProgressModal" style="flex-shrink: 0;">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                        <polyline points="1 4 1 10 7 10"/>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                      </svg>
+                      <span>Reiniciar historial y progreso</span>
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Reset Application Card (Danger Zone) -->
@@ -1703,6 +1800,124 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btnCancelResetApp">Cancelar</button>
         <button class="btn btn-danger" id="btnConfirmResetApp">Restablecer aplicación</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Quitar del Historial (Individual o Reset Manga) -->
+  <div class="modal-backdrop" id="modalDeleteHistory" role="dialog" aria-modal="true" aria-labelledby="deleteHistoryModalTitle" style="display: none;">
+    <div class="modal-card modal-small-card">
+      <div class="modal-header">
+        <h3 id="deleteHistoryModalTitle">Quitar del historial</h3>
+        <button class="modal-close-btn" id="btnCloseDeleteHistoryModal" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description" id="deleteHistoryMessage" style="margin-bottom: 12px;">
+          ¿Deseas quitar este capítulo del historial?
+        </p>
+
+        <div class="delete-history-meta-box" id="deleteHistoryMetaBox" style="background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 12px; margin-bottom: 12px; border: 1px solid rgba(255, 255, 255, 0.08);">
+          <div style="font-weight: 600; color: var(--text-primary, #f8fafc); font-size: 0.95rem; margin-bottom: 4px;" id="deleteHistorySeriesTitle">—</div>
+          <div style="font-size: 0.85rem; color: var(--text-secondary, #cbd5e1); margin-bottom: 6px;" id="deleteHistoryChapterTitle">—</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted, #94a3b8);" id="deleteHistoryTimestamp">—</div>
+        </div>
+
+        <div class="storage-callout-safe" id="deleteHistorySafeNotice" style="margin: 12px 0;">
+          <strong>Tu progreso se conservará:</strong> Tu progreso de lectura permanecerá intacto. Si abres el manga de nuevo desde la Biblioteca, podrás continuar desde la posición guardada.
+        </div>
+
+        <div class="delete-history-reset-wrap" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="checkResetMangaHistory" style="margin-top: 3px; cursor: pointer;">
+            <span style="font-size: 0.9rem; color: var(--text-primary, #e2e8f0); font-weight: 500;">
+              Reiniciar también el historial y progreso de este manga
+            </span>
+          </label>
+          <p id="resetMangaWarning" style="margin: 6px 0 0 24px; font-size: 0.8rem; color: #ff8b94; display: none;">
+            Se eliminará todo el historial de este manga y todos sus capítulos volverán a marcarse como no leídos (posición 0%).
+          </p>
+        </div>
+
+        <div id="deleteHistoryModalError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelDeleteHistory">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmDeleteHistory">Quitar del historial</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Limpiar Todo el Historial -->
+  <div class="modal-backdrop" id="modalClearHistory" role="dialog" aria-modal="true" aria-labelledby="clearHistoryModalTitle" style="display: none;">
+    <div class="modal-card modal-small-card">
+      <div class="modal-header">
+        <h3 id="clearHistoryModalTitle" style="color: #f59e0b;">Limpiar historial</h3>
+        <button class="modal-close-btn" id="btnCloseClearHistoryModal" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description" style="margin-bottom: 12px;">
+          Esta acción vaciará por completo la lista de «Continuar leyendo» y el registro cronológico del historial.
+        </p>
+
+        <div class="storage-callout-safe" style="margin: 12px 0;">
+          <strong>Progreso y archivos seguros:</strong> Tus posiciones de lectura guardadas, el estado de leído/no leído, tus mangas y tus archivos CBZ/PDF originales <strong>NO</strong> se modificarán ni eliminarán.
+        </div>
+
+        <div id="clearHistoryModalError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelClearHistory">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmClearHistory" style="background: #d97706; border-color: #d97706;">Limpiar historial</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Reiniciar Historial y Progreso -->
+  <div class="modal-backdrop" id="modalResetProgress" role="dialog" aria-modal="true" aria-labelledby="resetProgressModalTitle" style="display: none;">
+    <div class="modal-card modal-small-card">
+      <div class="modal-header">
+        <h3 id="resetProgressModalTitle" style="color: #ef4444;">¿Reiniciar historial y progreso?</h3>
+        <button class="modal-close-btn" id="btnCloseResetProgressModal" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description" style="margin-bottom: 12px;">
+          Esta acción eliminará todo el historial de lectura y restablecerá el progreso de todos los mangas.
+        </p>
+
+        <div class="storage-callout-warning" style="margin-bottom: 12px;">
+          <strong>Atención:</strong> Todos los capítulos volverán a aparecer como no leídos y se perderán las posiciones guardadas.
+        </div>
+
+        <div class="storage-callout-safe" style="margin: 12px 0;">
+          Los mangas, capítulos, metadatos y archivos CBZ/PDF permanecerán intactos.
+        </div>
+
+        <div id="resetProgressModalError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelResetProgress">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmResetProgress">Reiniciar todo</button>
       </div>
     </div>
   </div>
