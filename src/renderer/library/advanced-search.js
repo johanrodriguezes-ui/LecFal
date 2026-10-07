@@ -51,7 +51,10 @@ export const autocompletes = {
 
 // ==================== EXTERNAL CALLBACKS ====================
 let callbacks = {
-  refreshSeries: () => {}
+  refreshSeries: () => {},
+  onOpenAdvSearch: () => {},
+  onCloseAdvSearch: () => {},
+  setAdvWaiting: () => {}
 };
 
 // ==================== DROPDOWN CONFIGURATION ====================
@@ -222,8 +225,13 @@ export function toggleAdvancedSearchPanel(forceState) {
   const isCurrentlyOpen = elements.advSearchPanel.style.display !== 'none';
   const shouldOpen = forceState !== undefined ? forceState : !isCurrentlyOpen;
   elements.advSearchPanel.style.display = shouldOpen ? 'block' : 'none';
-  if (shouldOpen && elements.advInputTitle) {
-    elements.advInputTitle.focus();
+  if (shouldOpen) {
+    if (elements.advInputTitle) {
+      elements.advInputTitle.focus();
+    }
+    callbacks.onOpenAdvSearch?.();
+  } else {
+    callbacks.onCloseAdvSearch?.(hasActiveAdvFilters());
   }
 }
 
@@ -272,6 +280,7 @@ export function handleApplyAdvancedSearch() {
   }
 
   updateAdvSearchUIState();
+  callbacks.setAdvWaiting?.(false);
   callbacks.refreshSeries();
 }
 
@@ -306,17 +315,34 @@ export function handleClearAdvancedSearch() {
   };
 
   updateAdvSearchUIState();
-  callbacks.refreshSeries();
+  if (isAdvSearchPanelOpen()) {
+    callbacks.setAdvWaiting?.(true);
+  } else {
+    callbacks.setAdvWaiting?.(false);
+    callbacks.refreshSeries();
+  }
 }
 
 /**
  * Initialize the Advanced Search module with DOM elements and callbacks.
  * @param {Object} options
  * @param {Function} options.refreshSeries - Function to refresh the series grid
+ * @param {Function} [options.onOpenAdvSearch] - Callback when drawer opens
+ * @param {Function} [options.onCloseAdvSearch] - Callback when drawer closes
+ * @param {Function} [options.setAdvWaiting] - Callback to toggle waiting mode
  */
 export function initAdvancedSearch(options = {}) {
   if (typeof options.refreshSeries === 'function') {
     callbacks.refreshSeries = options.refreshSeries;
+  }
+  if (typeof options.onOpenAdvSearch === 'function') {
+    callbacks.onOpenAdvSearch = options.onOpenAdvSearch;
+  }
+  if (typeof options.onCloseAdvSearch === 'function') {
+    callbacks.onCloseAdvSearch = options.onCloseAdvSearch;
+  }
+  if (typeof options.setAdvWaiting === 'function') {
+    callbacks.setAdvWaiting = options.setAdvWaiting;
   }
 
   // Cache DOM elements

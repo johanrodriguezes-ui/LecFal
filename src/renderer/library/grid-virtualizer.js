@@ -338,6 +338,56 @@ export class GridVirtualizer {
   }
 
   /**
+   * Scrolls the grid so that the specified series is visible (centered by default).
+   * @param {number|string} seriesId
+   * @param {Object} [options]
+   * @param {'center'|'top'|'auto'} [options.align='center']
+   * @param {boolean} [options.highlight=true]
+   * @returns {boolean} Whether the series was found in the dataset
+   */
+  scrollToSeries(seriesId, options = {}) {
+    const numId = parseInt(seriesId, 10);
+    if (isNaN(numId) || this.dataset.length === 0) return false;
+
+    const itemIndex = this.dataset.findIndex(s => s.id === numId);
+    if (itemIndex === -1) return false;
+
+    if (this.rowHeight <= 0 || this.columns <= 0) {
+      this.recalculateGeometry();
+    }
+
+    const align = options.align || 'center';
+    const rowIndex = Math.floor(itemIndex / this.columns);
+    const rowTop = rowIndex * this.rowHeight;
+    const viewportHeight = this.scrollContainer.clientHeight || this.viewportHeight || 800;
+
+    let targetScrollTop = rowTop;
+    if (align === 'center') {
+      targetScrollTop = Math.max(0, rowTop - (viewportHeight / 2) + (this.cardHeight / 2));
+    }
+
+    const maxScroll = Math.max(0, this.totalVirtualHeight - viewportHeight);
+    this.scrollContainer.scrollTop = Math.min(targetScrollTop, maxScroll);
+    this.updateVisibleRange(true);
+
+    if (options.highlight !== false) {
+      requestAnimationFrame(() => {
+        const card = this.trackEl.querySelector(`.comic-card[data-id="${numId}"]`);
+        if (card) {
+          card.classList.remove('highlight-card-pulse');
+          void card.offsetWidth; // Trigger reflow
+          card.classList.add('highlight-card-pulse');
+          setTimeout(() => {
+            card.classList.remove('highlight-card-pulse');
+          }, 2400);
+        }
+      });
+    }
+
+    return true;
+  }
+
+  /**
    * Returns current mounted card count and DOM node statistics.
    * @returns {{ mountedCards: number, mountedRows: number, totalCards: number, totalRows: number }}
    */

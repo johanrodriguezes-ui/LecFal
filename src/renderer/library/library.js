@@ -29,6 +29,7 @@ let searchQuery = '';
 let currentSort = 'title_asc';
 let gridVirtualizer = null;
 let thumbnailPrefetcher = null;
+let isAdvSearchWaiting = false;
 
 // Throttled and concurrency-safe grid refreshing with generation ID
 let currentRefreshRequestId = 0;
@@ -41,6 +42,7 @@ const elements = {
   comicsGrid: null,
   emptyStateNoFolders: null,
   emptyStateNoResults: null,
+  emptyStateAdvSearch: null,
   searchInput: null,
   clearSearchBtn: null,
   btnResetFilters: null,
@@ -80,6 +82,7 @@ function cacheElements() {
   elements.comicsGrid = document.getElementById('comicsGrid');
   elements.emptyStateNoFolders = document.getElementById('emptyStateNoFolders');
   elements.emptyStateNoResults = document.getElementById('emptyStateNoResults');
+  elements.emptyStateAdvSearch = document.getElementById('emptyStateAdvSearch');
   elements.searchInput = document.getElementById('searchInput');
   elements.clearSearchBtn = document.getElementById('clearSearchBtn');
   elements.btnResetFilters = document.getElementById('btnResetFilters');
@@ -270,7 +273,7 @@ export function scheduleSeriesRefresh(immediate = false) {
 
 /**
  * Update the visibility of the grid and empty state containers mutually exclusively.
- * @param {'grid'|'no-folders'|'no-results'} viewState
+ * @param {'grid'|'no-folders'|'no-results'|'adv-waiting'} viewState
  */
 export function setLibraryViewContainerState(viewState) {
   if (viewState === 'grid') {
@@ -281,6 +284,10 @@ export function setLibraryViewContainerState(viewState) {
     if (elements.emptyStateNoResults) {
       elements.emptyStateNoResults.style.display = 'none';
       elements.emptyStateNoResults.classList.add('hidden');
+    }
+    if (elements.emptyStateAdvSearch) {
+      elements.emptyStateAdvSearch.style.display = 'none';
+      elements.emptyStateAdvSearch.classList.add('hidden');
     }
     if (elements.comicsGrid) {
       elements.comicsGrid.style.display = 'block';
@@ -295,6 +302,10 @@ export function setLibraryViewContainerState(viewState) {
       elements.emptyStateNoResults.style.display = 'none';
       elements.emptyStateNoResults.classList.add('hidden');
     }
+    if (elements.emptyStateAdvSearch) {
+      elements.emptyStateAdvSearch.style.display = 'none';
+      elements.emptyStateAdvSearch.classList.add('hidden');
+    }
     if (elements.emptyStateNoFolders) {
       elements.emptyStateNoFolders.style.display = 'flex';
       elements.emptyStateNoFolders.classList.remove('hidden');
@@ -308,11 +319,51 @@ export function setLibraryViewContainerState(viewState) {
       elements.emptyStateNoFolders.style.display = 'none';
       elements.emptyStateNoFolders.classList.add('hidden');
     }
+    if (elements.emptyStateAdvSearch) {
+      elements.emptyStateAdvSearch.style.display = 'none';
+      elements.emptyStateAdvSearch.classList.add('hidden');
+    }
     if (elements.emptyStateNoResults) {
       elements.emptyStateNoResults.style.display = 'flex';
       elements.emptyStateNoResults.classList.remove('hidden');
     }
+  } else if (viewState === 'adv-waiting') {
+    if (elements.comicsGrid) {
+      elements.comicsGrid.style.display = 'none';
+      elements.comicsGrid.classList.add('hidden');
+    }
+    if (elements.emptyStateNoFolders) {
+      elements.emptyStateNoFolders.style.display = 'none';
+      elements.emptyStateNoFolders.classList.add('hidden');
+    }
+    if (elements.emptyStateNoResults) {
+      elements.emptyStateNoResults.style.display = 'none';
+      elements.emptyStateNoResults.classList.add('hidden');
+    }
+    if (elements.emptyStateAdvSearch) {
+      elements.emptyStateAdvSearch.style.display = 'flex';
+      elements.emptyStateAdvSearch.classList.remove('hidden');
+    }
   }
+}
+
+/**
+ * Sets advanced search waiting mode (clearing grid while user inputs criteria).
+ * @param {boolean} waiting
+ */
+export function setAdvSearchWaiting(waiting) {
+  isAdvSearchWaiting = waiting;
+  if (waiting) {
+    renderGrid([], true);
+    setLibraryViewContainerState('adv-waiting');
+    if (elements.statusCount) {
+      elements.statusCount.textContent = 'Búsqueda avanzada';
+    }
+  }
+}
+
+export function isWaitingForAdvSearch() {
+  return isAdvSearchWaiting;
 }
 
 /**
@@ -321,6 +372,15 @@ export function setLibraryViewContainerState(viewState) {
  * @param {boolean} resetScroll - Whether to scroll grid back to top
  */
 export async function refreshSeries(resetScroll = true) {
+  if (isAdvSearchWaiting) {
+    renderGrid([], true);
+    setLibraryViewContainerState('adv-waiting');
+    if (elements.statusCount) {
+      elements.statusCount.textContent = 'Búsqueda avanzada';
+    }
+    return;
+  }
+
   const requestId = ++currentRefreshRequestId;
 
   try {
@@ -637,6 +697,7 @@ export async function toggleFavoriteFilter(forceState) {
  * Reset all library filters (search, library selection, and favorites) back to default.
  */
 export function resetLibraryFilters() {
+  isAdvSearchWaiting = false;
   clearSearch();
   currentLibraryId = null;
   favoriteOnly = false;

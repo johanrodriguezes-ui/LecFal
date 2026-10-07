@@ -17,7 +17,9 @@ import {
   clearSearch,
   hasSearchQuery,
   isLibraryDropdownOpen,
-  closeLibraryDropdown
+  closeLibraryDropdown,
+  getGridVirtualizer,
+  setAdvSearchWaiting
 } from './library/library.js';
 import {
   initCatalogPicker,
@@ -94,6 +96,10 @@ let detailOrigin = 'library';
 // Scroll offset of the History view captured when opening Detail from History
 let historyScrollTop = 0;
 
+// Grid navigation & scroll restoration tracking
+let lastInteractedSeriesId = null;
+let savedLibraryScrollTop = 0;
+
 // ==================== DOM ELEMENTS ====================
 // Views
 const topNav = document.getElementById('topNav');
@@ -145,7 +151,7 @@ async function init() {
   });
 
   initDetail({
-    navigateToLibrary,
+    navigateToLibrary: (options) => navigateToLibrary(options || { preservePosition: false }),
     navigateBack: () => navigateBackFromDetail(),
     openReader,
     refreshSeries: (preserveScroll) => refreshSeries(preserveScroll),
@@ -214,15 +220,15 @@ async function init() {
 // ==================== EVENT LISTENERS ====================
 function setupEventListeners() {
   // Navigation
-  brandHomeBtn.addEventListener('click', navigateToLibrary);
-  navTabLibrary?.addEventListener('click', navigateToLibrary);
+  brandHomeBtn.addEventListener('click', () => navigateToLibrary({ preservePosition: false }));
+  navTabLibrary?.addEventListener('click', () => navigateToLibrary({ preservePosition: false }));
   navTabHistory?.addEventListener('click', navigateToHistory);
   btnOpenSettings?.addEventListener('click', () => openSettingsView());
   btnBackFromSettings?.addEventListener('click', () => {
     if (lastTopLevelView === 'history') {
       navigateToHistory();
     } else {
-      navigateToLibrary();
+      navigateToLibrary({ preservePosition: true });
     }
   });
 
@@ -233,7 +239,19 @@ function setupEventListeners() {
 
   // Advanced Search Initialization
   initAdvancedSearch({
-    refreshSeries: () => refreshSeries()
+    refreshSeries: () => refreshSeries(),
+    onOpenAdvSearch: () => {
+      if (!hasActiveAdvFilters()) {
+        setAdvSearchWaiting(true);
+      }
+    },
+    onCloseAdvSearch: (hasFilters) => {
+      setAdvSearchWaiting(false);
+      if (!hasFilters) {
+        refreshSeries(false);
+      }
+    },
+    setAdvWaiting: (waiting) => setAdvSearchWaiting(waiting)
   });
 
   // Settings Initialization
@@ -294,9 +312,9 @@ function setupEventListeners() {
       else if (isAdvSearchPanelOpen()) toggleAdvancedSearchPanel(false);
       else if (currentView === 'settings') {
         if (lastTopLevelView === 'history') navigateToHistory();
-        else navigateToLibrary();
+        else navigateToLibrary({ preservePosition: true });
       }
-      else if (currentView === 'history') navigateToLibrary();
+      else if (currentView === 'history') navigateToLibrary({ preservePosition: false });
       else if (currentView === 'manga') navigateBackFromDetail();
       else if (hasSearchQuery() || hasActiveAdvFilters()) {
         clearSearch();
@@ -312,7 +330,8 @@ function updateTopNavTabs() {
   if (navTabHistory) navTabHistory.classList.toggle('active', currentView === 'history');
 }
 
-function navigateToLibrary() {
+async function navigateToLibrary(options = {}) {
+  const preservePosition = options && options.preservePosition === true;
   currentView = 'library';
   lastTopLevelView = 'library';
   detailOrigin = 'library';
@@ -325,7 +344,26 @@ function navigateToLibrary() {
   if (libraryView) libraryView.style.display = 'flex';
   if (navSearchContainer) navSearchContainer.style.visibility = 'visible';
   clearActiveSeries();
-  refreshSeries(false);
+
+  if (!preservePosition) {
+    lastInteractedSeriesId = null;
+    savedLibraryScrollTop = 0;
+  }
+
+  await refreshSeries(false);
+
+  if (preservePosition) {
+    const virtualizer = getGridVirtualizer();
+    let scrolled = false;
+    if (lastInteractedSeriesId && virtualizer) {
+      scrolled = virtualizer.scrollToSeries(lastInteractedSeriesId, { align: 'center', highlight: true });
+    }
+    if (!scrolled && savedLibraryScrollTop > 0) {
+      const mainEl = document.getElementById('mainContent');
+      if (mainEl) mainEl.scrollTop = savedLibraryScrollTop;
+      virtualizer?.updateVisibleRange(true);
+    }
+  }
 }
 
 async function navigateToHistory() {
@@ -370,8 +408,14 @@ async function openMangaView(seriesId, options = {}) {
       if (currentView === 'history' && historyScroll) {
         historyScrollTop = historyScroll.scrollTop;
       }
+    } else if (source === 'library') {
+      const mainEl = document.getElementById('mainContent');
+      if (mainEl) savedLibraryScrollTop = mainEl.scrollTop;
+      lastInteractedSeriesId = parseInt(seriesId, 10);
     }
     detailOrigin = source;
+  } else {
+    if (seriesId) lastInteractedSeriesId = parseInt(seriesId, 10);
   }
   setDetailBackTarget(detailOrigin);
 
@@ -396,11 +440,21 @@ async function navigateBackFromDetail() {
     const historyScroll = historyView?.querySelector('.history-scroll-container');
     if (historyScroll) historyScroll.scrollTop = historyScrollTop;
   } else {
-    navigateToLibrary();
+    await navigateToLibrary({ preservePosition: true });
   }
 }
 
 async function openSettingsView(targetSectionId = null) {
+  if (currentView === 'library') {
+    const mainEl = document.getElementById('mainContent');
+    if (mainEl) savedLibraryScrollTop = mainEl.scrollTop;
+  } else if (currentView === 'manga') {
+    const activeSeries = getActiveSeries();
+    if (activeSeries && activeSeries.id) {
+      lastInteractedSeriesId = parseInt(activeSeries.id, 10);
+    }
+  }
+
   currentView = 'settings';
   if (topNav) topNav.style.display = 'none';
   libraryView.style.display = 'none';
