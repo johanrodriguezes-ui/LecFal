@@ -573,10 +573,61 @@ class DatabaseManager {
     this.save();
   }
 
+  escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  findMatchingGroups(groups, text) {
+    if (!text || !groups || groups.length === 0) return [];
+    const sorted = [...groups].sort((a, b) => (b.name || '').length - (a.name || '').length);
+    const matched = [];
+    const occupiedRanges = [];
+
+    for (const group of sorted) {
+      const rawName = (group.name || '').trim();
+      if (!rawName) continue;
+      const namesToTest = [rawName];
+      const unbracketed = rawName.replace(/^[\[\({<](.+)[\]\)}>]$/, '$1').trim();
+      if (unbracketed && unbracketed !== rawName) {
+        namesToTest.push(unbracketed);
+      }
+
+      let foundMatch = false;
+      for (const name of namesToTest) {
+        const escaped = this.escapeRegex(name);
+        const isAlphaStart = /^[a-zA-Z0-9\u00C0-\u024F\u1E00-\u1EFF]/.test(name);
+        const isAlphaEnd = /[a-zA-Z0-9\u00C0-\u024F\u1E00-\u1EFF]$/.test(name);
+
+        const prefix = isAlphaStart ? '(?:^|[^a-zA-Z0-9\\u00C0-\\u024F\\u1E00-\\u1EFF])' : '';
+        const suffix = isAlphaEnd ? '(?:$|[^a-zA-Z0-9\\u00C0-\\u024F\\u1E00-\\u1EFF])' : '';
+        const regex = new RegExp(`${prefix}(${escaped})${suffix}`, 'gi');
+
+        let m;
+        while ((m = regex.exec(text)) !== null) {
+          const fullMatch = m[0];
+          const groupCapture = m[1];
+          const captureOffset = fullMatch.indexOf(groupCapture);
+          const start = m.index + captureOffset;
+          const end = start + groupCapture.length;
+
+          const overlaps = occupiedRanges.some(r => !(end <= r.start || start >= r.end));
+          if (!overlaps) {
+            occupiedRanges.push({ start, end });
+            matched.push(group);
+            foundMatch = true;
+            break;
+          }
+        }
+        if (foundMatch) break;
+      }
+    }
+    return matched;
+  }
+
   // ==================== SERIES / MANGAS ====================
   upsertSeries(seriesData) {
     // Check if series already exists by unique folder path
-    const checkStmt = this.db.prepare('SELECT id, title, cover_path, author, detected_author, description, tags FROM series WHERE path = ?');
+    const checkStmt = this.db.prepare('SELECT id, title, cover_path, author, detected_author, group_name, description, tags FROM series WHERE path = ?');
     checkStmt.bind([seriesData.path]);
 
     let seriesId = null;
@@ -591,12 +642,31 @@ class DatabaseManager {
     const rawAuthor = seriesData.author && seriesData.author !== 'Desconocido' ? seriesData.author.trim() : null;
     const detectedAuthor = seriesData.detected_author || rawAuthor || (existing ? existing.detected_author : '') || '';
 
+    // Detected groups from database and subfolder name
+    const allGroups = this.getAllGroups();
+    let matchedGroups = [];
+    if (allGroups.length > 0) {
+      const subfolderName = seriesData.rawFolderTitle || seriesData.subfolder || (seriesData.path ? path.basename(seriesData.path) : '');
+      matchedGroups = this.findMatchingGroups(allGroups, subfolderName);
+      if (matchedGroups.length === 0 && seriesData.title && seriesData.title !== subfolderName) {
+        matchedGroups = this.findMatchingGroups(allGroups, seriesData.title);
+      }
+    }
+    const explicitGroupIds = Array.isArray(seriesData.groupIds) ? seriesData.groupIds : [];
+    if (explicitGroupIds.length > 0) {
+      for (const gid of explicitGroupIds) {
+        if (!matchedGroups.some(g => g.id === gid)) {
+          const gObj = allGroups.find(g => g.id === gid);
+          if (gObj) matchedGroups.push(gObj);
+        }
+      }
+    }
+
     const folderIdToUse = seriesData.folder_id || seriesData.folderId || null;
     const countToUse = seriesData.chapter_count || seriesData.chapterCount || 0;
     const formatToUse = seriesData.primary_format || seriesData.primaryFormat || 'cbz';
     const parodyToUse = seriesData.parody || '';
     const langToUse = seriesData.language || '';
-    const groupNameToUse = seriesData.group_name || seriesData.group || '';
 
     if (existing) {
       // PRESERVE user custom title, description, or tags if they were edited
@@ -627,6 +697,35 @@ class DatabaseManager {
         }
       }
 
+      // Determine authoritative group (following the author logic):
+      // If series already has configured groups in series_groups, keep them
+      const currentGroups = this.getSeriesGroups(seriesId);
+      let groupNameToUse = existing.group_name || '';
+      if (currentGroups.length > 0) {
+        groupNameToUse = currentGroups.map(g => g.name).join(', ');
+      } else if (matchedGroups.length > 0) {
+        // If matched groups exist in database, auto-link them
+        this.setSeriesGroups(seriesId, matchedGroups.map(g => g.id));
+        groupNameToUse = matchedGroups.map(g => g.name).join(', ');
+      } else if (seriesData.group_name || seriesData.group) {
+        groupNameToUse = seriesData.group_name || seriesData.group;
+      }
+
+      // If existing author was mistakenly set to one of the matched groups in the past, and no authors are configured:
+      if (currentAuthors.length === 0 && matchedGroups.some(g => g.name.toLowerCase() === (authorToUse || '').toLowerCase())) {
+        if (detectedAuthor && !matchedGroups.some(g => g.name.toLowerCase() === detectedAuthor.toLowerCase())) {
+          const matchedAuth = this.getAuthorByName(detectedAuthor);
+          if (matchedAuth) {
+            this.setSeriesAuthors(seriesId, [matchedAuth.id]);
+            authorToUse = matchedAuth.name;
+          } else {
+            authorToUse = 'Desconocido';
+          }
+        } else {
+          authorToUse = 'Desconocido';
+        }
+      }
+
       const updateStmt = this.db.prepare(`
         UPDATE series SET
           folder_id = ?,
@@ -640,7 +739,7 @@ class DatabaseManager {
           primary_format = ?,
           parody = COALESCE(NULLIF(?, ''), parody),
           language = COALESCE(NULLIF(?, ''), language),
-          group_name = COALESCE(NULLIF(?, ''), group_name),
+          group_name = ?,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `);
@@ -656,7 +755,7 @@ class DatabaseManager {
         formatToUse,
         parodyToUse,
         langToUse,
-        groupNameToUse,
+        groupNameToUse || '',
         seriesId
       ]);
       updateStmt.free();
@@ -671,6 +770,10 @@ class DatabaseManager {
         matchedAuthor = this.getAuthorByName(detectedAuthor);
       }
       const authorToInsert = matchedAuthor ? matchedAuthor.name : 'Desconocido';
+
+      const groupNameToInsert = matchedGroups.length > 0
+        ? matchedGroups.map(g => g.name).join(', ')
+        : (seriesData.group_name || seriesData.group || '');
 
       const insertStmt = this.db.prepare(`
         INSERT INTO series (
@@ -690,7 +793,7 @@ class DatabaseManager {
         formatToUse,
         parodyToUse,
         langToUse,
-        groupNameToUse
+        groupNameToInsert || ''
       ]);
       insertStmt.free();
 
@@ -704,6 +807,9 @@ class DatabaseManager {
 
       if (matchedAuthor && seriesId) {
         this.setSeriesAuthors(seriesId, [matchedAuthor.id]);
+      }
+      if (matchedGroups.length > 0 && seriesId) {
+        this.setSeriesGroups(seriesId, matchedGroups.map(g => g.id));
       }
     }
 
@@ -2075,8 +2181,55 @@ class DatabaseManager {
     }
     idStmt.free();
 
+    if (newGroup) {
+      this.linkMatchingGroupToSeries(newGroup.id, newGroup.name);
+      const countStmt = this.db.prepare('SELECT COUNT(*) AS c FROM series_groups WHERE group_id = ?');
+      countStmt.bind([newGroup.id]);
+      if (countStmt.step()) {
+        newGroup.manga_count = countStmt.getAsObject().c;
+      } else {
+        newGroup.manga_count = 0;
+      }
+      countStmt.free();
+    }
+
     this.save();
     return newGroup || { id: Date.now(), name: cleanName, manga_count: 0 };
+  }
+
+  linkMatchingGroupToSeries(groupId, groupName) {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT s.id, s.path, s.title, s.group_name FROM series s
+        LEFT JOIN series_groups sg ON s.id = sg.series_id
+        GROUP BY s.id
+        HAVING COUNT(sg.group_id) = 0 OR s.group_name IS NULL OR s.group_name = ''
+      `);
+      const candidates = [];
+      while (stmt.step()) {
+        candidates.push(stmt.getAsObject());
+      }
+      stmt.free();
+
+      const groupObj = { id: groupId, name: groupName };
+      const seriesToLink = [];
+
+      for (const series of candidates) {
+        const subfolderName = series.path ? path.basename(series.path) : '';
+        const matches = this.findMatchingGroups([groupObj], subfolderName);
+        const matchesTitle = matches.length === 0 ? this.findMatchingGroups([groupObj], series.title || '') : [];
+        if (matches.length > 0 || matchesTitle.length > 0) {
+          seriesToLink.push(series.id);
+        }
+      }
+
+      for (const sId of seriesToLink) {
+        this.db.run('INSERT OR IGNORE INTO series_groups (series_id, group_id) VALUES (?, ?)', [sId, groupId]);
+        this.refreshSeriesGroupsString(sId);
+      }
+    } catch (err) {
+      console.error('Error linking matching group to series:', err);
+    }
   }
 
   renameGroup(id, newName) {

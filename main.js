@@ -593,6 +593,7 @@ async function scanFolderWithSeries(folder, options = {}) {
 
   const registeredChapters = db.getRegisteredChaptersMap(folder.id);
   const registeredSeries = db.getRegisteredSeriesMap(folder.id);
+  const registeredGroups = db.getAllGroups ? db.getAllGroups() : [];
 
   const onProgress = (data) => {
     const now = Date.now();
@@ -633,7 +634,10 @@ async function scanFolderWithSeries(folder, options = {}) {
       path: seriesData.path,
       cover_path: seriesData.cover_path,
       chapter_count: seriesData.chapter_count,
-      primary_format: seriesData.primary_format
+      primary_format: seriesData.primary_format,
+      group_name: seriesData.group_name || '',
+      groupIds: seriesData.detectedGroups ? seriesData.detectedGroups.map(g => g.id) : undefined,
+      rawFolderTitle: seriesData.rawFolderTitle || seriesData.subfolder || ''
     });
 
     // Save its changed/new chapters
@@ -684,6 +688,7 @@ async function scanFolderWithSeries(folder, options = {}) {
       mode,
       registeredChapters,
       registeredSeries,
+      registeredGroups,
       onProgress,
       onSeries
     });

@@ -76,26 +76,132 @@ class LibraryScanner {
     return baseName.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  parseTitleAndAuthor(rawName) {
+  escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  findMatchingGroups(groups, text) {
+    if (!text || !groups || groups.length === 0) return [];
+    const sorted = [...groups].sort((a, b) => (b.name || '').length - (a.name || '').length);
+    const matched = [];
+    const occupiedRanges = [];
+
+    for (const group of sorted) {
+      const rawName = (group.name || '').trim();
+      if (!rawName) continue;
+      const namesToTest = [rawName];
+      const unbracketed = rawName.replace(/^[\[\({<](.+)[\]\)}>]$/, '$1').trim();
+      if (unbracketed && unbracketed !== rawName) {
+        namesToTest.push(unbracketed);
+      }
+
+      let foundMatch = false;
+      for (const name of namesToTest) {
+        const escaped = this.escapeRegex(name);
+        const isAlphaStart = /^[a-zA-Z0-9\u00C0-\u024F\u1E00-\u1EFF]/.test(name);
+        const isAlphaEnd = /[a-zA-Z0-9\u00C0-\u024F\u1E00-\u1EFF]$/.test(name);
+
+        const prefix = isAlphaStart ? '(?:^|[^a-zA-Z0-9\\u00C0-\\u024F\\u1E00-\\u1EFF])' : '';
+        const suffix = isAlphaEnd ? '(?:$|[^a-zA-Z0-9\\u00C0-\\u024F\\u1E00-\\u1EFF])' : '';
+        const regex = new RegExp(`${prefix}(${escaped})${suffix}`, 'gi');
+
+        let m;
+        while ((m = regex.exec(text)) !== null) {
+          const fullMatch = m[0];
+          const groupCapture = m[1];
+          const captureOffset = fullMatch.indexOf(groupCapture);
+          const start = m.index + captureOffset;
+          const end = start + groupCapture.length;
+
+          const overlaps = occupiedRanges.some(r => !(end <= r.start || start >= r.end));
+          if (!overlaps) {
+            occupiedRanges.push({ start, end });
+            matched.push(group);
+            foundMatch = true;
+            break;
+          }
+        }
+        if (foundMatch) break;
+      }
+    }
+    return matched;
+  }
+
+  parseTitleAndAuthor(rawName, { registeredGroups = [] } = {}) {
     let title = rawName;
     let author = 'Desconocido';
+    const detectedGroups = this.findMatchingGroups(registeredGroups, rawName);
+    const groupStr = detectedGroups.map(g => g.name).join(', ');
 
-    // Pattern 1: [Author] Title or (Author) Title
-    const prefixMatch = rawName.match(/^[\[\(](.*?)[\]\)]\s*(.*)$/);
+    let working = rawName.trim();
+
+    // Pattern 1: [Prefix] Rest
+    const prefixMatch = working.match(/^[\[\(](.*?)[\]\)]\s*(.*)$/);
     if (prefixMatch && prefixMatch[2].trim()) {
-      author = prefixMatch[1].trim();
-      title = prefixMatch[2].trim();
+      const candidate = prefixMatch[1].trim();
+      const rest = prefixMatch[2].trim();
+
+      const isGroup = detectedGroups.some(g =>
+        g.name.toLowerCase() === candidate.toLowerCase() ||
+        g.name.toLowerCase() === candidate.replace(/^[\[\(](.+)[\]\)]$/, '$1').toLowerCase()
+      );
+
+      if (isGroup) {
+        // Group was in prefix bracket, check rest for potential author bracket
+        const innerPrefix = rest.match(/^[\[\(](.*?)[\]\)]\s*(.*)$/);
+        if (innerPrefix && innerPrefix[2].trim()) {
+          author = innerPrefix[1].trim();
+          title = innerPrefix[2].trim();
+        } else {
+          const innerSuffix = rest.match(/^(.*?)\s*[\[\(](.*?)[\]\)]$/);
+          if (innerSuffix && innerSuffix[1].trim()) {
+            title = innerSuffix[1].trim();
+            author = innerSuffix[2].trim();
+          } else {
+            title = rest;
+          }
+        }
+      } else {
+        author = candidate;
+        title = rest;
+      }
     } else {
-      // Pattern 2: Title [Author] or Title (Author)
-      const suffixMatch = rawName.match(/^(.*?)\s*[\[\(](.*?)[\]\)]$/);
+      // Pattern 2: Rest [Suffix]
+      const suffixMatch = working.match(/^(.*?)\s*[\[\(](.*?)[\]\)]$/);
       if (suffixMatch && suffixMatch[1].trim()) {
-        title = suffixMatch[1].trim();
-        author = suffixMatch[2].trim();
+        const rest = suffixMatch[1].trim();
+        const candidate = suffixMatch[2].trim();
+
+        const isGroup = detectedGroups.some(g =>
+          g.name.toLowerCase() === candidate.toLowerCase() ||
+          g.name.toLowerCase() === candidate.replace(/^[\[\(](.+)[\]\)]$/, '$1').toLowerCase()
+        );
+
+        if (isGroup) {
+          // Group was in suffix bracket, check rest for potential author bracket
+          const innerPrefix = rest.match(/^[\[\(](.*?)[\]\)]\s*(.*)$/);
+          if (innerPrefix && innerPrefix[2].trim()) {
+            author = innerPrefix[1].trim();
+            title = innerPrefix[2].trim();
+          } else {
+            title = rest;
+          }
+        } else {
+          title = rest;
+          author = candidate;
+        }
       }
     }
 
+    // Clean matched groups from title if they remain in brackets or edge delimiters
+    for (const g of detectedGroups) {
+      const esc = this.escapeRegex(g.name);
+      const pattern = new RegExp(`(?:[\\[\\(\\{<]\\s*${esc}\\s*[\\]\\)\\}>]|^${esc}\\s*\\-\\s*|\\-\\s*${esc}$)`, 'gi');
+      title = title.replace(pattern, '').trim();
+    }
+
     title = title.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
-    return { title: title || rawName, author };
+    return { title: title || rawName, author, group: groupStr, detectedGroups };
   }
 
   // Validate that a cover file exists, is a regular file, and is non-empty
@@ -262,7 +368,7 @@ class LibraryScanner {
   }
 
   // Walk filesystem and group files directly into series without intermediate huge arrays
-  async discoverSeries(dirPath, supportedExtensions) {
+  async discoverSeries(dirPath, supportedExtensions, { registeredGroups = [] } = {}) {
     const seriesGroups = new Map();
     const queue = [dirPath];
     let fileCounter = 0;
@@ -313,10 +419,14 @@ class LibraryScanner {
             }
 
             if (!seriesGroups.has(seriesKey)) {
-              const { title, author } = this.parseTitleAndAuthor(rawFolderTitle);
+              const { title, author, group, detectedGroups } = this.parseTitleAndAuthor(rawFolderTitle, { registeredGroups });
               seriesGroups.set(seriesKey, {
                 title,
                 author,
+                group: group || '',
+                detectedGroups: detectedGroups || [],
+                rawFolderTitle,
+                subfolder: parts.length > 1 ? parts[0] : '',
                 path: seriesPath,
                 files: []
               });
@@ -360,7 +470,8 @@ class LibraryScanner {
     onSeries = null,
     mode = 'incremental', // 'incremental' | 'full'
     registeredChapters = new Map(),
-    registeredSeries = new Map()
+    registeredSeries = new Map(),
+    registeredGroups = []
   } = {}) {
     const startTime = Date.now();
 
@@ -384,7 +495,7 @@ class LibraryScanner {
     const supportedExtensions = ['.cbz', '.pdf'];
 
     // 1. Walk filesystem and build series directly in one pass
-    const seriesGroups = await this.discoverSeries(dirPath, supportedExtensions);
+    const seriesGroups = await this.discoverSeries(dirPath, supportedExtensions, { registeredGroups });
 
     if (this.isCancelled || !seriesGroups) {
       const isCancelled = Boolean(this.isCancelled);
@@ -557,9 +668,18 @@ class LibraryScanner {
         seriesHasChanges = true;
       }
 
+      // Check if group newly matched
+      if (existingSeries && (!existingSeries.group_name || existingSeries.group_name.trim() === '') && (group.group || (group.detectedGroups && group.detectedGroups.length > 0))) {
+        seriesHasChanges = true;
+      }
+
       const seriesData = {
         title: group.title,
         author: group.author || 'Desconocido',
+        group_name: group.group || '',
+        detectedGroups: group.detectedGroups || [],
+        rawFolderTitle: group.rawFolderTitle || '',
+        subfolder: group.subfolder || '',
         path: group.path,
         cover_path: coverPath,
         chapter_count: chapters.length,
