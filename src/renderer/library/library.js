@@ -133,26 +133,6 @@ export function createSeriesCard(series) {
     coverHtml = renderCoverFallbackHtml(series.title, series.primary_format);
   }
 
-  card.innerHTML = `
-    <div class="card-cover-wrapper">
-      <span class="card-badge badge-${series.primary_format || 'cbz'}">${formatUpper}</span>
-      <button class="card-fav-btn ${isFav ? 'is-favorite' : ''}" data-id="${series.id}" title="${isFav ? t('library.unmarkFav') : t('library.markFav')}">
-        <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-        </svg>
-      </button>
-      ${coverHtml}
-      <div class="card-quick-overlay">
-        <span class="quick-action-text">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-          ${isEn ? 'View manga' : 'Ver manga'}
-        </span>
-      </div>
-    </div>
-  `;
-
   // Fallback to circle/group if author is missing and user preference is enabled
   const rawAuthor = (series.author || '').trim();
   const authorLower = rawAuthor.toLowerCase();
@@ -175,9 +155,10 @@ export function createSeriesCard(series) {
     : authorText;
 
   card.innerHTML = `
-    <div class="card-cover-container">
-      <button class="btn-card-fav ${series.favorite ? 'active' : ''}" data-id="${series.id}" title="${series.favorite ? (t('library.unmarkFav') || 'Quitar de favoritos') : (t('library.markFav') || 'Marcar como favorito')}">
-        <svg viewBox="0 0 24 24" fill="${series.favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+    <div class="card-cover-wrapper">
+      <span class="card-badge badge-${series.primary_format || 'cbz'}">${formatUpper}</span>
+      <button class="card-fav-btn ${isFav ? 'is-favorite' : ''}" data-id="${series.id}" title="${isFav ? (t('library.unmarkFav') || 'Quitar de favoritos') : (t('library.markFav') || 'Añadir a favoritos')}">
+        <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
           <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
         </svg>
       </button>
