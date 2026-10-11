@@ -49,6 +49,7 @@ import {
   renderSettingsIgnoredAuthors,
   refreshCatalog,
   applyTheme,
+  applyLanguage,
   isRenameModalOpen,
   closeRenameModal,
   isCreateLibraryModalOpen,
@@ -56,6 +57,7 @@ import {
   switchSettingsSection,
   getCurrentSettingsSection
 } from './settings/settings.js';
+import { initI18n, onLanguageChange, getLanguage, t } from './utils/i18n.js';
 import {
   initScannerUI,
   runFolderScan,
@@ -208,6 +210,21 @@ async function init() {
   await loadLibraryPreferences();
   const savedTheme = await window.lecfalAPI.getSetting('theme', 'dark');
   applyTheme(savedTheme, false);
+  const savedLanguage = await window.lecfalAPI.getSetting('language', 'es');
+  await initI18n(savedLanguage);
+  applyLanguage(savedLanguage, false);
+
+  // Re-render current active view on language change
+  onLanguageChange(() => {
+    const activeSeries = getActiveSeries();
+    if (currentView === 'manga' && activeSeries) {
+      renderMangaDetail(activeSeries);
+    } else if (currentView === 'history') {
+      loadAndRenderHistory();
+    } else if (currentView === 'library') {
+      refreshSeries(true);
+    }
+  });
 
   // Load options for advanced search dropdowns
   await populateAdvSearchOptions();

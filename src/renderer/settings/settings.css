@@ -636,4 +636,49 @@ body[data-theme="light"] .settings-nav-item.active .settings-nav-icon {
   stroke: #4f46e5;
 }
 
+/* ==================== LANGUAGE SELECTOR CARDS ==================== */
+.settings-section-divider {
+  height: 1px;
+  background: var(--border-subtle, rgba(255, 255, 255, 0.08));
+  margin: 28px 0 20px 0;
+}
+
+.lang-preview-flag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  user-select: none;
+}
+
+.lang-flag-symbol {
+  font-size: 2.2rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.lang-code-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 4px);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main, #f8fafc);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+body[data-theme="light"] .lang-preview-flag {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+body[data-theme="light"] .lang-code-tag {
+  background: rgba(0, 0, 0, 0.06);
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+
+
 

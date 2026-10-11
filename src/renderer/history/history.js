@@ -12,6 +12,8 @@ import {
   getGridThumbnailUrl,
   renderCoverFallbackHtml
 } from '../utils/ui-utils.js';
+import { t, getLanguage } from '../utils/i18n.js';
+
 
 // Cached callbacks
 let callbacks = {
@@ -162,23 +164,24 @@ export function formatRelativeTime(dateVal) {
   const date = parseDbDate(dateVal);
   if (!date) return '';
 
+  const isEn = getLanguage() === 'en';
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffSec = Math.floor(diffMs / 1000);
 
-  if (diffSec < 45) return 'Hace un momento';
+  if (diffSec < 45) return isEn ? 'Just now' : 'Hace un momento';
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin === 1) return 'Hace 1 minuto';
-  if (diffMin < 60) return `Hace ${diffMin} minutos`;
+  if (diffMin === 1) return isEn ? '1 minute ago' : 'Hace 1 minuto';
+  if (diffMin < 60) return isEn ? `${diffMin} minutes ago` : `Hace ${diffMin} minutos`;
 
   const diffHours = Math.floor(diffMin / 60);
-  if (diffHours === 1) return 'Hace 1 hora';
+  if (diffHours === 1) return isEn ? '1 hour ago' : 'Hace 1 hora';
   if (diffHours < 24) {
     const isToday = now.getDate() === date.getDate() &&
                     now.getMonth() === date.getMonth() &&
                     now.getFullYear() === date.getFullYear();
     if (isToday) {
-      return `Hace ${diffHours} horas`;
+      return isEn ? `${diffHours} hours ago` : `Hace ${diffHours} horas`;
     }
   }
 
@@ -187,36 +190,41 @@ export function formatRelativeTime(dateVal) {
   const itemTime = date.getTime();
 
   if (itemTime >= yesterdayStart && itemTime < todayStart) {
-    return 'Ayer';
+    return isEn ? 'Yesterday' : 'Ayer';
   }
 
   const diffDays = Math.floor(diffMs / (24 * 3600 * 1000));
-  if (diffDays <= 6) return `Hace ${diffDays} días`;
+  if (diffDays <= 6) return isEn ? `${diffDays} days ago` : `Hace ${diffDays} días`;
   if (diffDays <= 27) {
     const weeks = Math.max(1, Math.floor(diffDays / 7));
-    return weeks === 1 ? 'Hace 1 semana' : `Hace ${weeks} semanas`;
+    return weeks === 1 ? (isEn ? '1 week ago' : 'Hace 1 semana') : (isEn ? `${weeks} weeks ago` : `Hace ${weeks} semanas`);
   }
 
-  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  return date.toLocaleDateString(isEn ? 'en-US' : 'es-ES', { day: 'numeric', month: 'short' });
 }
 
 /**
- * Format timestamp into Spanish human-readable detailed date string.
- * Example: "1 de octubre de 2026 a las 10:00"
+ * Format timestamp into detailed date string.
+ * Example: "1 de octubre de 2026 a las 10:00" or "October 1, 2026 at 10:00"
  * @param {string|Date} dateVal
  * @returns {string}
  */
 export function formatDateDetailed(dateVal) {
   const date = parseDbDate(dateVal);
-  if (!date) return 'Fecha no disponible';
+  const isEn = getLanguage() === 'en';
+  if (!date) return isEn ? 'Date unavailable' : 'Fecha no disponible';
   try {
     const day = date.getDate();
-    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const months = isEn
+      ? ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+      : ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
     const month = months[date.getMonth()];
     const year = date.getFullYear();
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${day} de ${month} de ${year} a las ${hours}:${minutes}`;
+    return isEn
+      ? `${month} ${day}, ${year} at ${hours}:${minutes}`
+      : `${day} de ${month} de ${year} a las ${hours}:${minutes}`;
   } catch (_) {
     return String(dateVal);
   }
@@ -224,13 +232,15 @@ export function formatDateDetailed(dateVal) {
 
 /**
  * Group key determination for chronological recent history.
- * Groups by "Hoy", "Ayer", "Esta semana", "Este mes", or "Anteriores".
+ * Groups by "Hoy"/"Today", "Ayer"/"Yesterday", "Esta semana"/"This week", "Este mes"/"This month", or "Anteriores"/"Earlier".
  * @param {string|Date} dateVal
  * @returns {string} Group title
  */
 export function getDateGroupKey(dateVal) {
+  const isEn = getLanguage() === 'en';
+  const fallbackKey = isEn ? 'Earlier' : 'Anteriores';
   const date = parseDbDate(dateVal);
-  if (!date) return 'Anteriores';
+  if (!date) return fallbackKey;
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -238,24 +248,25 @@ export function getDateGroupKey(dateVal) {
   const itemTime = date.getTime();
 
   if (itemTime >= todayStart) {
-    return 'Hoy';
+    return isEn ? 'Today' : 'Hoy';
   }
   if (itemTime >= yesterdayStart) {
-    return 'Ayer';
+    return isEn ? 'Yesterday' : 'Ayer';
   }
 
   const weekStart = todayStart - 6 * 86400000;
   if (itemTime >= weekStart) {
-    return 'Esta semana';
+    return isEn ? 'This week' : 'Esta semana';
   }
 
   const monthStart = todayStart - 29 * 86400000;
   if (itemTime >= monthStart) {
-    return 'Este mes';
+    return isEn ? 'This month' : 'Este mes';
   }
 
-  return 'Anteriores';
+  return fallbackKey;
 }
+
 
 /**
  * Load fresh history data via IPC and render the entire History view.

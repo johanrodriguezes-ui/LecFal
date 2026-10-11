@@ -546,9 +546,9 @@ async function runReadingHistoryTests() {
   }
   console.log('✓ Global reset sets all reading_position = 0 and is_read = 0.');
 
-  assert.strictEqual(countStmt('SELECT COUNT(*) as cnt FROM chapters'), chapterCountBefore, 'Global reset does not delete chapters');
-  assert.strictEqual(countStmt('SELECT COUNT(*) as cnt FROM series'), seriesCountBefore, 'Global reset does not delete manga');
-  assert.strictEqual(countStmt('SELECT COUNT(*) as cnt FROM series_tags'), tagRelCountBefore, 'Global reset does not delete metadata');
+  assert.strictEqual(countRows('SELECT COUNT(*) as cnt FROM chapters'), chapterCountBefore, 'Global reset does not delete chapters');
+  assert.strictEqual(countRows('SELECT COUNT(*) as cnt FROM series'), seriesCountBefore, 'Global reset does not delete manga');
+  assert.strictEqual(countRows('SELECT COUNT(*) as cnt FROM series_tags'), tagRelCountBefore, 'Global reset does not delete metadata');
   const series1MetaAfter = db.getSeriesById(series1.id);
   assert.strictEqual(series1MetaAfter.favorite, 1, 'Favorites are preserved');
   assert.strictEqual(series1MetaAfter.author, series1MetaBefore.author, 'Series metadata is preserved');

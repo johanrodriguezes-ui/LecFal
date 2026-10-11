@@ -13,6 +13,8 @@ import {
   updateFavButtonState,
   getCoverUrl
 } from '../utils/ui-utils.js';
+import { t, getLanguage } from '../utils/i18n.js';
+
 
 // ==================== DOM ELEMENTS ====================
 // Manga Detail Hero & Controls
@@ -568,26 +570,39 @@ export function renderChaptersList() {
 export function updateChapterCounters() {
   const total = activeChapters.length;
   const readCount = activeChapters.filter(c => c.is_read).length;
-  if (chaptersCountBadge) chaptersCountBadge.textContent = `${total} capítulo${total === 1 ? '' : 's'}`;
-  if (chaptersReadBadge) chaptersReadBadge.textContent = `${readCount} / ${total} leídos`;
+  const isEn = getLanguage() === 'en';
+
+  if (chaptersCountBadge) {
+    chaptersCountBadge.textContent = isEn
+      ? `${total} chapter${total === 1 ? '' : 's'}`
+      : `${total} capítulo${total === 1 ? '' : 's'}`;
+  }
+  if (chaptersReadBadge) {
+    chaptersReadBadge.textContent = isEn
+      ? `${readCount} / ${total} read`
+      : `${readCount} / ${total} leídos`;
+  }
 
   // Update Mark All Read button text
   if (btnMarkAllText) {
-    btnMarkAllText.textContent = readCount === total ? 'Marcar todo no leído' : 'Marcar todo leído';
+    btnMarkAllText.textContent = readCount === total
+      ? (isEn ? 'Mark all unread' : 'Marcar todo no leído')
+      : (isEn ? 'Mark all read' : 'Marcar todo leído');
   }
 
   // Update Start reading button
   if (btnStartReadingText) {
     const firstUnread = activeChapters.find(c => !c.is_read);
     if (firstUnread) {
-      btnStartReadingText.textContent = `Continuar (${firstUnread.title})`;
+      btnStartReadingText.textContent = `${isEn ? 'Continue' : 'Continuar'} (${firstUnread.title})`;
     } else if (activeChapters.length > 0) {
-      btnStartReadingText.textContent = `Releer (${activeChapters[0].title})`;
+      btnStartReadingText.textContent = `${isEn ? 'Re-read' : 'Releer'} (${activeChapters[0].title})`;
     } else {
-      btnStartReadingText.textContent = 'Sin capítulos';
+      btnStartReadingText.textContent = isEn ? 'No chapters' : 'Sin capítulos';
     }
   }
 }
+
 
 /**
  * Synchronize a single chapter's is_read state from reader events without full reload.
@@ -929,10 +944,14 @@ export function initDetail(options = {}) {
 export function setDetailBackTarget(origin = 'library') {
   if (!btnBackToLibrary) return;
   const isHistory = origin === 'history';
-  const label = isHistory ? 'Historial' : 'Biblioteca';
+  const isEn = getLanguage() === 'en';
+  const label = isHistory ? (isEn ? 'History' : 'Historial') : (isEn ? 'Library' : 'Biblioteca');
   const labelSpan = btnBackToLibrary.querySelector('span');
   if (labelSpan) labelSpan.textContent = label;
   btnBackToLibrary.dataset.origin = isHistory ? 'history' : 'library';
-  btnBackToLibrary.title = isHistory ? 'Volver al historial' : 'Volver a la biblioteca';
+  btnBackToLibrary.title = isHistory
+    ? (isEn ? 'Back to history' : 'Volver al historial')
+    : (isEn ? 'Back to library' : 'Volver a la biblioteca');
   btnBackToLibrary.setAttribute('aria-label', btnBackToLibrary.title);
 }
+

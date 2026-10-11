@@ -28,33 +28,33 @@
     <!-- Top Navigation Bar -->
     <header class="top-nav" id="topNav">
       <div class="nav-left">
-        <div class="brand" id="brandHomeBtn" title="Ir a la biblioteca">
+        <div class="brand" id="brandHomeBtn" title="Ir a la biblioteca" data-i18n-title="nav.homeTitle">
           <div class="brand-icon">
             <img src="../../assets/icon.png" alt="LecFal" class="brand-icon-img">
           </div>
           <div class="brand-text">
             <h1 class="brand-title">LecFal</h1>
-            <span class="brand-subtitle">Tu biblioteca de mangas y comics</span>
+            <span class="brand-subtitle" data-i18n="common.appSubtitle">Tu biblioteca de mangas y comics</span>
           </div>
         </div>
 
         <!-- Top-level Navigation Tabs -->
         <nav class="top-nav-tabs" id="topNavTabs" aria-label="Navegación principal">
-          <button class="top-nav-tab active" id="navTabLibrary" title="Ir a la biblioteca">
+          <button class="top-nav-tab active" id="navTabLibrary" title="Ir a la biblioteca" data-i18n-title="nav.homeTitle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="m16 6 4 14"/>
               <path d="M12 6v14"/>
               <path d="M8 8v12"/>
               <path d="M4 4v16"/>
             </svg>
-            <span>Biblioteca</span>
+            <span data-i18n="nav.library">Biblioteca</span>
           </button>
-          <button class="top-nav-tab" id="navTabHistory" title="Ver historial de lectura">
+          <button class="top-nav-tab" id="navTabHistory" title="Ver historial de lectura" data-i18n-title="history.recentHistory">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
-            <span>Historial</span>
+            <span data-i18n="nav.history">Historial</span>
           </button>
         </nav>
       </div>
@@ -66,14 +66,14 @@
             <circle cx="11" cy="11" r="8"/>
             <path d="m21 21-4.3-4.3"/>
           </svg>
-          <input type="text" id="searchInput" placeholder="Buscar por título, autor o tags..." autocomplete="off">
-          <button class="clear-search-btn" id="clearSearchBtn" title="Limpiar búsqueda" style="display: none;">
+          <input type="text" id="searchInput" placeholder="Buscar por título, autor o tags..." data-i18n-placeholder="nav.searchPlaceholder" autocomplete="off">
+          <button class="clear-search-btn" id="clearSearchBtn" title="Limpiar búsqueda" data-i18n-title="nav.clearSearch" style="display: none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 6 6 18"/>
               <path d="m6 6 12 12"/>
             </svg>
           </button>
-          <button class="btn-adv-search-toggle" id="btnToggleAdvSearch" title="Abrir búsqueda avanzada">
+          <button class="btn-adv-search-toggle" id="btnToggleAdvSearch" title="Abrir búsqueda avanzada" data-i18n-title="nav.openAdvSearch">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
             </svg>
@@ -84,25 +84,25 @@
 
       <!-- Action Buttons -->
       <div class="nav-right">
-        <button class="btn btn-secondary btn-settings" id="btnOpenSettings" title="Configuración de la biblioteca">
+        <button class="btn btn-secondary btn-settings" id="btnOpenSettings" title="Configuración de la biblioteca" data-i18n-title="nav.settingsTitle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
-          <span>Ajustes</span>
+          <span data-i18n="nav.settings">Ajustes</span>
         </button>
 
         <div class="scan-button-group">
-          <button class="btn btn-secondary" id="btnRescan" title="Escanear cambios (archivos nuevos o modificados)">
+          <button class="btn btn-secondary" id="btnRescan" title="Escanear cambios (archivos nuevos o modificados)" data-i18n-title="nav.scanTitle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
               <path d="M16 21h5v-5"/>
             </svg>
-            <span>Escanear</span>
+            <span data-i18n="nav.scan">Escanear</span>
           </button>
-          <button class="btn btn-secondary btn-icon-only" id="btnScanMenu" title="Modos de escaneo">
+          <button class="btn btn-secondary btn-icon-only" id="btnScanMenu" title="Modos de escaneo" data-i18n-title="nav.scanModes">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
               <path d="m6 9 6 6 6-6"/>
             </svg>
@@ -111,15 +111,15 @@
             <button class="scan-dropdown-item" id="btnScanIncremental">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
               <div>
-                <div class="scan-dropdown-item-title">Escanear cambios (Rápido)</div>
-                <div class="scan-dropdown-item-desc">Solo analiza archivos nuevos o modificados</div>
+                <div class="scan-dropdown-item-title" data-i18n="nav.scanFast">Escanear cambios (Rápido)</div>
+                <div class="scan-dropdown-item-desc" data-i18n="nav.scanFastDesc">Solo analiza archivos nuevos o modificados</div>
               </div>
             </button>
             <button class="scan-dropdown-item" id="btnScanFull">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
               <div>
-                <div class="scan-dropdown-item-title">Re-escanear todo (Completo)</div>
-                <div class="scan-dropdown-item-desc">Fuerza el re-análisis de todos los archivos</div>
+                <div class="scan-dropdown-item-title" data-i18n="nav.scanFull">Re-escanear todo (Completo)</div>
+                <div class="scan-dropdown-item-desc" data-i18n="nav.scanFullDesc">Fuerza el re-análisis de todos los archivos</div>
               </div>
             </button>
           </div>
@@ -139,22 +139,23 @@
           </svg>
         </div>
         <div class="banner-text">
-          <div class="banner-title" id="scanBannerTitle">Escaneando biblioteca...</div>
-          <div class="banner-file" id="scanBannerFile">Iniciando escaneo...</div>
+          <div class="banner-title" id="scanBannerTitle" data-i18n="nav.scanningTitle">Escaneando biblioteca...</div>
+          <div class="banner-file" id="scanBannerFile" data-i18n="nav.startingScan">Iniciando escaneo...</div>
         </div>
         <div class="banner-progress-bar-container">
           <div class="banner-progress-bar" id="scanProgressBar" style="width: 0%;"></div>
         </div>
         <span class="banner-count" id="scanBannerCount">0/0</span>
-        <button class="btn-banner-cancel" id="btnCancelScan" title="Cancelar escaneo">
+        <button class="btn-banner-cancel" id="btnCancelScan" title="Cancelar escaneo" data-i18n-title="nav.cancelScan">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
-          <span>Cancelar</span>
+          <span data-i18n="common.cancel">Cancelar</span>
         </button>
       </div>
     </div>
+
 
     <!-- ==================== VIEW 1: LIBRARY GRID VIEW ==================== -->
     <div class="view-container" id="libraryView">
@@ -165,9 +166,9 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
             </svg>
-            <span>Búsqueda Avanzada</span>
+            <span data-i18n="library.advSearch">Búsqueda Avanzada</span>
           </div>
-          <button class="btn-icon-subtle" id="btnCloseAdvSearch" title="Cerrar búsqueda avanzada">
+          <button class="btn-icon-subtle" id="btnCloseAdvSearch" title="Cerrar búsqueda avanzada" data-i18n-title="library.closeAdvSearch">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 6 6 18"/>
               <path d="m6 6 12 12"/>
@@ -177,41 +178,41 @@
 
         <div class="adv-search-grid">
           <div class="adv-field">
-            <label for="advInputTitle">Título</label>
-            <input type="text" id="advInputTitle" placeholder="Buscar por título..." autocomplete="off">
+            <label for="advInputTitle" data-i18n="library.title">Título</label>
+            <input type="text" id="advInputTitle" placeholder="Buscar por título..." data-i18n-placeholder="library.titlePlaceholder" autocomplete="off">
           </div>
           <div class="adv-field">
-            <label>Autor</label>
+            <label data-i18n="library.author">Autor</label>
             <div id="advAutocompleteAuthor"></div>
           </div>
           <div class="adv-field">
-            <label>Grupo / Círculo</label>
+            <label data-i18n="library.group">Grupo / Círculo</label>
             <div id="advAutocompleteGroup"></div>
           </div>
           <div class="adv-field">
-            <label>Serie / Parodia</label>
+            <label data-i18n="library.parody">Serie / Parodia</label>
             <div id="advAutocompleteParody"></div>
           </div>
           <div class="adv-field">
-            <label>Tag / Género</label>
+            <label data-i18n="library.tag">Tag / Género</label>
             <div id="advAutocompleteTag"></div>
           </div>
           <div class="adv-field">
-            <label>Idioma</label>
+            <label data-i18n="library.language">Idioma</label>
             <div id="advAutocompleteLanguage"></div>
           </div>
         </div>
 
         <div class="adv-search-footer">
-          <span class="adv-search-hint">Combina múltiples criterios para filtrar tu biblioteca.</span>
+          <span class="adv-search-hint" data-i18n="library.advSearchHint">Combina múltiples criterios para filtrar tu biblioteca.</span>
           <div class="adv-search-actions">
-            <button class="btn btn-secondary" id="btnClearAdvSearch">Limpiar filtros</button>
+            <button class="btn btn-secondary" id="btnClearAdvSearch" data-i18n="library.clearFilters">Limpiar filtros</button>
             <button class="btn btn-primary" id="btnApplyAdvSearch">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"/>
                 <path d="m21 21-4.3-4.3"/>
               </svg>
-              <span>Buscar</span>
+              <span data-i18n="library.searchBtn">Buscar</span>
             </button>
           </div>
         </div>
@@ -222,7 +223,7 @@
         <div class="filter-group">
           <!-- Library Selector Popover Container -->
           <div class="library-select-wrapper" id="librarySelectWrapper">
-            <button class="filter-chip library-chip" id="btnLibrarySelect" type="button" title="Filtrar por biblioteca">
+            <button class="filter-chip library-chip" id="btnLibrarySelect" type="button" title="Filtrar por biblioteca" data-i18n-title="library.libraryFilterTitle">
               <span class="library-chip-icon">📚</span>
               <span class="library-chip-label" id="libraryChipLabel">Biblioteca: Todas</span>
               <svg class="chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -241,37 +242,37 @@
                   <circle cx="12" cy="12" r="3"></circle>
                   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                 </svg>
-                <span>Gestionar bibliotecas...</span>
+                <span data-i18n="library.manageLibraries">Gestionar bibliotecas...</span>
               </button>
             </div>
           </div>
 
           <!-- Independent Favorites Toggle Chip -->
-          <button class="filter-chip chip-favorite" id="btnFilterFavorite" data-filter="favorite" type="button" title="Mostrar solo favoritos">
+          <button class="filter-chip chip-favorite" id="btnFilterFavorite" data-filter="favorite" type="button" title="Mostrar solo favoritos" data-i18n-title="library.favoritesTitle">
             <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" class="chip-heart-icon">
               <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
             </svg>
-            <span>Favoritos</span>
+            <span data-i18n="library.favorites">Favoritos</span>
             <span class="counter-badge" id="countFav">0</span>
           </button>
 
           <div class="adv-active-badge" id="advActiveBadge" style="display: none;">
-            <span>Filtros avanzados</span>
-            <button id="btnQuickClearAdv" title="Eliminar filtros avanzados">×</button>
+            <span data-i18n="library.advActiveBadge">Filtros avanzados</span>
+            <button id="btnQuickClearAdv" title="Eliminar filtros avanzados" data-i18n-title="library.clearAdvBadge">×</button>
           </div>
         </div>
 
         <div class="toolbar-controls-right">
           <!-- Sort Dropdown -->
           <div class="sort-wrapper">
-            <label for="sortSelect" class="control-label">Ordenar:</label>
+            <label for="sortSelect" class="control-label" data-i18n="library.sortLabel">Ordenar:</label>
             <div class="select-container">
               <select id="sortSelect">
-                <option value="title_asc">Título (A - Z)</option>
-                <option value="title_desc">Título (Z - A)</option>
-                <option value="recent_added">Más recientes</option>
-                <option value="chapters_desc">Más capítulos</option>
-                <option value="oldest_added">Más antiguos</option>
+                <option value="title_asc" data-i18n="library.sortTitleAsc">Título (A - Z)</option>
+                <option value="title_desc" data-i18n="library.sortTitleDesc">Título (Z - A)</option>
+                <option value="recent_added" data-i18n="library.sortRecent">Más recientes</option>
+                <option value="chapters_desc" data-i18n="library.sortChapters">Más capítulos</option>
+                <option value="oldest_added" data-i18n="library.sortOldest">Más antiguos</option>
               </select>
               <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="m6 9 6 6 6-6"/>
@@ -283,10 +284,10 @@
 
           <!-- Grid Size Switcher (Small, Medium, Large + Slider) -->
           <div class="size-control-wrapper">
-            <span class="control-label">Tamaño:</span>
+            <span class="control-label" data-i18n="library.sizeLabel">Tamaño:</span>
             
             <div class="size-btn-group" id="sizeButtonGroup">
-              <button class="size-btn" data-size="small" title="Tamaño pequeño">
+              <button class="size-btn" data-size="small" title="Tamaño pequeño" data-i18n-title="library.sizeSmall">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="3" width="7" height="7"/>
                   <rect x="14" y="3" width="7" height="7"/>
@@ -295,7 +296,7 @@
                 </svg>
                 <span>S</span>
               </button>
-              <button class="size-btn active" data-size="medium" title="Tamaño mediano">
+              <button class="size-btn active" data-size="medium" title="Tamaño mediano" data-i18n-title="library.sizeMedium">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="3" width="8" height="8"/>
                   <rect x="13" y="3" width="8" height="8"/>
@@ -304,7 +305,7 @@
                 </svg>
                 <span>M</span>
               </button>
-              <button class="size-btn" data-size="large" title="Tamaño grande">
+              <button class="size-btn" data-size="large" title="Tamaño grande" data-i18n-title="library.sizeLarge">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="3" width="18" height="18" rx="2"/>
                 </svg>
@@ -313,7 +314,7 @@
             </div>
 
             <!-- Fine-tuning Slider -->
-            <div class="slider-wrapper" title="Ajuste fino de tamaño">
+            <div class="slider-wrapper" title="Ajuste fino de tamaño" data-i18n-title="library.sizeSlider">
               <input type="range" id="sizeSlider" min="130" max="320" value="185" step="5">
             </div>
           </div>
@@ -332,15 +333,15 @@
             <div class="empty-glow"></div>
             <img src="../../assets/icon.png" alt="LecFal" class="empty-state-logo">
           </div>
-          <h2>Tu biblioteca está vacía</h2>
-          <p>Selecciona la carpeta raíz donde organizas tus mangas (cada manga en su subcarpeta con sus capítulos <strong>.cbz</strong> o <strong>.pdf</strong>).<br>Quedará guardada por defecto.</p>
+          <h2 data-i18n="library.emptyNoFoldersTitle">Tu biblioteca está vacía</h2>
+          <p data-i18n="library.emptyNoFoldersDesc">Selecciona la carpeta raíz donde organizas tus mangas (cada manga en su subcarpeta con sus capítulos <strong>.cbz</strong> o <strong>.pdf</strong>).<br>Quedará guardada por defecto.</p>
           <button class="btn btn-primary btn-large" id="btnSelectInitialFolder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
               <path d="M12 11v6"/>
               <path d="M9 14h6"/>
             </svg>
-            <span>Seleccionar Carpeta por Defecto</span>
+            <span data-i18n="library.selectDefaultFolder">Seleccionar Carpeta por Defecto</span>
           </button>
         </div>
 
@@ -353,9 +354,9 @@
               <path d="M8 11h6"/>
             </svg>
           </div>
-          <h2>Sin resultados coincidentes</h2>
-          <p>No se encontraron mangas que coincidan con la búsqueda o filtro seleccionado.</p>
-          <button class="btn btn-secondary" id="btnResetFilters">Limpiar filtros</button>
+          <h2 data-i18n="library.emptyNoResultsTitle">Sin resultados coincidentes</h2>
+          <p data-i18n="library.emptyNoResultsDesc">No se encontraron mangas que coincidan con la búsqueda o filtro seleccionado.</p>
+          <button class="btn btn-secondary" id="btnResetFilters" data-i18n="library.clearFilters">Limpiar filtros</button>
         </div>
 
         <!-- Empty State: Waiting for advanced search input -->
@@ -365,11 +366,12 @@
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
             </svg>
           </div>
-          <h2>Búsqueda Avanzada</h2>
-          <p>Ingresa los criterios deseados arriba y pulsa <strong>Buscar</strong> para filtrar tu biblioteca.</p>
+          <h2 data-i18n="library.emptyAdvSearchTitle">Búsqueda Avanzada</h2>
+          <p data-i18n="library.emptyAdvSearchDesc">Ingresa los criterios deseados arriba y pulsa <strong>Buscar</strong> para filtrar tu biblioteca.</p>
         </div>
       </main>
     </div>
+
 
     <!-- ==================== VIEW: HISTORIAL VIEW ==================== -->
     <div class="view-container history-view" id="historyView" style="display: none;">
@@ -382,7 +384,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon points="5 3 19 12 5 21 5 3"/>
                 </svg>
-                <h2 id="continueReadingTitle">Continuar leyendo</h2>
+                <h2 id="continueReadingTitle" data-i18n="history.continueReading">Continuar leyendo</h2>
               </div>
               <span class="history-badge-count" id="continueReadingCount" style="display: none;">0</span>
             </div>
@@ -400,8 +402,8 @@
                   <circle cx="12" cy="12" r="10"/>
                 </svg>
               </div>
-              <h3>Sin lecturas pendientes</h3>
-              <p>Los capítulos que empieces a leer aparecerán aquí.</p>
+              <h3 data-i18n="history.emptyContinueTitle">Sin lecturas pendientes</h3>
+              <p data-i18n="history.emptyContinueDesc">Los capítulos que empieces a leer aparecerán aquí.</p>
             </div>
           </section>
 
@@ -413,7 +415,7 @@
                   <circle cx="12" cy="12" r="10"/>
                   <polyline points="12 6 12 12 16 14"/>
                 </svg>
-                <h2 id="recentHistoryTitle">Recientemente leído</h2>
+                <h2 id="recentHistoryTitle" data-i18n="history.recentHistory">Recientemente leído</h2>
               </div>
               <span class="history-badge-count" id="recentHistoryCount" style="display: none;">0</span>
             </div>
@@ -431,8 +433,8 @@
                   <path d="M6 2v20"/>
                 </svg>
               </div>
-              <h3>Aún no hay historial</h3>
-              <p>Cuando leas un capítulo, aparecerá aquí.</p>
+              <h3 data-i18n="history.emptyRecentTitle">Aún no hay historial</h3>
+              <p data-i18n="history.emptyRecentDesc">Cuando leas un capítulo, aparecerá aquí.</p>
             </div>
           </section>
         </div>
@@ -451,11 +453,11 @@
         </button>
         
         <div class="manga-nav-actions">
-          <button class="btn btn-secondary" id="btnOpenMangaFolder" title="Abrir carpeta de este manga en el explorador de archivos">
+          <button class="btn btn-secondary" id="btnOpenMangaFolder" title="Abrir carpeta de este manga en el explorador de archivos" data-i18n-title="detail.openFolderTitle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             </svg>
-            <span>Carpeta</span>
+            <span data-i18n="detail.folder">Carpeta</span>
           </button>
           <button class="btn btn-secondary" id="btnToggleMarkAllRead" title="Marcar todos los capítulos como leídos">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -463,14 +465,14 @@
             </svg>
             <span id="btnMarkAllText">Marcar todo leído</span>
           </button>
-          <button class="btn btn-secondary btn-danger-subtle" id="btnDeleteManga" title="Eliminar este manga">
+          <button class="btn btn-secondary btn-danger-subtle" id="btnDeleteManga" title="Eliminar este manga" data-i18n-title="detail.deleteManga">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
               <line x1="10" y1="11" x2="10" y2="17"/>
               <line x1="14" y1="11" x2="14" y2="17"/>
             </svg>
-            <span>Eliminar manga</span>
+            <span data-i18n="detail.deleteManga">Eliminar manga</span>
           </button>
         </div>
       </div>
@@ -487,14 +489,14 @@
             <div class="manga-hero-title-row">
               <div class="title-with-edit">
                 <h2 class="manga-hero-title" id="mangaHeroTitle">Nombre del Manga</h2>
-                <button class="btn-text-edit btn-edit-title" id="btnEditTitle" title="Editar título del manga">
+                <button class="btn-text-edit btn-edit-title" id="btnEditTitle" title="Editar título del manga" data-i18n-title="detail.editTitleTitle">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
                   </svg>
-                  <span>Renombrar</span>
+                  <span data-i18n="detail.editTitle">Renombrar</span>
                 </button>
               </div>
-              <button class="btn-fav-large" id="btnMangaFav" title="Marcar como favorito">
+              <button class="btn-fav-large" id="btnMangaFav" title="Marcar como favorito" data-i18n-title="detail.favTitle">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
                 </svg>
@@ -503,99 +505,99 @@
 
             <!-- Author Metadata Section -->
             <div class="manga-meta-row-group" id="mangaAuthorSection">
-              <span class="meta-label">Autor:</span>
+              <span class="meta-label" data-i18n="detail.authorLabel">Autor:</span>
               <div class="meta-chips-list" id="mangaAuthorsList">
                 <!-- Author chips injected dynamically -->
               </div>
-              <button class="btn-add-meta" id="btnAddAuthor" title="Asignar autor">
+              <button class="btn-add-meta" id="btnAddAuthor" title="Asignar autor" data-i18n-title="detail.assignAuthor">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 5v14"/>
                   <path d="M5 12h14"/>
                 </svg>
-                <span>Añadir</span>
+                <span data-i18n="common.add">Añadir</span>
               </button>
               <div class="detected-author-hint" id="detectedAuthorHint" style="display: none;"></div>
             </div>
 
             <!-- Group / Circle Metadata Section -->
             <div class="manga-meta-row-group" id="mangaGroupSection">
-              <span class="meta-label">Grupo:</span>
+              <span class="meta-label" data-i18n="detail.groupLabel">Grupo:</span>
               <div class="meta-chips-list" id="mangaGroupsList">
                 <!-- Group chips injected dynamically -->
               </div>
-              <button class="btn-add-meta" id="btnAddGroup" title="Asignar grupo o círculo">
+              <button class="btn-add-meta" id="btnAddGroup" title="Asignar grupo o círculo" data-i18n-title="detail.assignGroup">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 5v14"/>
                   <path d="M5 12h14"/>
                 </svg>
-                <span>Añadir</span>
+                <span data-i18n="common.add">Añadir</span>
               </button>
             </div>
 
             <!-- Series / Parody Metadata Section -->
             <div class="manga-meta-row-group" id="mangaParodySection">
-              <span class="meta-label">Serie / Parodia:</span>
+              <span class="meta-label" data-i18n="detail.parodyLabel">Serie / Parodia:</span>
               <div class="meta-chips-list" id="mangaParodiesList">
                 <!-- Parody chips injected dynamically -->
               </div>
-              <button class="btn-add-meta" id="btnAddParody" title="Asignar serie o parodia">
+              <button class="btn-add-meta" id="btnAddParody" title="Asignar serie o parodia" data-i18n-title="detail.assignParody">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 5v14"/>
                   <path d="M5 12h14"/>
                 </svg>
-                <span>Añadir</span>
+                <span data-i18n="common.add">Añadir</span>
               </button>
             </div>
 
             <!-- Language Metadata Section -->
             <div class="manga-meta-row-group" id="mangaLanguageSection">
-              <span class="meta-label">Idioma:</span>
+              <span class="meta-label" data-i18n="detail.languageLabel">Idioma:</span>
               <div class="meta-chips-list" id="mangaLanguagesList">
                 <!-- Language chips injected dynamically -->
               </div>
-              <button class="btn-add-meta" id="btnAddLanguage" title="Asignar idioma">
+              <button class="btn-add-meta" id="btnAddLanguage" title="Asignar idioma" data-i18n-title="detail.assignLanguage">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 5v14"/>
                   <path d="M5 12h14"/>
                 </svg>
-                <span>Añadir</span>
+                <span data-i18n="common.add">Añadir</span>
               </button>
             </div>
 
             <!-- Tags Section -->
             <div class="manga-meta-row-group" id="mangaTagsSection">
-              <span class="meta-label">Tags / Géneros:</span>
+              <span class="meta-label" data-i18n="detail.tagsLabel">Tags / Géneros:</span>
               <div class="meta-chips-list" id="mangaTagsList">
                 <!-- Tag chips injected dynamically -->
               </div>
-              <button class="btn-add-meta" id="btnAddTag" title="Añadir nuevo tag">
+              <button class="btn-add-meta" id="btnAddTag" title="Añadir nuevo tag" data-i18n-title="detail.addTag">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 5v14"/>
                   <path d="M5 12h14"/>
                 </svg>
-                <span>Añadir tag</span>
+                <span data-i18n="detail.addTag">Añadir tag</span>
               </button>
             </div>
 
             <!-- Description Section -->
             <div class="manga-desc-section">
               <div class="desc-header">
-                <span class="meta-label">Sinopsis / Descripción:</span>
-                <button class="btn-text-edit" id="btnEditDesc" title="Editar sinopsis">
+                <span class="meta-label" data-i18n="detail.synopsisLabel">Sinopsis / Descripción:</span>
+                <button class="btn-text-edit" id="btnEditDesc" title="Editar sinopsis" data-i18n-title="detail.editDesc">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
                   </svg>
-                  <span>Editar descripción</span>
+                  <span data-i18n="detail.editDesc">Editar descripción</span>
                 </button>
               </div>
-              <p class="manga-desc-text" id="mangaHeroDesc">Sin descripción</p>
+              <p class="manga-desc-text" id="mangaHeroDesc" data-i18n="detail.noDesc">Sin descripción</p>
               
               <!-- Inline Desc Editor (Hidden by default) -->
               <div class="desc-editor-container" id="descEditorContainer" style="display: none;">
-                <textarea id="descEditTextArea" placeholder="Escribe aquí la sinopsis o descripción del manga..."></textarea>
+                <textarea id="descEditTextArea" placeholder="Escribe aquí la sinopsis o descripción del manga..." data-i18n-placeholder="detail.descPlaceholder"></textarea>
                 <div class="desc-editor-actions">
-                  <button class="btn btn-secondary btn-small" id="btnCancelEditDesc">Cancelar</button>
-                  <button class="btn btn-primary btn-small" id="btnSaveEditDesc">Guardar descripción</button>
+                  <button class="btn btn-secondary btn-small" id="btnCancelEditDesc" data-i18n="common.cancel">Cancelar</button>
+                  <button class="btn btn-primary btn-small" id="btnSaveEditDesc" data-i18n="detail.saveDesc">Guardar descripción</button>
                 </div>
               </div>
             </div>
@@ -616,7 +618,7 @@
         <section class="chapters-section">
           <div class="chapters-header">
             <div class="chapters-title-group">
-              <h3 class="chapters-title">Capítulos</h3>
+              <h3 class="chapters-title" data-i18n="detail.chaptersTitle">Capítulos</h3>
               <span class="chapters-count-pill" id="chaptersCountBadge">0 capítulos</span>
               <span class="chapters-read-pill" id="chaptersReadBadge">0 leídos</span>
             </div>
@@ -628,11 +630,11 @@
                   <circle cx="11" cy="11" r="8"/>
                   <path d="m21 21-4.3-4.3"/>
                 </svg>
-                <input type="text" id="chapterFilterInput" placeholder="Filtrar capítulo...">
+                <input type="text" id="chapterFilterInput" placeholder="Filtrar capítulo..." data-i18n-placeholder="detail.filterChapterPlaceholder">
               </div>
 
               <!-- Sort Order Toggle -->
-              <button class="btn-sort-toggle" id="btnToggleChapterSort" title="Cambiar orden ascendente/descendente">
+              <button class="btn-sort-toggle" id="btnToggleChapterSort" title="Cambiar orden ascendente/descendente" data-i18n-title="detail.sortChaptersTitle">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="sortDirectionIcon">
                   <path d="m3 8 4-4 4 4"/>
                   <path d="M7 4v16"/>
@@ -656,13 +658,13 @@
     <div class="view-container settings-view" id="settingsView" style="display: none;">
       <!-- Settings Top Navigation Bar -->
       <div class="settings-nav-bar">
-        <button class="btn btn-secondary btn-back" id="btnBackFromSettings" title="Volver a la biblioteca">
+        <button class="btn btn-secondary btn-back" id="btnBackFromSettings" title="Volver a la biblioteca" data-i18n-title="settings.backToLibraryTitle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="m15 18-6-6 6-6"/>
           </svg>
-          <span>Biblioteca</span>
+          <span data-i18n="settings.backToLibrary">Biblioteca</span>
         </button>
-        <h2 class="settings-nav-title">Configuración</h2>
+        <h2 class="settings-nav-title" data-i18n="settings.title">Configuración</h2>
         <div style="width: 110px;"></div> <!-- visual balancer -->
       </div>
 
@@ -673,7 +675,7 @@
           <nav class="settings-sidebar-nav" id="settingsSidebarNav">
             <!-- GENERAL -->
             <div class="settings-nav-group">
-              <span class="settings-nav-group-title">General</span>
+              <span class="settings-nav-group-title" data-i18n="settings.navGeneral">General</span>
               <button type="button" class="settings-nav-item active" data-section="sectionAppearance">
                 <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="5"/>
@@ -686,44 +688,44 @@
                   <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
                   <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                 </svg>
-                <span>Apariencia</span>
+                <span data-i18n="settings.navAppearance">Apariencia</span>
               </button>
             </div>
 
             <!-- BIBLIOTECA -->
             <div class="settings-nav-group">
-              <span class="settings-nav-group-title">Biblioteca</span>
+              <span class="settings-nav-group-title" data-i18n="settings.navLibrary">Biblioteca</span>
               <button type="button" class="settings-nav-item" data-section="sectionLibraries">
                 <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                   <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                 </svg>
-                <span>Bibliotecas</span>
+                <span data-i18n="settings.navLibraries">Bibliotecas</span>
               </button>
               <button type="button" class="settings-nav-item" data-section="sectionFolders">
                 <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 </svg>
-                <span>Carpetas</span>
+                <span data-i18n="settings.navFolders">Carpetas</span>
               </button>
             </div>
 
             <!-- CATÁLOGOS -->
             <div class="settings-nav-group">
-              <span class="settings-nav-group-title">Catálogos</span>
+              <span class="settings-nav-group-title" data-i18n="settings.navCatalogs">Catálogos</span>
               <button type="button" class="settings-nav-item" data-section="sectionAuthors">
                 <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="12" cy="7" r="4"/>
                 </svg>
-                <span>Autores</span>
+                <span data-i18n="settings.navAuthors">Autores</span>
               </button>
               <button type="button" class="settings-nav-item" data-section="sectionTags">
                 <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
                   <line x1="7" y1="7" x2="7.01" y2="7"/>
                 </svg>
-                <span>Tags</span>
+                <span data-i18n="settings.navTags">Tags</span>
               </button>
               <button type="button" class="settings-nav-item" data-section="sectionLanguages">
                 <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -731,14 +733,14 @@
                   <line x1="2" y1="12" x2="22" y2="12"/>
                   <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                 </svg>
-                <span>Idiomas</span>
+                <span data-i18n="settings.navLanguages">Idiomas</span>
               </button>
               <button type="button" class="settings-nav-item" data-section="sectionParodies">
                 <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                   <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                 </svg>
-                <span>Series / Parodias</span>
+                <span data-i18n="settings.navParodies">Series / Parodias</span>
               </button>
               <button type="button" class="settings-nav-item" data-section="sectionGroups">
                 <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -747,7 +749,7 @@
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                <span>Grupos</span>
+                <span data-i18n="settings.navGroups">Grupos</span>
               </button>
               <button type="button" class="settings-nav-item" data-section="sectionAllCatalogs">
                 <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -755,19 +757,19 @@
                   <polyline points="2 17 12 22 22 17"/>
                   <polyline points="2 12 12 17 22 12"/>
                 </svg>
-                <span>Todos los catálogos</span>
+                <span data-i18n="settings.navAllCatalogs">Todos los catálogos</span>
               </button>
             </div>
 
             <!-- DATOS -->
             <div class="settings-nav-group">
-              <span class="settings-nav-group-title">Datos</span>
+              <span class="settings-nav-group-title" data-i18n="settings.navData">Datos</span>
               <button type="button" class="settings-nav-item" data-section="sectionIgnoredAuthors">
                 <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
                   <line x1="1" y1="1" x2="23" y2="23"/>
                 </svg>
-                <span>Valores ignorados</span>
+                <span data-i18n="settings.navIgnoredValues">Valores ignorados</span>
               </button>
               <button type="button" class="settings-nav-item" data-section="sectionStorage" id="navItemStorage">
                 <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -775,7 +777,7 @@
                   <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
                   <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
                 </svg>
-                <span>Ubicación de datos</span>
+                <span data-i18n="settings.navStorage">Ubicación de datos</span>
               </button>
             </div>
           </nav>
@@ -820,26 +822,26 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="settings-card-title">Bibliotecas</h3>
-                  <p class="settings-card-desc">Crea colecciones lógicas para organizar y agrupar tus carpetas escaneadas (ej. Manga, Cómics, Manhwa).</p>
+                  <h3 class="settings-card-title" data-i18n="settings.librariesTitle">Bibliotecas</h3>
+                  <p class="settings-card-desc" data-i18n="settings.librariesDesc">Crea colecciones lógicas para organizar y agrupar tus carpetas escaneadas (ej. Manga, Cómics, Manhwa).</p>
                 </div>
               </div>
               <div class="settings-card-actions">
-                <button class="btn btn-secondary" id="btnSettingsRefreshLibraries" title="Refrescar bibliotecas">
+                <button class="btn btn-secondary" id="btnSettingsRefreshLibraries" title="Refrescar bibliotecas" data-i18n-title="common.refresh">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                     <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                     <path d="M3 3v5h5"/>
                     <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
                     <path d="M16 21h5v-5"/>
                   </svg>
-                  <span>Refrescar</span>
+                  <span data-i18n="common.refresh">Refrescar</span>
                 </button>
                 <button class="btn btn-primary" id="btnSettingsAddLibrary">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                   </svg>
-                  <span>Nueva biblioteca</span>
+                  <span data-i18n="settings.newLibrary">Nueva biblioteca</span>
                 </button>
               </div>
             </div>
@@ -861,35 +863,35 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="settings-card-title">Carpetas de la Biblioteca</h3>
-                  <p class="settings-card-desc">Gestiona directorios locales, en discos externos o volúmenes montados con VeraCrypt.</p>
+                  <h3 class="settings-card-title" data-i18n="settings.foldersTitle">Carpetas de la Biblioteca</h3>
+                  <p class="settings-card-desc" data-i18n="settings.foldersDesc">Gestiona directorios locales, en discos externos o volúmenes montados con VeraCrypt.</p>
                 </div>
               </div>
               <div class="settings-card-actions">
-                <button class="btn btn-secondary" id="btnSettingsRefreshFolders" title="Refrescar lista de carpetas">
+                <button class="btn btn-secondary" id="btnSettingsRefreshFolders" title="Refrescar lista de carpetas" data-i18n-title="settings.refreshFoldersTitle">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                     <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                     <path d="M3 3v5h5"/>
                     <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
                     <path d="M16 21h5v-5"/>
                   </svg>
-                  <span>Refrescar</span>
+                  <span data-i18n="common.refresh">Refrescar</span>
                 </button>
-                <button class="btn btn-secondary" id="btnSettingsScanAll" title="Escanear todas las carpetas disponibles">
+                <button class="btn btn-secondary" id="btnSettingsScanAll" title="Escanear todas las carpetas disponibles" data-i18n-title="settings.scanAllTitle">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                     <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                     <path d="M3 3v5h5"/>
                     <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
                     <path d="M16 21h5v-5"/>
                   </svg>
-                  <span>Escanear Todo</span>
+                  <span data-i18n="settings.scanAll">Escanear Todo</span>
                 </button>
                 <button class="btn btn-primary" id="btnSettingsAddFolder">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                   </svg>
-                  <span>Añadir Carpeta</span>
+                  <span data-i18n="settings.addFolder">Añadir Carpeta</span>
                 </button>
               </div>
             </div>
@@ -897,8 +899,8 @@
             <div class="settings-card-body">
               <div class="settings-option-row">
                 <div class="settings-option-info">
-                  <span class="settings-option-title">Auto-empaquetar imágenes a CBZ</span>
-                  <span class="settings-option-desc">Al escanear, comprime carpetas o imágenes sueltas en archivos .cbz (Cap1.cbz, Cap2.cbz...) y verifica su integridad antes de limpiar los originales.</span>
+                  <span class="settings-option-title" data-i18n="settings.autoPackageCbzTitle">Auto-empaquetar imágenes a CBZ</span>
+                  <span class="settings-option-desc" data-i18n="settings.autoPackageCbzDesc">Al escanear, comprime carpetas o imágenes sueltas en archivos .cbz (Cap1.cbz, Cap2.cbz...) y verifica su integridad antes de limpiar los originales.</span>
                 </div>
                 <label class="switch" title="Activar/desactivar auto-empaquetado a CBZ">
                   <input type="checkbox" id="chkAutoPackageCbz" checked>
@@ -930,8 +932,8 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="settings-card-title">Apariencia y Tema</h3>
-                  <p class="settings-card-desc">Elige el tema de la aplicación. Tu preferencia se aplica al instante y persiste al reiniciar.</p>
+                  <h3 class="settings-card-title" data-i18n="settings.themeTitle">Apariencia y Tema</h3>
+                  <p class="settings-card-desc" data-i18n="settings.themeDesc">Elige el tema de la aplicación. Tu preferencia se aplica al instante y persiste al reiniciar.</p>
                 </div>
               </div>
             </div>
@@ -948,10 +950,10 @@
                   </div>
                   <div class="theme-card-info">
                     <div class="theme-card-label">
-                      <span class="theme-name">Modo Oscuro</span>
-                      <span class="theme-desc">Tema original púrpura y negro</span>
+                      <span class="theme-name" data-i18n="settings.themeDark">Modo Oscuro</span>
+                      <span class="theme-desc" data-i18n="settings.themeDarkDesc">Tema original púrpura y negro</span>
                     </div>
-                    <span class="theme-card-badge">Activo</span>
+                    <span class="theme-card-badge" data-i18n="common.active">Activo</span>
                   </div>
                 </div>
 
@@ -965,14 +967,66 @@
                   </div>
                   <div class="theme-card-info">
                     <div class="theme-card-label">
-                      <span class="theme-name">Modo Claro</span>
-                      <span class="theme-desc">Estilo luminoso y limpio</span>
+                      <span class="theme-name" data-i18n="settings.themeLight">Modo Claro</span>
+                      <span class="theme-desc" data-i18n="settings.themeLightDesc">Estilo luminoso y limpio</span>
                     </div>
-                    <span class="theme-card-badge" style="display: none;">Activo</span>
+                    <span class="theme-card-badge" style="display: none;" data-i18n="common.active">Activo</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Language Selection Divider & Header -->
+              <div class="settings-section-divider"></div>
+
+              <div class="settings-card-header" style="padding-top: 10px; padding-bottom: 12px;">
+                <div class="settings-card-icon-title">
+                  <div class="settings-card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="2" y1="12" x2="22" y2="12"/>
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="settings-card-title" data-i18n="settings.languageTitle">Idioma de la Aplicación</h3>
+                    <p class="settings-card-desc" data-i18n="settings.languageDesc">Selecciona el idioma de la interfaz. Los cambios se aplican de inmediato en toda la aplicación.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="theme-options-grid">
+                <!-- Spanish Option -->
+                <div class="theme-card active" data-lang-value="es" id="langOptEs">
+                  <div class="theme-card-preview lang-preview-flag">
+                    <span class="lang-flag-symbol">🇪🇸</span>
+                    <span class="lang-code-tag">ES</span>
+                  </div>
+                  <div class="theme-card-info">
+                    <div class="theme-card-label">
+                      <span class="theme-name">Español</span>
+                      <span class="theme-desc" data-i18n="settings.langEsDesc">Español (Castellano)</span>
+                    </div>
+                    <span class="theme-card-badge" data-i18n="common.active">Activo</span>
+                  </div>
+                </div>
+
+                <!-- English Option -->
+                <div class="theme-card" data-lang-value="en" id="langOptEn">
+                  <div class="theme-card-preview lang-preview-flag">
+                    <span class="lang-flag-symbol">🇺🇸</span>
+                    <span class="lang-code-tag">EN</span>
+                  </div>
+                  <div class="theme-card-info">
+                    <div class="theme-card-label">
+                      <span class="theme-name">English</span>
+                      <span class="theme-desc" data-i18n="settings.langEnDesc">English (United States)</span>
+                    </div>
+                    <span class="theme-card-badge" style="display: none;" data-i18n="common.active">Activo</span>
                   </div>
                 </div>
               </div>
             </div>
+
           </section>
 
           <!-- 9. CATÁLOGOS: TODOS LOS CATÁLOGOS -->
@@ -991,19 +1045,19 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="settings-card-title">Valores Detectados Ignorados</h3>
-                  <p class="settings-card-desc">Textos entre corchetes o paréntesis rechazados como autores (ej. temas, scans, editoriales). Puedes restaurarlos si fueron ignorados por error.</p>
+                  <h3 class="settings-card-title" data-i18n="settings.ignoredAuthorsTitle">Valores Detectados Ignorados</h3>
+                  <p class="settings-card-desc" data-i18n="settings.ignoredAuthorsDesc">Textos entre corchetes o paréntesis rechazados como autores (ej. temas, scans, editoriales). Puedes restaurarlos si fueron ignorados por error.</p>
                 </div>
               </div>
               <div class="settings-card-actions">
-                <button type="button" class="btn btn-secondary" id="btnRefreshIgnoredAuthors" title="Refrescar valores ignorados">
+                <button type="button" class="btn btn-secondary" id="btnRefreshIgnoredAuthors" title="Refrescar valores ignorados" data-i18n-title="common.refresh">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
                     <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                     <path d="M3 3v5h5"/>
                     <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
                     <path d="M16 21h5v-5"/>
                   </svg>
-                  <span>Refrescar</span>
+                  <span data-i18n="common.refresh">Refrescar</span>
                 </button>
               </div>
             </div>
@@ -1027,8 +1081,8 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="settings-card-title">Ubicación de datos</h3>
-                  <p class="settings-card-desc">Gestiona la ubicación donde LecFal almacena la base de datos SQLite, miniaturas y archivos de configuración.</p>
+                  <h3 class="settings-card-title" data-i18n="settings.storageTitle">Ubicación de datos</h3>
+                  <p class="settings-card-desc" data-i18n="settings.storageDesc">Gestiona la ubicación donde LecFal almacena la base de datos SQLite, miniaturas y archivos de configuración.</p>
                 </div>
               </div>
             </div>
@@ -1052,31 +1106,31 @@
                             <line x1="6" y1="18" x2="6.01" y2="18"/>
                           </svg>
                         </div>
-                        <h4 class="storage-card-title">Modo Activo</h4>
+                        <h4 class="storage-card-title" data-i18n="settings.activeMode">Modo Activo</h4>
                       </div>
                       <span class="storage-badge storage-badge-standard" id="storageCurrentModeBadge">Estándar</span>
                     </div>
 
                     <div class="storage-path-container">
-                      <span class="storage-field-label">Ruta actual de almacenamiento:</span>
+                      <span class="storage-field-label" data-i18n="settings.currentStoragePath">Ruta actual de almacenamiento:</span>
                       <div class="storage-path-box" id="storageCurrentPath">Cargando ruta...</div>
                     </div>
 
                     <!-- NUEVO: Directorio de datos portables (solo visible en modo Portable) -->
                     <div class="storage-path-container" id="storagePortableRow" style="display: none;">
-                      <span class="storage-field-label">Directorio de datos portables:</span>
+                      <span class="storage-field-label" data-i18n="settings.portableDataDir">Directorio de datos portables:</span>
                       <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
                         <div class="storage-path-box" id="storagePortablePathValue" style="flex: 1; min-width: 0;">No configurado</div>
                         <button type="button" class="btn btn-secondary btn-sm" id="btnChoosePortablePath" style="flex-shrink: 0;">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
                             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                           </svg>
-                          <span>Elegir carpeta…</span>
+                          <span data-i18n="settings.chooseFolder">Elegir carpeta…</span>
                         </button>
                       </div>
                     </div>
 
-                    <p class="storage-desc-text">
+                    <p class="storage-desc-text" data-i18n="settings.storageDescText">
                       Esta ubicación almacena la base de datos principal (<code style="font-family: inherit; color: #a5b4fc;">lecfal.db</code>), miniaturas de carátulas (<code style="font-family: inherit; color: #a5b4fc;">thumbnails/</code>), archivos de configuración y registros de diagnóstico.
                     </p>
 
@@ -1084,7 +1138,7 @@
                       <svg style="width: 16px; height: 16px; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                       </svg>
-                      <span>Tus archivos y cómics originales en las carpetas de biblioteca nunca son movidos ni modificados.</span>
+                      <span data-i18n="settings.storageSafeNote">Tus archivos y cómics originales en las carpetas de biblioteca nunca son movidos ni modificados.</span>
                     </div>
                   </div>
 
@@ -1099,13 +1153,13 @@
                             <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
                           </svg>
                         </div>
-                        <h4 class="storage-card-title">Ubicación Alternativa</h4>
+                        <h4 class="storage-card-title" data-i18n="settings.altLocation">Ubicación Alternativa</h4>
                       </div>
                     </div>
 
                     <div class="storage-dest-preview">
                       <div class="storage-path-container">
-                        <span class="storage-field-label">Ruta de destino alternativa:</span>
+                        <span class="storage-field-label" data-i18n="settings.altDestPath">Ruta de destino alternativa:</span>
                         <div class="storage-path-box" id="storageDestPath">—</div>
                       </div>
 
@@ -1115,7 +1169,7 @@
                       </div>
                     </div>
 
-                    <p class="storage-desc-text">
+                    <p class="storage-desc-text" data-i18n="settings.storageDestDesc">
                       Puedes cambiar entre el modo Estándar (configuración del sistema de usuario) y el modo Portable (carpeta de datos junto a la aplicación), o migrar todos tus datos de forma segura entre ambas ubicaciones.
                     </p>
                   </div>
@@ -1128,7 +1182,7 @@
                       <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
                       <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                     </svg>
-                    <span>Cambiar a modo portable</span>
+                    <span data-i18n="settings.switchToPortable">Cambiar a modo portable</span>
                   </button>
 
                   <button type="button" class="btn btn-secondary" id="btnSwitchToStandard" style="display: none;">
@@ -1136,7 +1190,7 @@
                       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                       <polyline points="9 22 9 12 15 12 15 22"/>
                     </svg>
-                    <span>Cambiar a modo estándar</span>
+                    <span data-i18n="settings.switchToStandard">Cambiar a modo estándar</span>
                   </button>
 
                   <button type="button" class="btn btn-primary" id="btnMigrateStorage">
@@ -1146,7 +1200,7 @@
                       <path d="M7 21V11"/>
                       <path d="M3 17l4 4 4-4"/>
                     </svg>
-                    <span>Migrar datos</span>
+                    <span data-i18n="settings.migrateData">Migrar datos</span>
                   </button>
                 </div>
 
@@ -1161,8 +1215,8 @@
                         </svg>
                       </div>
                       <div>
-                        <h4 class="storage-card-title">Limpiar historial</h4>
-                        <p class="storage-desc-text" style="margin: 4px 0 0 0;">
+                        <h4 class="storage-card-title" data-i18n="settings.clearHistoryCardTitle">Limpiar historial</h4>
+                        <p class="storage-desc-text" style="margin: 4px 0 0 0;" data-i18n="settings.clearHistoryCardDesc">
                           Elimina todos los registros de actividad de lectura del historial. Tu progreso actual (posición guardada y capítulos leídos) y tus archivos de cómics <strong>se conservarán intactos</strong>.
                         </p>
                       </div>
@@ -1172,7 +1226,7 @@
                         <path d="M3 6h18"/>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                       </svg>
-                      <span>Limpiar historial</span>
+                      <span data-i18n="settings.clearHistoryCardTitle">Limpiar historial</span>
                     </button>
                   </div>
                 </div>
@@ -1188,8 +1242,8 @@
                         </svg>
                       </div>
                       <div>
-                        <h4 class="storage-card-title">Reiniciar historial y progreso</h4>
-                        <p class="storage-desc-text" style="margin: 4px 0 0 0;">
+                        <h4 class="storage-card-title" data-i18n="settings.resetProgressCardTitle">Reiniciar historial y progreso</h4>
+                        <p class="storage-desc-text" style="margin: 4px 0 0 0;" data-i18n="settings.resetProgressCardDesc">
                           Elimina todo el historial de lectura y restablece el progreso de todos los mangas. Los capítulos volverán a aparecer como no leídos y se perderán las posiciones guardadas. Los mangas, metadatos y archivos CBZ/PDF <strong>permanecerán intactos</strong>.
                         </p>
                       </div>
@@ -1199,7 +1253,7 @@
                         <polyline points="1 4 1 10 7 10"/>
                         <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
                       </svg>
-                      <span>Reiniciar historial y progreso</span>
+                      <span data-i18n="settings.resetProgressCardTitle">Reiniciar historial y progreso</span>
                     </button>
                   </div>
                 </div>
@@ -1216,8 +1270,8 @@
                         </svg>
                       </div>
                       <div>
-                        <h4 class="storage-card-title">Restablecer aplicación</h4>
-                        <p class="storage-desc-text" style="margin: 4px 0 0 0;">
+                        <h4 class="storage-card-title" data-i18n="settings.resetAppCardTitle">Restablecer aplicación</h4>
+                        <p class="storage-desc-text" style="margin: 4px 0 0 0;" data-i18n="settings.resetAppCardDesc">
                           Restablece la base de datos de LecFal, carátulas procesadas, miniaturas, caché y preferencias internas. Tus cómics y carpetas originales <strong>nunca se eliminarán</strong>.
                         </p>
                       </div>
@@ -1227,7 +1281,7 @@
                         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                         <path d="M3 3v5h5"/>
                       </svg>
-                      <span>Restablecer aplicación</span>
+                      <span data-i18n="settings.resetAppCardTitle">Restablecer aplicación</span>
                     </button>
                   </div>
                 </div>
@@ -1247,21 +1301,21 @@
       <!-- Floating Autohiding Top Header -->
       <header class="reader-header" id="readerHeader">
         <div class="reader-header-left">
-          <button class="btn-reader-action" id="btnReaderBack" title="Volver al detalle del manga (Esc)" aria-label="Volver al detalle del manga">
+          <button class="btn-reader-action" id="btnReaderBack" title="Volver al detalle del manga (Esc)" aria-label="Volver al detalle del manga" data-i18n-title="reader.backTitle" data-i18n-aria-label="reader.backTitle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
-            <span id="btnReaderBackText">Volver</span>
+            <span id="btnReaderBackText" data-i18n="reader.back">Volver</span>
           </button>
 
           <!-- Floating Header Chapter Navigation Controls -->
           <div class="reader-header-nav" id="readerHeaderNav">
-            <button class="btn-reader-action" id="btnHeaderPrevChapter" title="Capítulo anterior ([)" aria-label="Capítulo anterior">
+            <button class="btn-reader-action" id="btnHeaderPrevChapter" title="Capítulo anterior ([)" aria-label="Capítulo anterior" data-i18n-title="reader.prevChapter" data-i18n-aria-label="reader.prevChapter">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M15 18l-6-6 6-6"/>
               </svg>
             </button>
-            <button class="btn-reader-action" id="btnHeaderNextChapter" title="Siguiente capítulo (])" aria-label="Siguiente capítulo">
+            <button class="btn-reader-action" id="btnHeaderNextChapter" title="Siguiente capítulo (])" aria-label="Siguiente capítulo" data-i18n-title="reader.nextChapter" data-i18n-aria-label="reader.nextChapter">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 18l6-6-6-6"/>
               </svg>
@@ -1279,7 +1333,7 @@
 
         <div class="reader-header-right">
           <!-- Width Mode Toggle -->
-          <button class="btn-reader-action" id="btnReaderWidthToggle" title="Ajustar ancho de lectura" aria-label="Ajustar ancho de lectura">
+          <button class="btn-reader-action" id="btnReaderWidthToggle" title="Ajustar ancho de lectura" aria-label="Ajustar ancho de lectura" data-i18n-title="reader.widthToggle" data-i18n-aria-label="reader.widthToggle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 12h16M4 12l4-4m-4 4 4 4m12-4-4-4m4 4-4 4"/>
             </svg>
@@ -1287,7 +1341,7 @@
           </button>
 
           <!-- Spacing Mode Toggle -->
-          <button class="btn-reader-action" id="btnReaderSpacingToggle" title="Ajustar espacio vertical entre páginas" aria-label="Ajustar espacio entre páginas">
+          <button class="btn-reader-action" id="btnReaderSpacingToggle" title="Ajustar espacio vertical entre páginas" aria-label="Ajustar espacio entre páginas" data-i18n-title="reader.spacingToggle" data-i18n-aria-label="reader.spacingToggle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 4v16M12 4l-4 4m4-4 4 4m-4 12-4-4m4 4 4-4"/>
             </svg>
@@ -1295,17 +1349,17 @@
           </button>
 
           <!-- Fallback: Open in external app -->
-          <button class="btn-reader-action" id="btnReaderExternal" title="Abrir archivo en lector externo del sistema" aria-label="Abrir en lector externo">
+          <button class="btn-reader-action" id="btnReaderExternal" title="Abrir archivo en lector externo del sistema" aria-label="Abrir en lector externo" data-i18n-title="reader.external" data-i18n-aria-label="reader.external">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
               <line x1="10" y1="14" x2="21" y2="3"></line>
             </svg>
-            <span>Lector externo</span>
+            <span data-i18n="reader.external">Lector externo</span>
           </button>
 
           <!-- Fullscreen Toggle -->
-          <button class="btn-reader-action" id="btnReaderFullscreen" title="Pantalla completa" aria-label="Pantalla completa">
+          <button class="btn-reader-action" id="btnReaderFullscreen" title="Pantalla completa" aria-label="Pantalla completa" data-i18n-title="reader.fullscreen" data-i18n-aria-label="reader.fullscreen">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="iconFullscreenEnter">
               <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
             </svg>
@@ -1332,11 +1386,11 @@
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
           </div>
-          <h3 id="readerErrorTitle">Error al abrir el capítulo</h3>
-          <p id="readerErrorMessage">No se pudo acceder al archivo en el disco.</p>
+          <h3 id="readerErrorTitle" data-i18n="reader.errorTitle">Error al abrir el capítulo</h3>
+          <p id="readerErrorMessage" data-i18n="reader.errorMessage">No se pudo acceder al archivo en el disco.</p>
           <div class="reader-error-actions">
-            <button class="btn btn-secondary" id="btnReaderErrorBack" aria-label="Volver">Volver al manga</button>
-            <button class="btn btn-primary" id="btnReaderErrorExternal" aria-label="Intentar con lector externo">Intentar con lector externo</button>
+            <button class="btn btn-secondary" id="btnReaderErrorBack" aria-label="Volver" data-i18n="reader.errorBack">Volver al manga</button>
+            <button class="btn btn-primary" id="btnReaderErrorExternal" aria-label="Intentar con lector externo" data-i18n="reader.errorExternal">Intentar con lector externo</button>
           </div>
         </div>
 
@@ -1353,20 +1407,20 @@
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </div>
-            <h3>¡Capítulo finalizado!</h3>
-            <p id="readerFooterSubtext">Has llegado al final de este capítulo.</p>
+            <h3 data-i18n="modals.done">¡Capítulo finalizado!</h3>
+            <p id="readerFooterSubtext" data-i18n="reader.footerSubtext">Has llegado al final de este capítulo.</p>
             <div class="reader-footer-buttons">
               <button class="btn btn-secondary" id="btnReaderPrevChapter" aria-label="Capítulo anterior">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M15 18l-6-6 6-6"/>
                 </svg>
-                <span>Capítulo anterior</span>
+                <span data-i18n="reader.prevChapter">Capítulo anterior</span>
               </button>
               <button class="btn btn-secondary" id="btnReaderFooterBack" aria-label="Volver al detalle del manga">
-                <span id="readerFooterBackText">Volver al manga</span>
+                <span id="readerFooterBackText" data-i18n="reader.footerBack">Volver al manga</span>
               </button>
               <button class="btn btn-primary" id="btnReaderNextChapter" aria-label="Siguiente capítulo">
-                <span>Siguiente capítulo</span>
+                <span data-i18n="reader.nextChapter">Siguiente capítulo</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
@@ -1395,7 +1449,7 @@
           <svg class="modal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
           </svg>
-          <h3>Carpetas de la Biblioteca</h3>
+          <h3 data-i18n="modals.modalFoldersTitle">Carpetas de la Biblioteca</h3>
         </div>
         <button class="modal-close-btn" id="btnCloseModalFolders">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1406,7 +1460,7 @@
       </div>
 
       <div class="modal-body">
-        <p class="modal-description">
+        <p class="modal-description" data-i18n="modals.modalFoldersDesc">
           Gestiona las carpetas escaneadas. Los mangas y capítulos encontrados permanecerán en tu biblioteca de forma permanente.
         </p>
 
@@ -1419,12 +1473,12 @@
             <path d="M12 5v14"/>
             <path d="M5 12h14"/>
           </svg>
-          <span>Añadir otra carpeta</span>
+          <span data-i18n="modals.addAnotherFolder">Añadir otra carpeta</span>
         </button>
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-primary" id="btnModalCloseDone">Listo</button>
+        <button class="btn btn-primary" id="btnModalCloseDone" data-i18n="common.done">Listo</button>
       </div>
     </div>
   </div>
@@ -1433,7 +1487,7 @@
   <div class="modal-backdrop" id="modalEditField" style="display: none;">
     <div class="modal-card modal-small-card">
       <div class="modal-header">
-        <h3 id="editFieldModalTitle">Editar información</h3>
+        <h3 id="editFieldModalTitle" data-i18n="modals.editFieldTitle">Editar información</h3>
         <button class="modal-close-btn" id="btnCloseEditFieldModal">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6 6 18"/>
@@ -1442,12 +1496,12 @@
         </button>
       </div>
       <div class="modal-body">
-        <label id="editFieldLabel" class="control-label">Valor:</label>
+        <label id="editFieldLabel" class="control-label" data-i18n="modals.editFieldValue">Valor:</label>
         <input type="text" id="editFieldInput" class="standard-input" autocomplete="off">
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnCancelEditField">Cancelar</button>
-        <button class="btn btn-primary" id="btnSaveEditField">Guardar</button>
+        <button class="btn btn-secondary" id="btnCancelEditField" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveEditField" data-i18n="common.save">Guardar</button>
       </div>
     </div>
   </div>
@@ -1456,7 +1510,7 @@
   <div class="modal-backdrop" id="modalRenameMetadata" role="dialog" aria-modal="true" aria-labelledby="renameModalTitle" style="display: none;">
     <div class="modal-card modal-small-card">
       <div class="modal-header">
-        <h3 id="renameModalTitle">Renombrar</h3>
+        <h3 id="renameModalTitle" data-i18n="modals.renameTitle">Renombrar</h3>
         <button class="modal-close-btn" id="btnCloseRenameModal">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6 6 18"/>
@@ -1465,13 +1519,13 @@
         </button>
       </div>
       <div class="modal-body">
-        <label id="renameModalLabel" for="renameModalInput" class="control-label">Nuevo nombre:</label>
+        <label id="renameModalLabel" for="renameModalInput" class="control-label" data-i18n="modals.newNameLabel">Nuevo nombre:</label>
         <input type="text" id="renameModalInput" class="standard-input" autocomplete="off">
         <div id="renameModalError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnCancelRenameModal">Cancelar</button>
-        <button class="btn btn-primary" id="btnConfirmRenameModal">Guardar</button>
+        <button class="btn btn-secondary" id="btnCancelRenameModal" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmRenameModal" data-i18n="common.save">Guardar</button>
       </div>
     </div>
   </div>
@@ -1480,7 +1534,7 @@
   <div class="modal-backdrop" id="modalCreateLibrary" role="dialog" aria-modal="true" aria-labelledby="createLibraryModalTitle" style="display: none;">
     <div class="modal-card modal-small-card">
       <div class="modal-header">
-        <h3 id="createLibraryModalTitle">Nueva Biblioteca</h3>
+        <h3 id="createLibraryModalTitle" data-i18n="modals.newLibraryTitle">Nueva Biblioteca</h3>
         <button class="modal-close-btn" id="btnCloseCreateLibraryModal">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6 6 18"/>
@@ -1489,13 +1543,13 @@
         </button>
       </div>
       <div class="modal-body">
-        <label for="createLibraryModalInput" class="control-label">Nombre de la biblioteca:</label>
-        <input type="text" id="createLibraryModalInput" class="standard-input" placeholder="ej. Manga, Cómics, Manhwa..." autocomplete="off">
+        <label for="createLibraryModalInput" class="control-label" data-i18n="modals.libraryNameLabel">Nombre de la biblioteca:</label>
+        <input type="text" id="createLibraryModalInput" class="standard-input" placeholder="ej. Manga, Cómics, Manhwa..." data-i18n-placeholder="modals.libraryNamePlaceholder" autocomplete="off">
         <div id="createLibraryModalError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnCancelCreateLibraryModal">Cancelar</button>
-        <button class="btn btn-primary" id="btnConfirmCreateLibraryModal">Crear</button>
+        <button class="btn btn-secondary" id="btnCancelCreateLibraryModal" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmCreateLibraryModal" data-i18n="common.create">Crear</button>
       </div>
     </div>
   </div>
@@ -1509,7 +1563,7 @@
             <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
             <line x1="7" y1="7" x2="7.01" y2="7"/>
           </svg>
-          <h3 id="modalCatalogPickerTitle">Asignar Metadatos</h3>
+          <h3 id="modalCatalogPickerTitle" data-i18n="modals.assignMetadataTitle">Asignar Metadatos</h3>
         </div>
         <button class="modal-close-btn" id="btnCloseCatalogPicker">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1520,7 +1574,7 @@
       </div>
 
       <div class="modal-body">
-        <p class="modal-description" id="modalCatalogPickerDesc">
+        <p class="modal-description" id="modalCatalogPickerDesc" data-i18n="modals.assignMetadataDesc">
           Selecciona los elementos que deseas asignar a este manga. Todos los valores provienen de la configuración centralizada de la biblioteca.
         </p>
 
@@ -1529,7 +1583,7 @@
             <circle cx="11" cy="11" r="8"/>
             <path d="m21 21-4.3-4.3"/>
           </svg>
-          <input type="text" id="inputFilterCatalogPicker" placeholder="Filtrar valores disponibles..." autocomplete="off">
+          <input type="text" id="inputFilterCatalogPicker" placeholder="Filtrar valores disponibles..." data-i18n-placeholder="modals.filterValuesPlaceholder" autocomplete="off">
         </div>
 
         <div class="tag-picker-chips-container" id="catalogPickerChipsContainer">
@@ -1537,14 +1591,14 @@
         </div>
 
         <div class="tag-picker-empty" id="catalogPickerEmpty" style="display: none;">
-          <p id="catalogPickerEmptyText">No hay elementos creados aún en la biblioteca.</p>
-          <button class="btn btn-secondary" id="btnGoToSettingsFromPicker">Ir a Ajustes para crearlos</button>
+          <p id="catalogPickerEmptyText" data-i18n="modals.noMetadataCreated">No hay elementos creados aún en la biblioteca.</p>
+          <button class="btn btn-secondary" id="btnGoToSettingsFromPicker" data-i18n="modals.goToSettings">Ir a Ajustes para crearlos</button>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnCancelCatalogPicker">Cancelar</button>
-        <button class="btn btn-primary" id="btnSaveCatalogPicker">Guardar Cambios</button>
+        <button class="btn btn-secondary" id="btnCancelCatalogPicker" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveCatalogPicker" data-i18n="common.saveChanges">Guardar Cambios</button>
       </div>
     </div>
   </div>
@@ -1677,8 +1731,8 @@
   <div class="modal-backdrop" id="modalDeleteMangaChoice" role="dialog" aria-modal="true" aria-labelledby="deleteMangaChoiceTitle" style="display: none;">
     <div class="modal-card modal-medium-card">
       <div class="modal-header">
-        <h3 id="deleteMangaChoiceTitle">Eliminar manga</h3>
-        <button class="modal-close-btn" id="btnCloseDeleteMangaChoice" aria-label="Cerrar">
+        <h3 id="deleteMangaChoiceTitle" data-i18n="modals.deleteMangaTitle">Eliminar manga</h3>
+        <button class="modal-close-btn" id="btnCloseDeleteMangaChoice" aria-label="Cerrar" data-i18n-aria-label="common.close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6 6 18"/>
             <path d="m6 6 12 12"/>
@@ -1687,7 +1741,7 @@
       </div>
 
       <div class="modal-body">
-        <p class="modal-description">¿Qué deseas hacer con este manga?</p>
+        <p class="modal-description" data-i18n="modals.deleteMangaQuestion">¿Qué deseas hacer con este manga?</p>
 
         <div class="delete-options-grid">
           <!-- Option A -->
@@ -1701,13 +1755,13 @@
                 </svg>
               </div>
               <div class="delete-option-info">
-                <h4 class="delete-option-title">Quitar de la biblioteca</h4>
-                <p class="delete-option-desc">
+                <h4 class="delete-option-title" data-i18n="modals.removeFromLibraryTitle">Quitar de la biblioteca</h4>
+                <p class="delete-option-desc" data-i18n="modals.removeFromLibraryDesc">
                   Elimina el manga de LecFal, pero conserva sus archivos. Podrás volver a encontrarlo al escanear la carpeta.
                 </p>
               </div>
             </div>
-            <button type="button" class="btn btn-secondary btn-full" id="btnConfirmRemoveFromLibrary">
+            <button type="button" class="btn btn-secondary btn-full" id="btnConfirmRemoveFromLibrary" data-i18n="modals.removeFromLibraryTitle">
               Quitar de la biblioteca
             </button>
           </div>
@@ -1724,8 +1778,8 @@
                 </svg>
               </div>
               <div class="delete-option-info">
-                <h4 class="delete-option-title">Eliminar definitivamente</h4>
-                <p class="delete-option-desc">
+                <h4 class="delete-option-title" data-i18n="modals.deletePermanentlyTitle">Eliminar definitivamente</h4>
+                <p class="delete-option-desc" data-i18n="modals.deletePermanentlyDesc">
                   Elimina el manga de LecFal y sus archivos asociados del disco. Esta acción no se puede deshacer.
                 </p>
               </div>
@@ -1738,7 +1792,7 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnCancelDeleteChoice">Cancelar</button>
+        <button class="btn btn-secondary" id="btnCancelDeleteChoice" data-i18n="common.cancel">Cancelar</button>
       </div>
     </div>
   </div>
@@ -1747,8 +1801,8 @@
   <div class="modal-backdrop" id="modalConfirmDeletePermanently" role="dialog" aria-modal="true" aria-labelledby="confirmPermanentTitle" style="display: none;">
     <div class="modal-card modal-small-card">
       <div class="modal-header">
-        <h3 id="confirmPermanentTitle" style="color: #ff5c7c;">Eliminar definitivamente</h3>
-        <button class="modal-close-btn" id="btnClosePermanentDelete" aria-label="Cerrar">
+        <h3 id="confirmPermanentTitle" style="color: #ff5c7c;" data-i18n="modals.confirmPermanentTitle">Eliminar definitivamente</h3>
+        <button class="modal-close-btn" id="btnClosePermanentDelete" aria-label="Cerrar" data-i18n-aria-label="common.close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6 6 18"/>
             <path d="m6 6 12 12"/>
@@ -1777,15 +1831,15 @@
         </div>
 
         <div class="storage-callout-warning" style="margin-top: 14px; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); color: #fca5a5;">
-          <strong>Atención:</strong> Estos archivos se eliminarán del disco. Esta acción no se puede deshacer.
+          <strong data-i18n="modals.permanentWarning">Atención: Estos archivos se eliminarán del disco. Esta acción no se puede deshacer.</strong>
         </div>
 
         <div id="permanentDeleteError" style="color: #ff5c7c; font-size: 0.85rem; margin-top: 8px; display: none;"></div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnCancelPermanentDelete">Cancelar</button>
-        <button class="btn btn-danger" id="btnConfirmPermanentDelete">Eliminar definitivamente</button>
+        <button class="btn btn-secondary" id="btnCancelPermanentDelete" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmPermanentDelete" data-i18n="modals.confirmPermanentTitle">Eliminar definitivamente</button>
       </div>
     </div>
   </div>
@@ -1794,8 +1848,8 @@
   <div class="modal-backdrop" id="modalResetApplication" role="dialog" aria-modal="true" aria-labelledby="resetAppModalTitle" style="display: none;">
     <div class="modal-card modal-small-card">
       <div class="modal-header">
-        <h3 id="resetAppModalTitle" style="color: #ff5c7c;">Restablecer LecFal</h3>
-        <button class="modal-close-btn" id="btnCloseResetModal" aria-label="Cerrar">
+        <h3 id="resetAppModalTitle" style="color: #ff5c7c;" data-i18n="modals.resetAppTitle">Restablecer LecFal</h3>
+        <button class="modal-close-btn" id="btnCloseResetModal" aria-label="Cerrar" data-i18n-aria-label="common.close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6 6 18"/>
             <path d="m6 6 12 12"/>
@@ -1804,15 +1858,15 @@
       </div>
 
       <div class="modal-body">
-        <p class="modal-description" style="margin-bottom: 12px;">
+        <p class="modal-description" style="margin-bottom: 12px;" data-i18n="modals.resetAppDesc">
           Esta acción restablecerá por completo el estado de LecFal. Se borrará la base de datos de la aplicación, las bibliotecas, catálogos, progreso de lectura, miniaturas y caché.
         </p>
 
-        <div class="storage-callout-safe" style="margin: 12px 0;">
+        <div class="storage-callout-safe" style="margin: 12px 0;" data-i18n="modals.resetAppSafeNotice">
           <strong>Archivos seguros:</strong> Tus archivos CBZ/PDF originales y las carpetas de tus cómics <strong>NO</strong> se eliminarán.
         </div>
 
-        <div class="storage-callout-warning" style="margin-bottom: 12px;">
+        <div class="storage-callout-warning" style="margin-bottom: 12px;" data-i18n="modals.resetAppRestartNotice">
           <strong>Reinicio:</strong> La aplicación se reiniciará automáticamente para inicializar una base de datos limpia.
         </div>
 
@@ -1820,8 +1874,8 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnCancelResetApp">Cancelar</button>
-        <button class="btn btn-danger" id="btnConfirmResetApp">Restablecer aplicación</button>
+        <button class="btn btn-secondary" id="btnCancelResetApp" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmResetApp" data-i18n="settings.resetAppCardTitle">Restablecer aplicación</button>
       </div>
     </div>
   </div>
@@ -1830,8 +1884,8 @@
   <div class="modal-backdrop" id="modalDeleteHistory" role="dialog" aria-modal="true" aria-labelledby="deleteHistoryModalTitle" style="display: none;">
     <div class="modal-card modal-small-card">
       <div class="modal-header">
-        <h3 id="deleteHistoryModalTitle">Quitar del historial</h3>
-        <button class="modal-close-btn" id="btnCloseDeleteHistoryModal" aria-label="Cerrar">
+        <h3 id="deleteHistoryModalTitle" data-i18n="modals.removeHistoryTitle">Quitar del historial</h3>
+        <button class="modal-close-btn" id="btnCloseDeleteHistoryModal" aria-label="Cerrar" data-i18n-aria-label="common.close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6 6 18"/>
             <path d="m6 6 12 12"/>
@@ -1840,7 +1894,7 @@
       </div>
 
       <div class="modal-body">
-        <p class="modal-description" id="deleteHistoryMessage" style="margin-bottom: 12px;">
+        <p class="modal-description" id="deleteHistoryMessage" style="margin-bottom: 12px;" data-i18n="modals.removeHistoryQuestion">
           ¿Deseas quitar este capítulo del historial?
         </p>
 
@@ -1850,18 +1904,18 @@
           <div style="font-size: 0.8rem; color: var(--text-muted, #94a3b8);" id="deleteHistoryTimestamp">—</div>
         </div>
 
-        <div class="storage-callout-safe" id="deleteHistorySafeNotice" style="margin: 12px 0;">
+        <div class="storage-callout-safe" id="deleteHistorySafeNotice" style="margin: 12px 0;" data-i18n="modals.deleteHistorySafeNotice">
           <strong>Tu progreso se conservará:</strong> Tu progreso de lectura permanecerá intacto. Si abres el manga de nuevo desde la Biblioteca, podrás continuar desde la posición guardada.
         </div>
 
         <div class="delete-history-reset-wrap" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
           <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; user-select: none;">
             <input type="checkbox" id="checkResetMangaHistory" style="margin-top: 3px; cursor: pointer;">
-            <span style="font-size: 0.9rem; color: var(--text-primary, #e2e8f0); font-weight: 500;">
+            <span style="font-size: 0.9rem; color: var(--text-primary, #e2e8f0); font-weight: 500;" data-i18n="modals.resetMangaCheckbox">
               Reiniciar también el historial y progreso de este manga
             </span>
           </label>
-          <p id="resetMangaWarning" style="margin: 6px 0 0 24px; font-size: 0.8rem; color: #ff8b94; display: none;">
+          <p id="resetMangaWarning" style="margin: 6px 0 0 24px; font-size: 0.8rem; color: #ff8b94; display: none;" data-i18n="modals.resetMangaWarning">
             Se eliminará todo el historial de este manga y todos sus capítulos volverán a marcarse como no leídos (posición 0%).
           </p>
         </div>
@@ -1870,8 +1924,8 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnCancelDeleteHistory">Cancelar</button>
-        <button class="btn btn-danger" id="btnConfirmDeleteHistory">Quitar del historial</button>
+        <button class="btn btn-secondary" id="btnCancelDeleteHistory" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmDeleteHistory" data-i18n="modals.removeHistoryTitle">Quitar del historial</button>
       </div>
     </div>
   </div>
@@ -1880,8 +1934,8 @@
   <div class="modal-backdrop" id="modalClearHistory" role="dialog" aria-modal="true" aria-labelledby="clearHistoryModalTitle" style="display: none;">
     <div class="modal-card modal-small-card">
       <div class="modal-header">
-        <h3 id="clearHistoryModalTitle" style="color: #f59e0b;">Limpiar historial</h3>
-        <button class="modal-close-btn" id="btnCloseClearHistoryModal" aria-label="Cerrar">
+        <h3 id="clearHistoryModalTitle" style="color: #f59e0b;" data-i18n="modals.clearHistoryTitle">Limpiar historial</h3>
+        <button class="modal-close-btn" id="btnCloseClearHistoryModal" aria-label="Cerrar" data-i18n-aria-label="common.close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6 6 18"/>
             <path d="m6 6 12 12"/>
@@ -1890,11 +1944,11 @@
       </div>
 
       <div class="modal-body">
-        <p class="modal-description" style="margin-bottom: 12px;">
+        <p class="modal-description" style="margin-bottom: 12px;" data-i18n="modals.clearHistoryDesc">
           Esta acción vaciará por completo la lista de «Continuar leyendo» y el registro cronológico del historial.
         </p>
 
-        <div class="storage-callout-safe" style="margin: 12px 0;">
+        <div class="storage-callout-safe" style="margin: 12px 0;" data-i18n="modals.clearHistorySafeNotice">
           <strong>Progreso y archivos seguros:</strong> Tus posiciones de lectura guardadas, el estado de leído/no leído, tus mangas y tus archivos CBZ/PDF originales <strong>NO</strong> se modificarán ni eliminarán.
         </div>
 
@@ -1902,8 +1956,8 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnCancelClearHistory">Cancelar</button>
-        <button class="btn btn-danger" id="btnConfirmClearHistory" style="background: #d97706; border-color: #d97706;">Limpiar historial</button>
+        <button class="btn btn-secondary" id="btnCancelClearHistory" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmClearHistory" style="background: #d97706; border-color: #d97706;" data-i18n="modals.clearHistoryTitle">Limpiar historial</button>
       </div>
     </div>
   </div>
@@ -1912,8 +1966,8 @@
   <div class="modal-backdrop" id="modalResetProgress" role="dialog" aria-modal="true" aria-labelledby="resetProgressModalTitle" style="display: none;">
     <div class="modal-card modal-small-card">
       <div class="modal-header">
-        <h3 id="resetProgressModalTitle" style="color: #ef4444;">¿Reiniciar historial y progreso?</h3>
-        <button class="modal-close-btn" id="btnCloseResetProgressModal" aria-label="Cerrar">
+        <h3 id="resetProgressModalTitle" style="color: #ef4444;" data-i18n="modals.resetProgressTitle">¿Reiniciar historial y progreso?</h3>
+        <button class="modal-close-btn" id="btnCloseResetProgressModal" aria-label="Cerrar" data-i18n-aria-label="common.close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6 6 18"/>
             <path d="m6 6 12 12"/>
@@ -1922,15 +1976,15 @@
       </div>
 
       <div class="modal-body">
-        <p class="modal-description" style="margin-bottom: 12px;">
+        <p class="modal-description" style="margin-bottom: 12px;" data-i18n="modals.resetProgressDesc">
           Esta acción eliminará todo el historial de lectura y restablecerá el progreso de todos los mangas.
         </p>
 
         <div class="storage-callout-warning" style="margin-bottom: 12px;">
-          <strong>Atención:</strong> Todos los capítulos volverán a aparecer como no leídos y se perderán las posiciones guardadas.
+          <strong data-i18n="modals.resetProgressWarning">Atención: Todos los capítulos volverán a aparecer como no leídos y se perderán las posiciones guardadas.</strong>
         </div>
 
-        <div class="storage-callout-safe" style="margin: 12px 0;">
+        <div class="storage-callout-safe" style="margin: 12px 0;" data-i18n="modals.resetProgressSafeNotice">
           Los mangas, capítulos, metadatos y archivos CBZ/PDF permanecerán intactos.
         </div>
 
@@ -1938,8 +1992,8 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnCancelResetProgress">Cancelar</button>
-        <button class="btn btn-danger" id="btnConfirmResetProgress">Reiniciar todo</button>
+        <button class="btn btn-secondary" id="btnCancelResetProgress" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmResetProgress" data-i18n="common.clear">Reiniciar todo</button>
       </div>
     </div>
   </div>

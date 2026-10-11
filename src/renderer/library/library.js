@@ -20,6 +20,7 @@ import {
   getGridThumbnailUrl,
   renderCoverFallbackHtml
 } from '../utils/ui-utils.js';
+import { t, getLanguage } from '../utils/i18n.js';
 
 // ==================== LIBRARY STATE ====================
 let seriesList = [];
@@ -119,7 +120,8 @@ export function createSeriesCard(series) {
 
   const isFav = series.favorite === 1;
   const formatUpper = (series.primary_format || 'CBZ').toUpperCase();
-  const capsLabel = `${series.chapter_count} cap${series.chapter_count === 1 ? '' : 's'}`;
+  const isEn = getLanguage() === 'en';
+  const capsLabel = isEn ? `${series.chapter_count} ch.` : `${series.chapter_count} cap${series.chapter_count === 1 ? '' : 's'}`;
 
   let coverHtml = '';
   if (series.cover_path) {
@@ -133,7 +135,7 @@ export function createSeriesCard(series) {
   card.innerHTML = `
     <div class="card-cover-wrapper">
       <span class="card-badge badge-${series.primary_format || 'cbz'}">${formatUpper}</span>
-      <button class="card-fav-btn ${isFav ? 'is-favorite' : ''}" data-id="${series.id}" title="${isFav ? 'Quitar de favoritos' : 'Añadir a favoritos'}">
+      <button class="card-fav-btn ${isFav ? 'is-favorite' : ''}" data-id="${series.id}" title="${isFav ? t('library.unmarkFav') : t('library.markFav')}">
         <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
           <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
         </svg>
@@ -144,7 +146,7 @@ export function createSeriesCard(series) {
           <svg viewBox="0 0 24 24" fill="currentColor">
             <polygon points="5 3 19 12 5 21 5 3"/>
           </svg>
-          Ver manga
+          ${isEn ? 'View manga' : 'Ver manga'}
         </span>
       </div>
     </div>
@@ -592,7 +594,7 @@ export async function populateLibraryDropdown() {
     <svg class="item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
       <polyline points="20 6 9 17 4 12"/>
     </svg>
-    <span class="item-name">Todas</span>
+    <span class="item-name">${escapeHtml(t('common.all'))}</span>
   `;
   btnTodas.addEventListener('click', () => {
     selectLibrary(null);
@@ -632,24 +634,27 @@ export async function populateLibraryDropdown() {
  */
 export async function updateLibraryChipLabel() {
   if (!elements.libraryChipLabel) return;
+  const prefix = t('library.libraryChipPrefix');
+  const allLabel = t('common.all');
   if (currentLibraryId === null) {
-    elements.libraryChipLabel.textContent = 'Biblioteca: Todas';
+    elements.libraryChipLabel.textContent = `${prefix}: ${allLabel}`;
     return;
   }
   try {
     const lib = await window.lecfalAPI.getLibraryById(currentLibraryId);
     if (lib) {
-      elements.libraryChipLabel.textContent = `Biblioteca: ${lib.name}`;
+      elements.libraryChipLabel.textContent = `${prefix}: ${lib.name}`;
     } else {
       // Library was removed or not found
       currentLibraryId = null;
-      elements.libraryChipLabel.textContent = 'Biblioteca: Todas';
+      elements.libraryChipLabel.textContent = `${prefix}: ${allLabel}`;
     }
   } catch (err) {
     console.warn('Could not fetch library for chip label:', err);
-    elements.libraryChipLabel.textContent = `Biblioteca: #${currentLibraryId}`;
+    elements.libraryChipLabel.textContent = `${prefix}: #${currentLibraryId}`;
   }
 }
+
 
 /**
  * Select a library by ID (or null for Todas), updating label and refreshing series.

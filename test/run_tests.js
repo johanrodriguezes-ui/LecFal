@@ -23,6 +23,11 @@ const tests = [
     args: [path.join(__dirname, 'unit', 'test_catalog_autocomplete.js')]
   },
   {
+    name: 'Bilingual i18n Dictionary & DOM Translation Suite',
+    cmd: process.execPath, // node
+    args: [path.join(__dirname, 'unit', 'test_i18n.js')]
+  },
+  {
     name: 'Advanced Search Boolean Semantics Tests',
     cmd: process.execPath, // node
     args: [path.join(__dirname, 'integration', 'test_advanced_search_semantics.js')]

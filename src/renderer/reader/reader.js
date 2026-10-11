@@ -5,6 +5,8 @@
  * memory-bounded resource eviction, and keyboard navigation.
  */
 
+import { t, getLanguage } from '../utils/i18n.js';
+
 // Phase 3.5: Internally configurable CBZ image loading concurrency limit
 const MAX_CONCURRENT_CBZ_REQUESTS = 3;
 
@@ -929,7 +931,7 @@ class WebtoonReader {
     const img = document.createElement('img');
     img.className = 'reader-page-img';
     img.loading = 'eager';
-    img.alt = `Página ${index + 1}`;
+    img.alt = `${getLanguage() === 'en' ? 'Page' : 'Página'} ${index + 1}`;
 
     // Stream directly via lecfal-cbz custom protocol
     const pageUrl = `lecfal-cbz://entry?chapterId=${this.chapterData.chapter.id}&entry=${encodeURIComponent(page.entryName)}&page=${index}`;
@@ -1821,8 +1823,10 @@ class WebtoonReader {
       this.lastActivePage = closestPage;
       this.lastReportedProgress = progressPercent;
       if (this.pageIndicatorEl) {
-        this.pageIndicatorEl.textContent = `${closestPage + 1} / ${this.pages.length} páginas (${progressPercent}%)`;
+        const pagesUnit = getLanguage() === 'en' ? 'pages' : 'páginas';
+        this.pageIndicatorEl.textContent = `${closestPage + 1} / ${this.pages.length} ${pagesUnit} (${progressPercent}%)`;
       }
+
     }
   }
 

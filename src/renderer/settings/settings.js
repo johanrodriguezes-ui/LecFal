@@ -9,12 +9,15 @@
  */
 
 import { escapeHtml } from '../utils/ui-utils.js';
+import { t, getLanguage, setLanguage, onLanguageChange } from '../utils/i18n.js';
 
 // ==================== DOM ELEMENTS CACHE ====================
 const elements = {
   // Appearance
   themeOptDark: null,
   themeOptLight: null,
+  langOptEs: null,
+  langOptEn: null,
 
   // Libraries
   settingsLibrariesList: null,
@@ -195,14 +198,14 @@ export async function renderSettingsLibraries() {
       elements.settingsLibrariesList.innerHTML = `
         <div class="settings-tags-empty">
           <span style="font-size: 2rem; margin-bottom: 8px;">📚</span>
-          <p>No hay bibliotecas creadas.</p>
-          <span style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">Crea una biblioteca para organizar tus carpetas escaneadas en colecciones independientes.</span>
+          <p>${t('settings.emptyLibrariesTitle')}</p>
+          <span style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">${t('settings.emptyLibrariesDesc')}</span>
           <button class="btn btn-primary btn-sm" id="btnEmptyAddLibrary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            <span>+ Nueva biblioteca</span>
+            <span>+ ${t('settings.newLibrary')}</span>
           </button>
         </div>
       `;
@@ -212,13 +215,16 @@ export async function renderSettingsLibraries() {
     }
 
     const fragment = document.createDocumentFragment();
+    const isEn = getLanguage() === 'en';
 
     libraries.forEach(lib => {
       const row = document.createElement('div');
       row.className = 'settings-folder-item settings-folder-row settings-library-row';
       row.dataset.id = lib.id;
 
-      const folderCountText = lib.folder_count === 1 ? '1 carpeta' : `${lib.folder_count || 0} carpetas`;
+      const folderCountText = lib.folder_count === 1
+        ? (isEn ? '1 folder' : '1 carpeta')
+        : `${lib.folder_count || 0} ${isEn ? 'folders' : 'carpetas'}`;
 
       row.innerHTML = `
         <div class="settings-folder-main folder-row-main">
@@ -231,33 +237,35 @@ export async function renderSettingsLibraries() {
           </div>
         </div>
         <div class="settings-folder-actions folder-row-actions">
-          <button class="btn btn-secondary btn-sm btn-rename-library" data-id="${lib.id}" title="Renombrar biblioteca">
+          <button class="btn btn-secondary btn-sm btn-rename-library" data-id="${lib.id}" title="${t('common.rename')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
               <path d="M12 20h9"/>
               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
             </svg>
-            <span>Renombrar</span>
+            <span>${t('common.rename')}</span>
           </button>
-          <button class="btn btn-danger btn-sm btn-delete-library" data-id="${lib.id}" title="Eliminar biblioteca">
+          <button class="btn btn-danger btn-sm btn-delete-library" data-id="${lib.id}" title="${t('common.delete')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
               <path d="M3 6h18"/>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
             </svg>
-            <span>Eliminar</span>
+            <span>${t('common.delete')}</span>
           </button>
         </div>
       `;
 
       row.querySelector('.btn-rename-library').addEventListener('click', () => {
-        openRenameModal({ type: 'library', id: lib.id, currentName: lib.name, typeLabel: 'Biblioteca' });
+        openRenameModal({ type: 'library', id: lib.id, currentName: lib.name, typeLabel: isEn ? 'Library' : 'Biblioteca' });
       });
 
       row.querySelector('.btn-delete-library').addEventListener('click', async () => {
-        const msg = `¿Eliminar la biblioteca "${lib.name}"?\n\nLas carpetas y mangas no se eliminarán. Las carpetas quedarán sin biblioteca.`;
+        const msg = isEn
+          ? `Delete library "${lib.name}"?\n\nFolders and manga will not be deleted. Folders will be left unassigned.`
+          : `¿Eliminar la biblioteca "${lib.name}"?\n\nLas carpetas y mangas no se eliminarán. Las carpetas quedarán sin biblioteca.`;
         if (confirm(msg)) {
           try {
             await window.lecfalAPI.deleteLibrary(lib.id);
-            callbacks.showToast(`Biblioteca "${lib.name}" eliminada`);
+            callbacks.showToast(isEn ? `Library "${lib.name}" deleted` : `Biblioteca "${lib.name}" eliminada`);
             await renderSettingsLibraries();
             await renderSettingsFolders();
           } catch (err) {
@@ -298,15 +306,18 @@ export async function renderSettingsFolders() {
       window.lecfalAPI.getAllLibraries()
     ]);
 
+    const isEn = getLanguage() === 'en';
     if (elements.statusFolderCount) {
-      elements.statusFolderCount.textContent = `${folders.length} carpeta${folders.length === 1 ? '' : 's'}`;
+      elements.statusFolderCount.textContent = isEn
+        ? `${folders.length} folder${folders.length === 1 ? '' : 's'}`
+        : `${folders.length} carpeta${folders.length === 1 ? '' : 's'}`;
     }
 
     if (folders.length === 0) {
       elements.settingsFoldersList.innerHTML = `
         <div class="settings-folders-empty">
-          <p>No hay carpetas registradas en la biblioteca.</p>
-          <span style="font-size: 0.82rem; color: var(--text-muted);">Añade una carpeta para comenzar a escanear tus cómics y mangas.</span>
+          <p>${isEn ? 'No folders registered in library.' : 'No hay carpetas registradas en la biblioteca.'}</p>
+          <span style="font-size: 0.82rem; color: var(--text-muted);">${isEn ? 'Add a folder to start scanning your comics and manga.' : 'Añade una carpeta para comenzar a escanear tus cómics y mangas.'}</span>
         </div>
       `;
       return;
@@ -331,34 +342,34 @@ export async function renderSettingsFolders() {
           <div class="settings-folder-title-row folder-row-title-line">
             <span class="settings-folder-name folder-row-name">${escapeHtml(f.name || f.path)}</span>
             ${isAccessible 
-              ? '<span class="status-badge badge-accessible">Disponible</span>' 
-              : '<span class="status-badge badge-unavailable">No disponible (desmontada/desconectada)</span>'
+              ? `<span class="status-badge badge-accessible">${isEn ? 'Available' : 'Disponible'}</span>` 
+              : `<span class="status-badge badge-unavailable">${isEn ? 'Unavailable (unmounted/disconnected)' : 'No disponible (desmontada/desconectada)'}</span>`
             }
           </div>
           <div class="settings-folder-path folder-row-path" title="${escapeHtml(f.path)}">${escapeHtml(f.path)}</div>
           ${!isAccessible 
-            ? '<div class="folder-row-warning">El disco externo o volumen VeraCrypt no está montado en esta ruta. La carpeta se mantiene registrada pero no puede escanearse hasta que esté accesible.</div>' 
+            ? `<div class="folder-row-warning">${isEn ? 'The external drive or VeraCrypt volume is not mounted at this path. The folder remains registered but cannot be scanned until accessible.' : 'El disco externo o volumen VeraCrypt no está montado en esta ruta. La carpeta se mantiene registrada pero no puede escanearse hasta que esté accesible.'}</div>` 
             : ''
           }
         </div>
         <div class="settings-folder-actions folder-row-actions">
-          <div class="folder-library-assign select-container" title="Biblioteca asignada">
+          <div class="folder-library-assign select-container" title="${isEn ? 'Assigned library' : 'Biblioteca asignada'}">
             <select class="folder-library-select" data-id="${f.id}">
-              <option value="">Sin biblioteca</option>
+              <option value="">${isEn ? 'No library' : 'Sin biblioteca'}</option>
               ${libraryOptions}
             </select>
             <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="m6 9 6 6 6-6"/>
             </svg>
           </div>
-          <button class="btn btn-secondary btn-sm btn-folder-scan-single" data-id="${f.id}" ${!isAccessible ? 'disabled title="Monta el disco o volumen para escanear"' : 'title="Escanear esta carpeta"'}>
+          <button class="btn btn-secondary btn-sm btn-folder-scan-single" data-id="${f.id}" ${!isAccessible ? `disabled title="${isEn ? 'Mount drive or volume to scan' : 'Monta el disco o volumen para escanear'}"` : `title="${isEn ? 'Scan this folder' : 'Escanear esta carpeta'}"`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
               <path d="M16 21h5v-5"/>
             </svg>
-            <span>Escanear</span>
+            <span>${t('nav.scan')}</span>
           </button>
           <button class="btn btn-danger btn-sm btn-folder-remove-settings" data-id="${f.id}" title="Desvincular carpeta de la biblioteca">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
@@ -445,6 +456,29 @@ export function applyTheme(theme, save = true) {
     }
   }
 }
+
+// ==================== LANGUAGE MANAGEMENT ====================
+export function updateLanguageCards(lang) {
+  const currentLang = lang || getLanguage();
+  if (elements.langOptEs && elements.langOptEn) {
+    elements.langOptEs.classList.toggle('active', currentLang === 'es');
+    elements.langOptEn.classList.toggle('active', currentLang === 'en');
+    const esBadge = elements.langOptEs.querySelector('.theme-card-badge');
+    const enBadge = elements.langOptEn.querySelector('.theme-card-badge');
+    if (esBadge) esBadge.style.display = currentLang === 'es' ? 'inline-block' : 'none';
+    if (enBadge) enBadge.style.display = currentLang === 'en' ? 'inline-block' : 'none';
+  }
+}
+
+export async function applyLanguage(lang, save = true) {
+  const finalLang = lang === 'en' ? 'en' : 'es';
+  await setLanguage(finalLang, save);
+  updateLanguageCards(finalLang);
+  if (save && typeof callbacks.showToast === 'function') {
+    callbacks.showToast(t(finalLang === 'en' ? 'settings.languageToastEn' : 'settings.languageToastEs'));
+  }
+}
+
 
 // ==================== PUBLIC RENDERERS ====================
 export async function renderSettingsAuthors() {
@@ -654,6 +688,14 @@ export function initSettings(options = {}) {
   // Cache DOM elements
   elements.themeOptDark = document.getElementById('themeOptDark');
   elements.themeOptLight = document.getElementById('themeOptLight');
+  elements.langOptEs = document.getElementById('langOptEs');
+  elements.langOptEn = document.getElementById('langOptEn');
+  updateLanguageCards();
+
+  // Language change listener subscription
+  onLanguageChange((lang) => {
+    updateLanguageCards(lang);
+  });
 
   // Libraries
   elements.settingsLibrariesList = document.getElementById('settingsLibrariesList');
@@ -696,6 +738,11 @@ export function initSettings(options = {}) {
   // Theme listeners
   elements.themeOptDark?.addEventListener('click', () => applyTheme('dark'));
   elements.themeOptLight?.addEventListener('click', () => applyTheme('light'));
+
+  // Language listeners
+  elements.langOptEs?.addEventListener('click', () => applyLanguage('es'));
+  elements.langOptEn?.addEventListener('click', () => applyLanguage('en'));
+
 
   // Library buttons & modal listeners
   elements.btnSettingsAddLibrary?.addEventListener('click', openCreateLibraryModal);
