@@ -35,6 +35,7 @@ const elements = {
   btnSettingsAddFolder: null,
   btnSettingsRefreshFolders: null,
   statusFolderCount: null,
+  chkAutoPackageCbz: null,
 
   // Ignored Values
   settingsIgnoredAuthorsList: null,
@@ -275,8 +276,21 @@ export async function renderSettingsLibraries() {
   }
 }
 
+// ==================== AUTO-PACKAGE CBZ SETTING ====================
+async function loadAutoPackageSetting() {
+  if (!elements.chkAutoPackageCbz) return;
+  try {
+    const isEnabled = await window.lecfalAPI.getSetting('auto_package_cbz', true);
+    elements.chkAutoPackageCbz.checked = isEnabled !== false;
+  } catch (err) {
+    console.error('Error loading auto_package_cbz setting:', err);
+    elements.chkAutoPackageCbz.checked = true;
+  }
+}
+
 // ==================== FOLDERS MANAGEMENT ====================
 export async function renderSettingsFolders() {
+  loadAutoPackageSetting();
   if (!elements.settingsFoldersList) return;
   try {
     const [folders, libraries] = await Promise.all([
@@ -662,6 +676,22 @@ export function initSettings(options = {}) {
   elements.statusFolderCount = document.getElementById('statusFolderCount');
   elements.settingsIgnoredAuthorsList = document.getElementById('settingsIgnoredAuthorsList');
   elements.btnRefreshIgnoredAuthors = document.getElementById('btnRefreshIgnoredAuthors');
+  elements.chkAutoPackageCbz = document.getElementById('chkAutoPackageCbz');
+
+  // Auto-package loose images to CBZ setting
+  loadAutoPackageSetting();
+  elements.chkAutoPackageCbz?.addEventListener('change', async (e) => {
+    try {
+      await window.lecfalAPI.setSetting('auto_package_cbz', e.target.checked);
+      callbacks.showToast(e.target.checked
+        ? 'Auto-empaquetado a CBZ activado'
+        : 'Auto-empaquetado a CBZ desactivado'
+      );
+    } catch (err) {
+      console.error('Error saving auto_package_cbz setting:', err);
+      callbacks.showToast('Error al guardar la preferencia');
+    }
+  });
 
   // Theme listeners
   elements.themeOptDark?.addEventListener('click', () => applyTheme('dark'));

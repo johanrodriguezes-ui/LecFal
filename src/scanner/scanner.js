@@ -673,6 +673,236 @@ class LibraryScanner {
     return ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'].includes(ext);
   }
 
+  determineChapterCbzName(folderName, index) {
+    const raw = (folderName || '').trim();
+
+    // 1. Matches chapter keywords like "Cap 1", "Capítulo 10.5", "Ch 3", "Chapter 4", "Ep 5"
+    const prefixMatch = raw.match(/(?:cap[íi]tulo|cap|ch|chapter|episodio|ep)[.\s_-]*([0-9]+(?:\.[0-9]+)?)/i);
+    if (prefixMatch) {
+      return `Cap${prefixMatch[1]}.cbz`;
+    }
+
+    // 2. Matches "One Piece 1", "Naruto 2", ending with number
+    const endNumMatch = raw.match(/(?:^|[^0-9])([0-9]+(?:\.[0-9]+)?)\s*$/);
+    if (endNumMatch) {
+      return `Cap${endNumMatch[1]}.cbz`;
+    }
+
+    // 3. Matches any isolated number sequence
+    const anyNumMatch = raw.match(/(?:^|[^0-9])([0-9]+(?:\.[0-9]+)?)(?:[^0-9]|$)/);
+    if (anyNumMatch) {
+      return `Cap${anyNumMatch[1]}.cbz`;
+    }
+
+    // 4. Fallback to 1-based index according to alphabetical order
+    return `Cap${index + 1}.cbz`;
+  }
+
+  async bundleImagesToCbz(parentDir, imageNames, targetCbzPath) {
+    try {
+      if (this.isCancelled) return false;
+      const zip = new AdmZip();
+      for (const imgName of imageNames) {
+        if (this.isCancelled) return false;
+        const fullImgPath = path.join(parentDir, imgName);
+        zip.addLocalFile(fullImgPath, '');
+      }
+
+      if (this.isCancelled) return false;
+      await zip.writeZipPromise(targetCbzPath);
+
+      // Strict integrity verification
+      const verifyZip = new AdmZip(targetCbzPath);
+      const entries = verifyZip.getEntries().filter(e => !e.isDirectory && this.isImageFileName(e.entryName));
+
+      if (entries.length === imageNames.length && entries.length > 0) {
+        logger.info('CBZ_PACKAGER', `✓ Verificado: ${path.basename(targetCbzPath)} (${entries.length} imágenes). Eliminando imágenes originales sueltas.`);
+        for (const imgName of imageNames) {
+          try {
+            fs.unlinkSync(path.join(parentDir, imgName));
+          } catch (delErr) {
+            logger.warn('CBZ_PACKAGER', `No se pudo eliminar imagen original ${imgName}: ${delErr.message}`);
+          }
+        }
+        return true;
+      } else {
+        logger.error('CBZ_PACKAGER', `❌ Error de verificación en ${path.basename(targetCbzPath)}: se esperaban ${imageNames.length} imágenes, encontradas ${entries.length}. Originales preservados.`);
+        try { fs.unlinkSync(targetCbzPath); } catch (_) {}
+        return false;
+      }
+    } catch (err) {
+      logger.error('CBZ_PACKAGER', `Error empaquetando ${targetCbzPath}: ${err.message}`);
+      if (fs.existsSync(targetCbzPath)) {
+        try { fs.unlinkSync(targetCbzPath); } catch (_) {}
+      }
+      return false;
+    }
+  }
+
+  async bundleChapterDirToCbz(chapterDir, imageNames, targetCbzPath) {
+    try {
+      if (this.isCancelled) return false;
+      const zip = new AdmZip();
+      for (const imgName of imageNames) {
+        if (this.isCancelled) return false;
+        const fullImgPath = path.join(chapterDir, imgName);
+        zip.addLocalFile(fullImgPath, '');
+      }
+
+      if (this.isCancelled) return false;
+      await zip.writeZipPromise(targetCbzPath);
+
+      // Strict integrity verification
+      const verifyZip = new AdmZip(targetCbzPath);
+      const entries = verifyZip.getEntries().filter(e => !e.isDirectory && this.isImageFileName(e.entryName));
+
+      if (entries.length === imageNames.length && entries.length > 0) {
+        logger.info('CBZ_PACKAGER', `✓ Verificado: ${path.basename(targetCbzPath)} (${entries.length} imágenes). Eliminando carpeta de capítulo ${path.basename(chapterDir)}.`);
+        try {
+          fs.rmSync(chapterDir, { recursive: true, force: true });
+        } catch (delErr) {
+          logger.warn('CBZ_PACKAGER', `No se pudo eliminar carpeta original ${chapterDir}: ${delErr.message}`);
+        }
+        return true;
+      } else {
+        logger.error('CBZ_PACKAGER', `❌ Error de verificación en ${path.basename(targetCbzPath)}: se esperaban ${imageNames.length} imágenes, encontradas ${entries.length}. Carpeta preservada.`);
+        try { fs.unlinkSync(targetCbzPath); } catch (_) {}
+        return false;
+      }
+    } catch (err) {
+      logger.error('CBZ_PACKAGER', `Error empaquetando capítulo ${targetCbzPath}: ${err.message}`);
+      if (fs.existsSync(targetCbzPath)) {
+        try { fs.unlinkSync(targetCbzPath); } catch (_) {}
+      }
+      return false;
+    }
+  }
+
+  async packageLooseImagesToCbz(dirPath) {
+    if (!dirPath || typeof dirPath !== 'string') return { packagedSeries: 0, packagedChapters: 0 };
+    if (!fs.existsSync(dirPath)) return { packagedSeries: 0, packagedChapters: 0 };
+
+    let entries;
+    try {
+      entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+    } catch (err) {
+      logger.warn('CBZ_PACKAGER', `No se pudo acceder al directorio ${dirPath}: ${err.message}`);
+      return { packagedSeries: 0, packagedChapters: 0 };
+    }
+
+    let packagedSeries = 0;
+    let packagedChapters = 0;
+
+    // Detect candidate comic directories (direct subdirectories of library)
+    const comicDirs = [];
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+      if (entry.isDirectory()) {
+        comicDirs.push(path.join(dirPath, entry.name));
+      }
+    }
+
+    // Also support single-comic folder directly scanned:
+    // If root dir itself has images and no comic subdirectories
+    const rootDirectImages = entries.filter(e => e.isFile() && !e.name.startsWith('.') && this.isImageFileName(e.name));
+    if (rootDirectImages.length > 0 && comicDirs.length === 0) {
+      comicDirs.push(dirPath);
+    }
+
+    for (const comicDir of comicDirs) {
+      if (this.isCancelled) break;
+
+      let comicEntries;
+      try {
+        comicEntries = await fs.promises.readdir(comicDir, { withFileTypes: true });
+      } catch (err) {
+        continue;
+      }
+
+      let comicHadPackaging = false;
+
+      // ==========================================
+      // CASO 1: Imágenes sueltas en la raíz del cómic
+      // ==========================================
+      const looseImages = comicEntries
+        .filter(e => e.isFile() && !e.name.startsWith('.') && this.isImageFileName(e.name))
+        .map(e => e.name)
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+      if (looseImages.length > 0) {
+        let targetCbzName = 'Cap1.cbz';
+        if (fs.existsSync(path.join(comicDir, targetCbzName))) {
+          let idx = 2;
+          while (fs.existsSync(path.join(comicDir, `Cap${idx}.cbz`))) {
+            idx++;
+          }
+          targetCbzName = `Cap${idx}.cbz`;
+        }
+
+        const targetCbzPath = path.join(comicDir, targetCbzName);
+        logger.info('CBZ_PACKAGER', `Empaquetando ${looseImages.length} imágenes sueltas en "${path.basename(comicDir)}" -> ${targetCbzName}`);
+
+        const packaged = await this.bundleImagesToCbz(comicDir, looseImages, targetCbzPath);
+        if (packaged) {
+          comicHadPackaging = true;
+          packagedChapters++;
+        }
+      }
+
+      // ==========================================
+      // CASO 2: Subcarpetas de capítulos
+      // ==========================================
+      const chapterSubdirs = comicEntries
+        .filter(e => e.isDirectory() && !e.name.startsWith('.'))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+      for (let i = 0; i < chapterSubdirs.length; i++) {
+        if (this.isCancelled) break;
+        const chEntry = chapterSubdirs[i];
+        const chapterDir = path.join(comicDir, chEntry.name);
+
+        let chFiles;
+        try {
+          chFiles = await fs.promises.readdir(chapterDir, { withFileTypes: true });
+        } catch (_) {
+          continue;
+        }
+
+        const chImages = chFiles
+          .filter(e => e.isFile() && !e.name.startsWith('.') && this.isImageFileName(e.name))
+          .map(e => e.name)
+          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+        if (chImages.length === 0) continue;
+
+        const targetCbzName = this.determineChapterCbzName(chEntry.name, i);
+        const targetCbzPath = path.join(comicDir, targetCbzName);
+
+        if (fs.existsSync(targetCbzPath)) {
+          logger.info('CBZ_PACKAGER', `Ya existe ${targetCbzName} en "${path.basename(comicDir)}", omitiendo subcarpeta ${chEntry.name}`);
+          continue;
+        }
+
+        logger.info('CBZ_PACKAGER', `Empaquetando subcarpeta "${chEntry.name}" (${chImages.length} imágenes) -> ${targetCbzName}`);
+        const packaged = await this.bundleChapterDirToCbz(chapterDir, chImages, targetCbzPath);
+        if (packaged) {
+          comicHadPackaging = true;
+          packagedChapters++;
+        }
+      }
+
+      if (comicHadPackaging) {
+        packagedSeries++;
+      }
+    }
+
+    if (packagedChapters > 0) {
+      logger.info('CBZ_PACKAGER', `Finalizado empaquetado: ${packagedChapters} capítulos convertidos a CBZ en ${packagedSeries} series.`);
+    }
+
+    return { packagedSeries, packagedChapters };
+  }
+
   // Scan directory, group files into Manga Series, and extract first chapter cover
   async scanDirectory(dirPath, {
     onProgress = null,
@@ -684,12 +914,36 @@ class LibraryScanner {
     registeredAuthors = [],
     registeredParodies = [],
     ignoredAuthors = [],
+    autoPackageCbz = true
   } = {}) {
     const startTime = Date.now();
 
     // Check if cancellation was already requested before scan begins
     if (this.isCancelled) {
       logger.info('SCANNER', 'Escaneo cancelado antes de iniciar.');
+      return this.buildReport({
+        startTime,
+        totalSeries: 0,
+        processedSeries: 0,
+        newFiles: 0,
+        modifiedFiles: 0,
+        skippedFiles: 0,
+        failedFiles: 0,
+        cancelled: true
+      });
+    }
+
+    // Auto-package loose images or chapter subdirectories into CBZ if enabled
+    if (autoPackageCbz && !this.isCancelled) {
+      try {
+        await this.packageLooseImagesToCbz(dirPath);
+      } catch (packErr) {
+        logger.error('CBZ_PACKAGER', `Error durante empaquetado previo a escaneo: ${packErr.message}`);
+      }
+    }
+
+    if (this.isCancelled) {
+      logger.info('SCANNER', 'Escaneo cancelado tras empaquetado de archivos.');
       return this.buildReport({
         startTime,
         totalSeries: 0,

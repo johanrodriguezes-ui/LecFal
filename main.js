@@ -597,6 +597,7 @@ async function scanFolderWithSeries(folder, options = {}) {
   const registeredAuthors = db.getAllAuthors ? db.getAllAuthors() : [];
   const registeredParodies = db.getAllParodies ? db.getAllParodies() : [];
   const ignoredAuthors = db.getAllIgnoredAuthors ? db.getAllIgnoredAuthors() : [];
+  const autoPackageCbz = db.getSetting ? db.getSetting('auto_package_cbz', true) : true;
 
   const onProgress = (data) => {
     const now = Date.now();
@@ -698,6 +699,7 @@ async function scanFolderWithSeries(folder, options = {}) {
       registeredAuthors,
       registeredParodies,
       ignoredAuthors,
+      autoPackageCbz,
       onProgress,
       onSeries
     });

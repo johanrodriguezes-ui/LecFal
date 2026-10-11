@@ -43,6 +43,11 @@ const tests = [
     args: [path.join(__dirname, 'integration', 'test_scanner_author_detection.js')]
   },
   {
+    name: 'Scanner Auto-Package Loose Images to CBZ Suite',
+    cmd: process.execPath, // node
+    args: [path.join(__dirname, 'integration', 'test_scanner_cbz_packager.js')]
+  },
+  {
     name: 'Phase 1 Library Backend & Data Model Tests',
     cmd: process.execPath, // node
     args: [path.join(__dirname, 'integration', 'test_libraries.js')]
