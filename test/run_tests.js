@@ -33,6 +33,16 @@ const tests = [
     args: [path.join(__dirname, 'integration', 'test_ignored_authors.js')]
   },
   {
+    name: 'Scanner Deep Group Detection & Auto-Linking Suite',
+    cmd: process.execPath, // node
+    args: [path.join(__dirname, 'integration', 'test_scanner_group_detection.js')]
+  },
+  {
+    name: 'Scanner Deep Author Detection & Auto-Linking Suite',
+    cmd: process.execPath, // node
+    args: [path.join(__dirname, 'integration', 'test_scanner_author_detection.js')]
+  },
+  {
     name: 'Phase 1 Library Backend & Data Model Tests',
     cmd: process.execPath, // node
     args: [path.join(__dirname, 'integration', 'test_libraries.js')]

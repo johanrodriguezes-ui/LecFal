@@ -594,6 +594,9 @@ async function scanFolderWithSeries(folder, options = {}) {
   const registeredChapters = db.getRegisteredChaptersMap(folder.id);
   const registeredSeries = db.getRegisteredSeriesMap(folder.id);
   const registeredGroups = db.getAllGroups ? db.getAllGroups() : [];
+  const registeredAuthors = db.getAllAuthors ? db.getAllAuthors() : [];
+  const registeredParodies = db.getAllParodies ? db.getAllParodies() : [];
+  const ignoredAuthors = db.getAllIgnoredAuthors ? db.getAllIgnoredAuthors() : [];
 
   const onProgress = (data) => {
     const now = Date.now();
@@ -631,12 +634,15 @@ async function scanFolderWithSeries(folder, options = {}) {
       folder_id: folder.id,
       title: seriesData.title,
       author: seriesData.author,
+      detected_author: seriesData.detected_author || '',
       path: seriesData.path,
       cover_path: seriesData.cover_path,
       chapter_count: seriesData.chapter_count,
       primary_format: seriesData.primary_format,
       group_name: seriesData.group_name || '',
       groupIds: seriesData.detectedGroups ? seriesData.detectedGroups.map(g => g.id) : undefined,
+      authorIds: seriesData.detectedAuthors ? seriesData.detectedAuthors.map(a => a.id) : undefined,
+      parody: seriesData.parody || '',
       rawFolderTitle: seriesData.rawFolderTitle || seriesData.subfolder || ''
     });
 
@@ -689,6 +695,9 @@ async function scanFolderWithSeries(folder, options = {}) {
       registeredChapters,
       registeredSeries,
       registeredGroups,
+      registeredAuthors,
+      registeredParodies,
+      ignoredAuthors,
       onProgress,
       onSeries
     });

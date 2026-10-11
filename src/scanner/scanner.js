@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const yauzl = require('yauzl');
+const AdmZip = require('adm-zip');
 const logger = require('../core/logger');
 const storage = require('../core/storage');
 const thumbnailGenerator = require('../media/thumbnail-generator');
@@ -81,13 +82,25 @@ class LibraryScanner {
   }
 
   findMatchingGroups(groups, text) {
-    if (!text || !groups || groups.length === 0) return [];
-    const sorted = [...groups].sort((a, b) => (b.name || '').length - (a.name || '').length);
+    return this.findMatchingEntities(groups, text);
+  }
+
+  findMatchingAuthors(authors, text) {
+    return this.findMatchingEntities(authors, text);
+  }
+
+  findMatchingParodies(parodies, text) {
+    return this.findMatchingEntities(parodies, text);
+  }
+
+  findMatchingEntities(entities, text) {
+    if (!text || !entities || entities.length === 0) return [];
+    const sorted = [...entities].sort((a, b) => (b.name || '').length - (a.name || '').length);
     const matched = [];
     const occupiedRanges = [];
 
-    for (const group of sorted) {
-      const rawName = (group.name || '').trim();
+    for (const item of sorted) {
+      const rawName = (item.name || '').trim();
       if (!rawName) continue;
       const namesToTest = [rawName];
       const unbracketed = rawName.replace(/^[\[\({<](.+)[\]\)}>]$/, '$1').trim();
@@ -108,15 +121,15 @@ class LibraryScanner {
         let m;
         while ((m = regex.exec(text)) !== null) {
           const fullMatch = m[0];
-          const groupCapture = m[1];
-          const captureOffset = fullMatch.indexOf(groupCapture);
+          const capture = m[1];
+          const captureOffset = fullMatch.indexOf(capture);
           const start = m.index + captureOffset;
-          const end = start + groupCapture.length;
+          const end = start + capture.length;
 
           const overlaps = occupiedRanges.some(r => !(end <= r.start || start >= r.end));
           if (!overlaps) {
             occupiedRanges.push({ start, end });
-            matched.push(group);
+            matched.push(item);
             foundMatch = true;
             break;
           }
@@ -127,81 +140,255 @@ class LibraryScanner {
     return matched;
   }
 
-  parseTitleAndAuthor(rawName, { registeredGroups = [] } = {}) {
-    let title = rawName;
-    let author = 'Desconocido';
+  extractPrefixBracket(str) {
+    const trimmed = (str || '').trim();
+    if (!trimmed.startsWith('[') && !trimmed.startsWith('(')) return null;
+    const openChar = trimmed[0];
+
+    let depth = 0;
+    for (let i = 0; i < trimmed.length; i++) {
+      const ch = trimmed[i];
+      if (ch === '[' || ch === '(') {
+        depth++;
+      } else if (ch === ']' || ch === ')') {
+        depth--;
+        if (depth === 0) {
+          return {
+            openChar,
+            closeChar: ch,
+            rawBracket: trimmed.slice(0, i + 1),
+            content: trimmed.slice(1, i).trim(),
+            rest: trimmed.slice(i + 1).trim()
+          };
+        }
+      }
+    }
+    return null;
+  }
+
+  extractSuffixBracket(str) {
+    const trimmed = (str || '').trim();
+    if (!trimmed.endsWith(']') && !trimmed.endsWith(')')) return null;
+    const closeChar = trimmed[trimmed.length - 1];
+
+    let depth = 0;
+    for (let i = trimmed.length - 1; i >= 0; i--) {
+      const ch = trimmed[i];
+      if (ch === ']' || ch === ')') {
+        depth++;
+      } else if (ch === '[' || ch === '(') {
+        depth--;
+        if (depth === 0) {
+          return {
+            openChar: ch,
+            closeChar,
+            rawBracket: trimmed.slice(i),
+            content: trimmed.slice(i + 1, trimmed.length - 1).trim(),
+            rest: trimmed.slice(0, i).trim()
+          };
+        }
+      }
+    }
+    return null;
+  }
+
+  isNonAuthorTag(str, ignoredAuthors = []) {
+    if (!str) return true;
+    const lower = str.trim().toLowerCase();
+    const commonTags = [
+      'digital', 'complete', 'completo', 'ongoing', 'en emision', 'en emisión',
+      'color', 'full color', 'decensored', 'censored', 'uncensored', 'sin censura', 'con censura',
+      '1080p', '720p', 'hd', 'web', 'scan', 'scanlation',
+      'spanish', 'español', 'english', 'ingles', 'inglés', 'japanese', 'japonés', 'raw', 'dl-raw', 'korean', 'chinese'
+    ];
+    if (commonTags.includes(lower)) return true;
+    if (/^c\d{2,3}$/i.test(lower) || /^comic\d+/i.test(lower) || /^comiket/i.test(lower)) return true;
+
+    if (Array.isArray(ignoredAuthors) && ignoredAuthors.length > 0) {
+      if (ignoredAuthors.some(ig => {
+        const name = typeof ig === 'string' ? ig : ig.name;
+        return name && name.trim().toLowerCase() === lower;
+      })) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  parseTitleAndAuthor(rawName, { registeredGroups = [], registeredAuthors = [], registeredParodies = [], ignoredAuthors = [] } = {}) {
+    let working = (rawName || '').trim();
+
     const detectedGroups = this.findMatchingGroups(registeredGroups, rawName);
-    const groupStr = detectedGroups.map(g => g.name).join(', ');
+    const detectedAuthors = this.findMatchingAuthors(registeredAuthors, rawName);
 
-    let working = rawName.trim();
+    let candidateAuthor = detectedAuthors.length > 0 ? detectedAuthors.map(a => a.name).join(', ') : '';
+    let candidateGroup = detectedGroups.length > 0 ? detectedGroups.map(g => g.name).join(', ') : '';
+    let candidateParody = '';
 
-    // Pattern 1: [Prefix] Rest
-    const prefixMatch = working.match(/^[\[\(](.*?)[\]\)]\s*(.*)$/);
-    if (prefixMatch && prefixMatch[2].trim()) {
-      const candidate = prefixMatch[1].trim();
-      const rest = prefixMatch[2].trim();
+    // Extract prefix brackets sequentially
+    const prefixBrackets = [];
+    let currentRest = working;
+    let pBracket;
+    while ((pBracket = this.extractPrefixBracket(currentRest))) {
+      prefixBrackets.push(pBracket);
+      currentRest = pBracket.rest;
+    }
 
-      const isGroup = detectedGroups.some(g =>
-        g.name.toLowerCase() === candidate.toLowerCase() ||
-        g.name.toLowerCase() === candidate.replace(/^[\[\(](.+)[\]\)]$/, '$1').toLowerCase()
-      );
+    // Extract suffix brackets sequentially
+    const suffixBrackets = [];
+    let sBracket;
+    while ((sBracket = this.extractSuffixBracket(currentRest))) {
+      suffixBrackets.unshift(sBracket);
+      currentRest = sBracket.rest;
+    }
 
-      if (isGroup) {
-        // Group was in prefix bracket, check rest for potential author bracket
-        const innerPrefix = rest.match(/^[\[\(](.*?)[\]\)]\s*(.*)$/);
-        if (innerPrefix && innerPrefix[2].trim()) {
-          author = innerPrefix[1].trim();
-          title = innerPrefix[2].trim();
-        } else {
-          const innerSuffix = rest.match(/^(.*?)\s*[\[\(](.*?)[\]\)]$/);
-          if (innerSuffix && innerSuffix[1].trim()) {
-            title = innerSuffix[1].trim();
-            author = innerSuffix[2].trim();
-          } else {
-            title = rest;
-          }
+    // Process prefix brackets
+    for (const b of prefixBrackets) {
+      const content = b.content;
+
+      // Check for nested pattern: [Group (Author)] or [(Author) Group]
+      const nestedParen = content.match(/^(.+?)\s*\((.+?)\)$/);
+      const nestedParenRev = content.match(/^\((.+?)\)\s*(.+)$/);
+
+      if (nestedParen) {
+        const partOutside = nestedParen[1].trim();
+        const partInside = nestedParen[2].trim();
+
+        const mAuth = this.findMatchingAuthors(registeredAuthors, partInside);
+        const mGrp = this.findMatchingGroups(registeredGroups, partOutside);
+
+        if (!candidateAuthor) {
+          candidateAuthor = mAuth.length > 0 ? mAuth.map(a => a.name).join(', ') : (!this.isNonAuthorTag(partInside, ignoredAuthors) ? partInside : '');
+        }
+        if (!candidateGroup) {
+          candidateGroup = mGrp.length > 0 ? mGrp.map(g => g.name).join(', ') : (!this.isNonAuthorTag(partOutside, ignoredAuthors) ? partOutside : '');
+        }
+      } else if (nestedParenRev) {
+        const partInside = nestedParenRev[1].trim();
+        const partOutside = nestedParenRev[2].trim();
+
+        const mAuth = this.findMatchingAuthors(registeredAuthors, partInside);
+        const mGrp = this.findMatchingGroups(registeredGroups, partOutside);
+
+        if (!candidateAuthor) {
+          candidateAuthor = mAuth.length > 0 ? mAuth.map(a => a.name).join(', ') : (!this.isNonAuthorTag(partInside, ignoredAuthors) ? partInside : '');
+        }
+        if (!candidateGroup) {
+          candidateGroup = mGrp.length > 0 ? mGrp.map(g => g.name).join(', ') : (!this.isNonAuthorTag(partOutside, ignoredAuthors) ? partOutside : '');
         }
       } else {
-        author = candidate;
-        title = rest;
-      }
-    } else {
-      // Pattern 2: Rest [Suffix]
-      const suffixMatch = working.match(/^(.*?)\s*[\[\(](.*?)[\]\)]$/);
-      if (suffixMatch && suffixMatch[1].trim()) {
-        const rest = suffixMatch[1].trim();
-        const candidate = suffixMatch[2].trim();
+        // Single bracket content: is it a group, author, or non-author tag?
+        if (this.isNonAuthorTag(content, ignoredAuthors)) continue;
 
-        const isGroup = detectedGroups.some(g =>
-          g.name.toLowerCase() === candidate.toLowerCase() ||
-          g.name.toLowerCase() === candidate.replace(/^[\[\(](.+)[\]\)]$/, '$1').toLowerCase()
-        );
+        const mAuth = this.findMatchingAuthors(registeredAuthors, content);
+        const mGrp = this.findMatchingGroups(registeredGroups, content);
 
-        if (isGroup) {
-          // Group was in suffix bracket, check rest for potential author bracket
-          const innerPrefix = rest.match(/^[\[\(](.*?)[\]\)]\s*(.*)$/);
-          if (innerPrefix && innerPrefix[2].trim()) {
-            author = innerPrefix[1].trim();
-            title = innerPrefix[2].trim();
-          } else {
-            title = rest;
-          }
+        if (mGrp.length > 0) {
+          if (!candidateGroup) candidateGroup = mGrp.map(g => g.name).join(', ');
+        } else if (mAuth.length > 0) {
+          if (!candidateAuthor) candidateAuthor = mAuth.map(a => a.name).join(', ');
         } else {
-          title = rest;
-          author = candidate;
+          // Not matched in DB
+          if (prefixBrackets.length === 1) {
+            if (!candidateAuthor && !candidateGroup) {
+              candidateAuthor = content;
+            }
+          } else {
+            if (!candidateGroup) {
+              candidateGroup = content;
+            } else if (!candidateAuthor) {
+              candidateAuthor = content;
+            }
+          }
         }
       }
     }
 
-    // Clean matched groups from title if they remain in brackets or edge delimiters
+    // Process suffix brackets
+    for (const b of suffixBrackets) {
+      const content = b.content;
+      if (this.isNonAuthorTag(content, ignoredAuthors)) continue;
+
+      const mAuth = this.findMatchingAuthors(registeredAuthors, content);
+      const mGrp = this.findMatchingGroups(registeredGroups, content);
+      const mPar = this.findMatchingParodies(registeredParodies, content);
+
+      if (mAuth.length > 0) {
+        if (!candidateAuthor) candidateAuthor = mAuth.map(a => a.name).join(', ');
+      } else if (mGrp.length > 0) {
+        if (!candidateGroup) candidateGroup = mGrp.map(g => g.name).join(', ');
+      } else if (mPar.length > 0) {
+        if (!candidateParody) candidateParody = mPar.map(p => p.name).join(', ');
+      } else {
+        // Unregistered bracket at suffix
+        if (b.openChar === '(') {
+          if (!candidateParody && candidateAuthor) {
+            candidateParody = content;
+          } else if (!candidateAuthor && !candidateGroup && prefixBrackets.length === 0) {
+            candidateAuthor = content;
+          } else if (!candidateParody) {
+            candidateParody = content;
+          }
+        } else if (b.openChar === '[') {
+          // Square bracket at end [Author] or [Group]
+          if (!candidateAuthor && prefixBrackets.length === 0) {
+            candidateAuthor = content;
+          }
+        }
+      }
+    }
+
+    // Check for delimited pattern: "Author - Title" or "Group - Title"
+    if (prefixBrackets.length === 0 && currentRest.includes(' - ')) {
+      const parts = currentRest.split(' - ');
+      const firstPart = parts[0].trim();
+      const mAuth = this.findMatchingAuthors(registeredAuthors, firstPart);
+      const mGrp = this.findMatchingGroups(registeredGroups, firstPart);
+
+      if (mAuth.length > 0) {
+        if (!candidateAuthor) candidateAuthor = mAuth.map(a => a.name).join(', ');
+        currentRest = parts.slice(1).join(' - ').trim();
+      } else if (mGrp.length > 0) {
+        if (!candidateGroup) candidateGroup = mGrp.map(g => g.name).join(', ');
+        currentRest = parts.slice(1).join(' - ').trim();
+      }
+    }
+
+    let title = currentRest || rawName;
+
+    // Cleanup title from matched groups and authors in edge delimiters or brackets
     for (const g of detectedGroups) {
       const esc = this.escapeRegex(g.name);
       const pattern = new RegExp(`(?:[\\[\\(\\{<]\\s*${esc}\\s*[\\]\\)\\}>]|^${esc}\\s*\\-\\s*|\\-\\s*${esc}$)`, 'gi');
       title = title.replace(pattern, '').trim();
     }
+    for (const a of detectedAuthors) {
+      const esc = this.escapeRegex(a.name);
+      const pattern = new RegExp(`(?:[\\[\\(\\{<]\\s*${esc}\\s*[\\]\\)\\}>]|^${esc}\\s*\\-\\s*|\\-\\s*${esc}$)`, 'gi');
+      title = title.replace(pattern, '').trim();
+    }
 
     title = title.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
-    return { title: title || rawName, author, group: groupStr, detectedGroups };
+
+    // If candidateAuthor equals candidateGroup and group was matched, avoid duplicate author
+    if (candidateAuthor && candidateGroup && candidateAuthor.toLowerCase() === candidateGroup.toLowerCase()) {
+      if (detectedGroups.length > 0) {
+        candidateAuthor = 'Desconocido';
+      }
+    }
+
+    const finalAuthor = candidateAuthor && candidateAuthor !== 'Desconocido' ? candidateAuthor : 'Desconocido';
+    const finalGroup = candidateGroup || '';
+
+    return {
+      title: title || rawName,
+      author: finalAuthor,
+      group: finalGroup,
+      parody: candidateParody || '',
+      detectedGroups,
+      detectedAuthors,
+      detected_author: finalAuthor !== 'Desconocido' ? finalAuthor : ''
+    };
   }
 
   // Validate that a cover file exists, is a regular file, and is non-empty
@@ -368,7 +555,7 @@ class LibraryScanner {
   }
 
   // Walk filesystem and group files directly into series without intermediate huge arrays
-  async discoverSeries(dirPath, supportedExtensions, { registeredGroups = [] } = {}) {
+  async discoverSeries(dirPath, supportedExtensions, { registeredGroups = [], registeredAuthors = [], registeredParodies = [], ignoredAuthors = [] } = {}) {
     const seriesGroups = new Map();
     const queue = [dirPath];
     let fileCounter = 0;
@@ -419,12 +606,28 @@ class LibraryScanner {
             }
 
             if (!seriesGroups.has(seriesKey)) {
-              const { title, author, group, detectedGroups } = this.parseTitleAndAuthor(rawFolderTitle, { registeredGroups });
+              const {
+                title,
+                author,
+                group,
+                parody,
+                detectedGroups,
+                detectedAuthors,
+                detected_author
+              } = this.parseTitleAndAuthor(rawFolderTitle, {
+                registeredGroups,
+                registeredAuthors,
+                registeredParodies,
+                ignoredAuthors
+              });
               seriesGroups.set(seriesKey, {
                 title,
                 author,
+                detected_author: detected_author || '',
                 group: group || '',
+                parody: parody || '',
                 detectedGroups: detectedGroups || [],
+                detectedAuthors: detectedAuthors || [],
                 rawFolderTitle,
                 subfolder: parts.length > 1 ? parts[0] : '',
                 path: seriesPath,
@@ -464,6 +667,12 @@ class LibraryScanner {
     return files;
   }
 
+  isImageFileName(fileName) {
+    if (!fileName || typeof fileName !== 'string') return false;
+    const ext = path.extname(fileName).toLowerCase();
+    return ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'].includes(ext);
+  }
+
   // Scan directory, group files into Manga Series, and extract first chapter cover
   async scanDirectory(dirPath, {
     onProgress = null,
@@ -471,7 +680,10 @@ class LibraryScanner {
     mode = 'incremental', // 'incremental' | 'full'
     registeredChapters = new Map(),
     registeredSeries = new Map(),
-    registeredGroups = []
+    registeredGroups = [],
+    registeredAuthors = [],
+    registeredParodies = [],
+    ignoredAuthors = [],
   } = {}) {
     const startTime = Date.now();
 
@@ -495,7 +707,12 @@ class LibraryScanner {
     const supportedExtensions = ['.cbz', '.pdf'];
 
     // 1. Walk filesystem and build series directly in one pass
-    const seriesGroups = await this.discoverSeries(dirPath, supportedExtensions, { registeredGroups });
+    const seriesGroups = await this.discoverSeries(dirPath, supportedExtensions, {
+      registeredGroups,
+      registeredAuthors,
+      registeredParodies,
+      ignoredAuthors
+    });
 
     if (this.isCancelled || !seriesGroups) {
       const isCancelled = Boolean(this.isCancelled);
@@ -669,15 +886,23 @@ class LibraryScanner {
       }
 
       // Check if group newly matched
-      if (existingSeries && (!existingSeries.group_name || existingSeries.group_name.trim() === '') && (group.group || (group.detectedGroups && group.detectedGroups.length > 0))) {
+      if (existingSeries && (!existingSeries.group_name || existingSeries.group_name.trim() === '') && (group.detectedGroups && group.detectedGroups.length > 0)) {
+        seriesHasChanges = true;
+      }
+
+      // Check if author newly matched
+      if (existingSeries && (existingSeries.author === 'Desconocido' || !existingSeries.author) && (group.detectedAuthors && group.detectedAuthors.length > 0)) {
         seriesHasChanges = true;
       }
 
       const seriesData = {
         title: group.title,
         author: group.author || 'Desconocido',
+        detected_author: group.detected_author || '',
         group_name: group.group || '',
         detectedGroups: group.detectedGroups || [],
+        detectedAuthors: group.detectedAuthors || [],
+        parody: group.parody || '',
         rawFolderTitle: group.rawFolderTitle || '',
         subfolder: group.subfolder || '',
         path: group.path,

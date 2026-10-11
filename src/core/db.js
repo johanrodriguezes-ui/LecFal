@@ -578,13 +578,21 @@ class DatabaseManager {
   }
 
   findMatchingGroups(groups, text) {
-    if (!text || !groups || groups.length === 0) return [];
-    const sorted = [...groups].sort((a, b) => (b.name || '').length - (a.name || '').length);
+    return this.findMatchingEntities(groups, text);
+  }
+
+  findMatchingAuthors(authors, text) {
+    return this.findMatchingEntities(authors, text);
+  }
+
+  findMatchingEntities(entities, text) {
+    if (!text || !entities || entities.length === 0) return [];
+    const sorted = [...entities].sort((a, b) => (b.name || '').length - (a.name || '').length);
     const matched = [];
     const occupiedRanges = [];
 
-    for (const group of sorted) {
-      const rawName = (group.name || '').trim();
+    for (const item of sorted) {
+      const rawName = (item.name || '').trim();
       if (!rawName) continue;
       const namesToTest = [rawName];
       const unbracketed = rawName.replace(/^[\[\({<](.+)[\]\)}>]$/, '$1').trim();
@@ -605,15 +613,15 @@ class DatabaseManager {
         let m;
         while ((m = regex.exec(text)) !== null) {
           const fullMatch = m[0];
-          const groupCapture = m[1];
-          const captureOffset = fullMatch.indexOf(groupCapture);
+          const capture = m[1];
+          const captureOffset = fullMatch.indexOf(capture);
           const start = m.index + captureOffset;
-          const end = start + groupCapture.length;
+          const end = start + capture.length;
 
           const overlaps = occupiedRanges.some(r => !(end <= r.start || start >= r.end));
           if (!overlaps) {
             occupiedRanges.push({ start, end });
-            matched.push(group);
+            matched.push(item);
             foundMatch = true;
             break;
           }
@@ -638,15 +646,31 @@ class DatabaseManager {
     }
     checkStmt.free();
 
-    // Detected author from folder scanner
-    const rawAuthor = seriesData.author && seriesData.author !== 'Desconocido' ? seriesData.author.trim() : null;
-    const detectedAuthor = seriesData.detected_author || rawAuthor || (existing ? existing.detected_author : '') || '';
+    const subfolderName = seriesData.rawFolderTitle || seriesData.subfolder || (seriesData.path ? path.basename(seriesData.path) : '');
+
+    // Detected authors from database and subfolder name
+    const allAuthors = this.getAllAuthors();
+    let matchedAuthors = [];
+    if (allAuthors.length > 0) {
+      matchedAuthors = this.findMatchingAuthors(allAuthors, subfolderName);
+      if (matchedAuthors.length === 0 && seriesData.title && seriesData.title !== subfolderName) {
+        matchedAuthors = this.findMatchingAuthors(allAuthors, seriesData.title);
+      }
+    }
+    const explicitAuthorIds = Array.isArray(seriesData.authorIds) ? seriesData.authorIds : [];
+    if (explicitAuthorIds.length > 0) {
+      for (const aid of explicitAuthorIds) {
+        if (!matchedAuthors.some(a => a.id === aid)) {
+          const aObj = allAuthors.find(a => a.id === aid);
+          if (aObj) matchedAuthors.push(aObj);
+        }
+      }
+    }
 
     // Detected groups from database and subfolder name
     const allGroups = this.getAllGroups();
     let matchedGroups = [];
     if (allGroups.length > 0) {
-      const subfolderName = seriesData.rawFolderTitle || seriesData.subfolder || (seriesData.path ? path.basename(seriesData.path) : '');
       matchedGroups = this.findMatchingGroups(allGroups, subfolderName);
       if (matchedGroups.length === 0 && seriesData.title && seriesData.title !== subfolderName) {
         matchedGroups = this.findMatchingGroups(allGroups, seriesData.title);
@@ -660,6 +684,15 @@ class DatabaseManager {
           if (gObj) matchedGroups.push(gObj);
         }
       }
+    }
+
+    // Detected author from folder scanner or matched authors
+    const rawAuthor = seriesData.author && seriesData.author !== 'Desconocido' ? seriesData.author.trim() : null;
+    let detectedAuthor = seriesData.detected_author || (matchedAuthors.length > 0 ? matchedAuthors.map(a => a.name).join(', ') : rawAuthor) || (existing ? existing.detected_author : '') || '';
+
+    // If detectedAuthor happens to match any matchedGroup, suppress it so it is not suggested as an author
+    if (matchedGroups.some(g => g.name.toLowerCase() === (detectedAuthor || '').toLowerCase())) {
+      detectedAuthor = '';
     }
 
     const folderIdToUse = seriesData.folder_id || seriesData.folderId || null;
@@ -686,6 +719,10 @@ class DatabaseManager {
       let authorToUse = existing.author;
       if (currentAuthors.length > 0) {
         authorToUse = currentAuthors.map(a => a.name).join(', ');
+      } else if (matchedAuthors.length > 0) {
+        // Auto-link matched authors from database
+        this.setSeriesAuthors(seriesId, matchedAuthors.map(a => a.id));
+        authorToUse = matchedAuthors.map(a => a.name).join(', ');
       } else if (detectedAuthor) {
         // If detected author exists in catalog, auto-link it
         const matched = this.getAuthorByName(detectedAuthor);
@@ -713,7 +750,10 @@ class DatabaseManager {
 
       // If existing author was mistakenly set to one of the matched groups in the past, and no authors are configured:
       if (currentAuthors.length === 0 && matchedGroups.some(g => g.name.toLowerCase() === (authorToUse || '').toLowerCase())) {
-        if (detectedAuthor && !matchedGroups.some(g => g.name.toLowerCase() === detectedAuthor.toLowerCase())) {
+        if (matchedAuthors.length > 0) {
+          this.setSeriesAuthors(seriesId, matchedAuthors.map(a => a.id));
+          authorToUse = matchedAuthors.map(a => a.name).join(', ');
+        } else if (detectedAuthor && !matchedGroups.some(g => g.name.toLowerCase() === detectedAuthor.toLowerCase())) {
           const matchedAuth = this.getAuthorByName(detectedAuthor);
           if (matchedAuth) {
             this.setSeriesAuthors(seriesId, [matchedAuth.id]);
@@ -766,10 +806,14 @@ class DatabaseManager {
       }
 
       let matchedAuthor = null;
-      if (detectedAuthor) {
+      if (matchedAuthors.length > 0) {
+        matchedAuthor = matchedAuthors[0];
+      } else if (detectedAuthor) {
         matchedAuthor = this.getAuthorByName(detectedAuthor);
       }
-      const authorToInsert = matchedAuthor ? matchedAuthor.name : 'Desconocido';
+      const authorToInsert = matchedAuthors.length > 0
+        ? matchedAuthors.map(a => a.name).join(', ')
+        : (matchedAuthor ? matchedAuthor.name : 'Desconocido');
 
       const groupNameToInsert = matchedGroups.length > 0
         ? matchedGroups.map(g => g.name).join(', ')
@@ -805,7 +849,9 @@ class DatabaseManager {
       }
       getIdStmt.free();
 
-      if (matchedAuthor && seriesId) {
+      if (matchedAuthors.length > 0 && seriesId) {
+        this.setSeriesAuthors(seriesId, matchedAuthors.map(a => a.id));
+      } else if (matchedAuthor && seriesId) {
         this.setSeriesAuthors(seriesId, [matchedAuthor.id]);
       }
       if (matchedGroups.length > 0 && seriesId) {
@@ -1687,18 +1733,38 @@ class DatabaseManager {
   linkDetectedAuthorToSeries(authorId, authorName) {
     try {
       const stmt = this.db.prepare(`
-        SELECT s.id FROM series s
+        SELECT s.id, s.path, s.title, s.detected_author, s.author FROM series s
         LEFT JOIN series_authors sa ON s.id = sa.series_id
-        WHERE (LOWER(TRIM(s.detected_author)) = LOWER(TRIM(?)) OR LOWER(TRIM(s.author)) = LOWER(TRIM(?)))
         GROUP BY s.id
         HAVING COUNT(sa.author_id) = 0 OR s.author = 'Desconocido'
       `);
-      stmt.bind([authorName, authorName]);
-      const seriesToLink = [];
+      const candidates = [];
       while (stmt.step()) {
-        seriesToLink.push(stmt.getAsObject().id);
+        candidates.push(stmt.getAsObject());
       }
       stmt.free();
+
+      const authorObj = { id: authorId, name: authorName };
+      const seriesToLink = [];
+
+      for (const series of candidates) {
+        // 1. Direct match on detected_author or author string
+        if (
+          (series.detected_author && series.detected_author.trim().toLowerCase() === authorName.trim().toLowerCase()) ||
+          (series.author && series.author.trim().toLowerCase() === authorName.trim().toLowerCase())
+        ) {
+          seriesToLink.push(series.id);
+          continue;
+        }
+
+        // 2. Pattern match in folder name or title
+        const subfolderName = series.path ? path.basename(series.path) : '';
+        const matches = this.findMatchingAuthors([authorObj], subfolderName);
+        const matchesTitle = matches.length === 0 ? this.findMatchingAuthors([authorObj], series.title || '') : [];
+        if (matches.length > 0 || matchesTitle.length > 0) {
+          seriesToLink.push(series.id);
+        }
+      }
 
       for (const sId of seriesToLink) {
         this.db.run('INSERT OR IGNORE INTO series_authors (series_id, author_id) VALUES (?, ?)', [sId, authorId]);
