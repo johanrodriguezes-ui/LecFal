@@ -71,13 +71,19 @@ async function runStorageTests() {
       appDir: appTempDir
     });
 
+    process.env.XDG_CONFIG_HOME = path.join(rootTemp, 'mock_config');
+
     const expectedPortableData = path.join(path.resolve(appTempDir), 'data');
     assert.strictEqual(smPort.getStorageMode(), 'portable', 'Mode must be portable');
     assert.strictEqual(smPort.isPortableMode(), true, 'isPortableMode must be true');
     assert.strictEqual(smPort.isPortable(), true, 'isPortable alias must be true');
     assert.strictEqual(smPort.getAppDirectory(), path.resolve(appTempDir), 'getAppDirectory must match appDir');
-    assert.strictEqual(smPort.getPortableDataPath(), expectedPortableData, 'getPortableDataPath must be <appDir>/data');
-    assert.strictEqual(smPort.getStorageRoot(), expectedPortableData, 'getStorageRoot in portable mode must be <appDir>/data');
+    assert.strictEqual(smPort.getDefaultPortableDataPath(), expectedPortableData, 'getDefaultPortableDataPath must be <appDir>/data');
+
+    // Configure portable data path explicitly (as required by AppImage architecture)
+    smPort.setPortableDataPath(expectedPortableData);
+    assert.strictEqual(smPort.getPortableDataPath(), expectedPortableData, 'getPortableDataPath must match configured path');
+    assert.strictEqual(smPort.getStorageRoot(), expectedPortableData, 'getStorageRoot in portable mode must match configured data root');
     assert.strictEqual(smPort.getDataPath(), expectedPortableData, 'getDataPath must match portable storage root');
 
     // Sub-check: Read-only application directory safety guard
@@ -89,12 +95,9 @@ async function runStorageTests() {
     const isAvail = smReadOnly.isWritable(path.join(readOnlyAppDir, 'data'));
     assert.strictEqual(isAvail, false, 'isWritable must return false for read-only directory');
 
-    smReadOnly.init({
-      mode: 'portable',
-      appDir: readOnlyAppDir
-    });
-    assert.strictEqual(smReadOnly.getStorageMode(), 'standard', 'Must fallback to standard mode when appDir is read-only');
-    assert.strictEqual(smReadOnly.isPortableMode(), false, 'isPortableMode must be false after fallback');
+    const rejectRes = smReadOnly.setPortableDataPath(readOnlyAppDir);
+    assert.strictEqual(rejectRes.success, false, 'setPortableDataPath must reject unwritable directory');
+    assert.ok(rejectRes.error.includes('no es escribible'), 'Error message indicates unwritable directory');
 
     fs.chmodSync(readOnlyAppDir, 0o755);
     console.log('  ✓ Read-only application directory safely rejected without crash');

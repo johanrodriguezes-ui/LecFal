@@ -8,6 +8,7 @@ const DatabaseManager = require('../../src/core/db');
 const storage = require('../../src/core/storage');
 const cbzProvider = require('../../src/readers/cbz-provider');
 const logger = require('../../src/core/logger');
+const { createTestCbz } = require('../fixtures/create_mock_cbz');
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'lecfal-file', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
@@ -20,6 +21,10 @@ app.commandLine.appendSwitch('disable-background-timer-throttling');
 
 let mainWindow = null;
 let db = null;
+let testDir = null;
+let ch1 = null;
+let ch2 = null;
+let ch3 = null;
 
 // Telemetry & DB write tracking
 let dbWriteCounts = {
@@ -46,11 +51,61 @@ function resolveCustomProtocolPath(requestUrl) {
 }
 
 app.whenReady().then(async () => {
-  app.setPath('userData', path.join(os.homedir(), '.config', 'lecfal'));
-  storage.init({ dataRoot: path.join(os.homedir(), '.config', 'lecfal') });
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lecfal-test-reader-pos-'));
+  app.setPath('userData', testDir);
+  storage.init({ dataRoot: testDir });
   logger.init(storage.getLogFilePath());
   db = new DatabaseManager(storage.getDatabasePath());
   await db.init();
+
+  const fixturesDir = path.join(testDir, 'fixtures');
+  fs.mkdirSync(fixturesDir, { recursive: true });
+
+  const cbz1Path = path.join(fixturesDir, 'ch1.cbz');
+  const cbz2Path = path.join(fixturesDir, 'ch2.cbz');
+  const cbz3Path = path.join(fixturesDir, 'ch3.cbz');
+  createTestCbz(cbz1Path, 15);
+  createTestCbz(cbz2Path, 20);
+  createTestCbz(cbz3Path, 15);
+
+  const seriesId = db.upsertSeries({
+    title: 'Test Manga Series',
+    path: path.join(fixturesDir, 'TestSeries'),
+    chapter_count: 3
+  });
+
+  db.upsertChapter({
+    series_id: seriesId,
+    title: 'Capítulo 1',
+    file_name: 'ch1.cbz',
+    file_path: cbz1Path,
+    format: 'cbz',
+    chapter_number: 1,
+    page_count: 15
+  });
+  db.upsertChapter({
+    series_id: seriesId,
+    title: 'Capítulo 2',
+    file_name: 'ch2.cbz',
+    file_path: cbz2Path,
+    format: 'cbz',
+    chapter_number: 2,
+    page_count: 20
+  });
+  db.upsertChapter({
+    series_id: seriesId,
+    title: 'Capítulo 3',
+    file_name: 'ch3.cbz',
+    file_path: cbz3Path,
+    format: 'cbz',
+    chapter_number: 3,
+    page_count: 15
+  });
+
+  const chapters = db.getChapters(seriesId, { sortOrder: 'asc' });
+  ch1 = chapters[0];
+  ch2 = chapters[1];
+  ch3 = chapters[2];
 
   protocol.handle('lecfal-cover', (request) => {
     const targetPath = resolveCustomProtocolPath(request.url);
@@ -296,7 +351,7 @@ app.whenReady().then(async () => {
       assertDb('Default position for non-existent chapter is 0', defaultCheck === 0, { val: defaultCheck });
 
       // 1.4 Setting and retrieving position
-      const testChapterId = 1538;
+      const testChapterId = ch1.id;
       const initialPos = db.getChapterReadingPosition(testChapterId);
       db.setChapterReadingPosition(testChapterId, 0.42);
       const retrievedPos = db.getChapterReadingPosition(testChapterId);
@@ -388,9 +443,9 @@ app.whenReady().then(async () => {
 
           // Test Suite Chapters
           const testChapters = [
-            { id: 1538, name: 'Ch1538 (117p PNG)', type: 'cbz' },
-            { id: 1609, name: 'Ch1609 (204p WebP)', type: 'cbz' },
-            { id: 2876, name: 'Ch2876 (52p WebP)', type: 'cbz' },
+            { id: ${ch1.id}, name: 'Ch1 (15p CBZ)', type: 'cbz' },
+            { id: ${ch2.id}, name: 'Ch2 (20p CBZ)', type: 'cbz' },
+            { id: ${ch3.id}, name: 'Ch3 (15p CBZ)', type: 'cbz' },
             { id: 'pdf:${pdf16Path.replace(/\\/g, '/')}', name: 'PDF16 (16p PDF)', type: 'pdf' },
             { id: 'pdf:${pdf36Path.replace(/\\/g, '/')}', name: 'PDF36 (36p PDF)', type: 'pdf' }
           ];
@@ -450,7 +505,7 @@ app.whenReady().then(async () => {
 
           // ==================== TEST B: IMMEDIATE CLOSE WITHOUT WAITING FOR THROTTLE ====================
           console.log('\\n--- TEST B: IMMEDIATE CLOSE PERSISTS LATEST IN-MEMORY POSITION ---');
-          const immCh = 1538;
+          const immCh = ${ch1.id};
           await window.lecfalAPI.setChapterRead(immCh, 0);
           await window.lecfalAPI.setChapterReadingPosition(immCh, 0);
 
@@ -474,8 +529,8 @@ app.whenReady().then(async () => {
 
           // ==================== TEST C: INDEPENDENT CHAPTER SWITCHING ====================
           console.log('\\n--- TEST C: INDEPENDENT CHAPTER POSITIONS (A: 30%, B: 70%) ---');
-          const chA = 1609;
-          const chB = 2876;
+          const chA = ${ch2.id};
+          const chB = ${ch3.id};
           await window.lecfalAPI.setChapterRead(chA, 0);
           await window.lecfalAPI.setChapterReadingPosition(chA, 0);
           await window.lecfalAPI.setChapterRead(chB, 0);
@@ -523,7 +578,7 @@ app.whenReady().then(async () => {
 
           // ==================== TEST D: WIDTH CHANGE PRESERVES NORMALIZED POSITION ====================
           console.log('\\n--- TEST D: WIDTH CHANGE PRESERVES NORMALIZED POSITION ---');
-          const widthCh = 1538;
+          const widthCh = ${ch1.id};
           await window.lecfalAPI.setChapterRead(widthCh, 0);
           await window.lecfalAPI.setChapterReadingPosition(widthCh, 0);
 
@@ -553,7 +608,7 @@ app.whenReady().then(async () => {
 
           // ==================== TEST E: SPACING CHANGE PRESERVES NORMALIZED POSITION ====================
           console.log('\\n--- TEST E: SPACING CHANGE PRESERVES NORMALIZED POSITION ---');
-          const spacingCh = 2876;
+          const spacingCh = ${ch3.id};
           await window.lecfalAPI.setChapterRead(spacingCh, 0);
           await window.lecfalAPI.setChapterReadingPosition(spacingCh, 0.45);
 
@@ -580,7 +635,7 @@ app.whenReady().then(async () => {
 
           // ==================== TEST F: RAPID SCROLLING & DB WRITE THROTTLING ====================
           console.log('\\n--- TEST F: RAPID SCROLLING THROTTLING & COMPLETION ---');
-          const rapidCh = 1609;
+          const rapidCh = ${ch2.id};
           await window.lecfalAPI.setChapterRead(rapidCh, 0);
           await window.lecfalAPI.setChapterReadingPosition(rapidCh, 0);
 
@@ -656,7 +711,7 @@ app.whenReady().then(async () => {
             return origBCR.apply(this, arguments);
           };
 
-          await reader.open(1538);
+          await reader.open(${ch1.id});
           await waitForReaderReady();
           bcrCount = 0;
           for (let i = 0; i < 10; i++) {
@@ -710,7 +765,7 @@ app.whenReady().then(async () => {
         assertions: allAssertions
       };
 
-      const outPath = path.join(__dirname, 'phase41_results.json');
+      const outPath = path.join(testDir, 'phase41_results.json');
       fs.writeFileSync(outPath, JSON.stringify(summary, null, 2), 'utf-8');
       console.log(`\nResults saved to: ${outPath}`);
 
@@ -735,6 +790,7 @@ app.whenReady().then(async () => {
       console.log('\nPhase 3.1–3.9 invariants remain intact: YES (0 BCR calls, scheduler <= 3, clean teardown)');
       console.log('==================================================\n');
 
+      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (_) {}
       app.exit(failCount === 0 ? 0 : 1);
     } catch (err) {
       console.error('Test Suite encountered fatal error:', err);

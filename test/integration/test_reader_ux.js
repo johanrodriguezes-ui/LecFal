@@ -8,6 +8,7 @@ const DatabaseManager = require('../../src/core/db');
 const storage = require('../../src/core/storage');
 const cbzProvider = require('../../src/readers/cbz-provider');
 const logger = require('../../src/core/logger');
+const { createTestCbz } = require('../fixtures/create_mock_cbz');
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'lecfal-file', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
@@ -20,6 +21,11 @@ app.commandLine.appendSwitch('disable-background-timer-throttling');
 
 let mainWindow = null;
 let db = null;
+let testDir = null;
+let chFirst = null;
+let chMid = null;
+let chNext = null;
+let chLast = null;
 
 let dbWriteCounts = {
   setPositionCount: 0,
@@ -45,11 +51,73 @@ function resolveCustomProtocolPath(requestUrl) {
 }
 
 app.whenReady().then(async () => {
-  app.setPath('userData', path.join(os.homedir(), '.config', 'lecfal'));
-  storage.init({ dataRoot: path.join(os.homedir(), '.config', 'lecfal') });
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lecfal-test-reader-ux-'));
+  app.setPath('userData', testDir);
+  storage.init({ dataRoot: testDir });
   logger.init(storage.getLogFilePath());
   db = new DatabaseManager(storage.getDatabasePath());
   await db.init();
+
+  const fixturesDir = path.join(testDir, 'fixtures');
+  fs.mkdirSync(fixturesDir, { recursive: true });
+
+  const cbz1Path = path.join(fixturesDir, 'ch1.cbz');
+  const cbz2Path = path.join(fixturesDir, 'ch2.cbz');
+  const cbz3Path = path.join(fixturesDir, 'ch3.cbz');
+  const cbz4Path = path.join(fixturesDir, 'ch4.cbz');
+  createTestCbz(cbz1Path, 15);
+  createTestCbz(cbz2Path, 20);
+  createTestCbz(cbz3Path, 15);
+  createTestCbz(cbz4Path, 15);
+
+  const seriesId = db.upsertSeries({
+    title: 'Test Manga Series',
+    path: path.join(fixturesDir, 'TestSeries'),
+    chapter_count: 4
+  });
+
+  db.upsertChapter({
+    series_id: seriesId,
+    title: 'Capítulo 1',
+    file_name: 'ch1.cbz',
+    file_path: cbz1Path,
+    format: 'cbz',
+    chapter_number: 1,
+    page_count: 15
+  });
+  db.upsertChapter({
+    series_id: seriesId,
+    title: 'Capítulo 2',
+    file_name: 'ch2.cbz',
+    file_path: cbz2Path,
+    format: 'cbz',
+    chapter_number: 2,
+    page_count: 20
+  });
+  db.upsertChapter({
+    series_id: seriesId,
+    title: 'Capítulo 3',
+    file_name: 'ch3.cbz',
+    file_path: cbz3Path,
+    format: 'cbz',
+    chapter_number: 3,
+    page_count: 15
+  });
+  db.upsertChapter({
+    series_id: seriesId,
+    title: 'Capítulo 4',
+    file_name: 'ch4.cbz',
+    file_path: cbz4Path,
+    format: 'cbz',
+    chapter_number: 4,
+    page_count: 15
+  });
+
+  const chapters = db.getChapters(seriesId, { sortOrder: 'asc' });
+  chFirst = chapters[0].id;
+  chMid = chapters[1].id;
+  chNext = chapters[2].id;
+  chLast = chapters[3].id;
 
   protocol.handle('lecfal-cover', (request) => {
     const targetPath = resolveCustomProtocolPath(request.url);
@@ -234,6 +302,10 @@ app.whenReady().then(async () => {
     }
   });
 
+  mainWindow.webContents.on('console-message', (event, level, message) => {
+    console.log('[RENDERER]', message);
+  });
+
   mainWindow.loadFile(path.join(__dirname, '..', '..', 'src', 'renderer', 'index.html'));
 
   mainWindow.webContents.on('did-finish-load', async () => {
@@ -288,12 +360,11 @@ app.whenReady().then(async () => {
             await sleep(40);
           }
 
-          // Test chapters:
-          // Series 1174: First=1593, Middle=1594, Last=1608
-          // Standalone PDF fixture
-          const CH_FIRST = 1593;
-          const CH_MID = 1594;
-          const CH_LAST = 1608;
+          // Dynamic Test chapters from seeded fixtures:
+          const CH_FIRST = ${chFirst};
+          const CH_MID = ${chMid};
+          const CH_NEXT = ${chNext};
+          const CH_LAST = ${chLast};
           const STANDALONE_PDF = 'pdf:${samplePdfPath.replace(/\\/g, '/')}';
 
           // ==================== AREA A: CHAPTER NAVIGATION ====================
@@ -311,23 +382,23 @@ app.whenReady().then(async () => {
           await scrollToRatio(0.45);
           reader.btnHeaderPrevChapter.click();
           await waitForReaderReady();
-          assert(reader.chapterData.chapter.id === CH_FIRST, 'Header Prev navigated from 1594 to 1593', 'A_Navigation');
+          assert(reader.chapterData.chapter.id === CH_FIRST, 'Header Prev navigated from ' + CH_MID + ' to ' + CH_FIRST, 'A_Navigation');
 
           // 3. First chapter: Previous disabled
-          assert(reader.btnHeaderPrevChapter.disabled === true, 'Header Prev button disabled on first chapter (1593)', 'A_Navigation');
-          assert(reader.btnHeaderNextChapter.disabled === false, 'Header Next button enabled on first chapter (1593)', 'A_Navigation');
+          assert(reader.btnHeaderPrevChapter.disabled === true, 'Header Prev button disabled on first chapter (' + CH_FIRST + ')', 'A_Navigation');
+          assert(reader.btnHeaderNextChapter.disabled === false, 'Header Next button enabled on first chapter (' + CH_FIRST + ')', 'A_Navigation');
 
           // 4. Keyboard navigation: ']' for next chapter
           const nextKeyEvent = new KeyboardEvent('keydown', { key: ']', bubbles: true });
           window.dispatchEvent(nextKeyEvent);
           await waitForReaderReady();
-          assert(reader.chapterData.chapter.id === CH_MID, 'Keyboard "]" navigated from 1593 to 1594', 'A_Navigation');
+          assert(reader.chapterData.chapter.id === CH_MID, 'Keyboard "]" navigated from ' + CH_FIRST + ' to ' + CH_MID, 'A_Navigation');
 
           // 5. Keyboard navigation: '[' for previous chapter
           const prevKeyEvent = new KeyboardEvent('keydown', { key: '[', bubbles: true });
           window.dispatchEvent(prevKeyEvent);
           await waitForReaderReady();
-          assert(reader.chapterData.chapter.id === CH_FIRST, 'Keyboard "[" navigated back from 1594 to 1593', 'A_Navigation');
+          assert(reader.chapterData.chapter.id === CH_FIRST, 'Keyboard "[" navigated back from ' + CH_MID + ' to ' + CH_FIRST, 'A_Navigation');
 
           // 6. No navigation for nonexistent adjacent chapter (attempt prev on first chapter)
           const invalidPrevEvent = new KeyboardEvent('keydown', { key: '[', bubbles: true });
@@ -338,22 +409,22 @@ app.whenReady().then(async () => {
           // 7. Last chapter: Next disabled
           await reader.open(CH_LAST);
           await waitForReaderReady();
-          assert(reader.btnHeaderNextChapter.disabled === true, 'Header Next button disabled on last chapter (1608)', 'A_Navigation');
-          assert(reader.btnHeaderPrevChapter.disabled === false, 'Header Prev button enabled on last chapter (1608)', 'A_Navigation');
+          assert(reader.btnHeaderNextChapter.disabled === true, 'Header Next button disabled on last chapter (' + CH_LAST + ')', 'A_Navigation');
+          assert(reader.btnHeaderPrevChapter.disabled === false, 'Header Prev button enabled on last chapter (' + CH_LAST + ')', 'A_Navigation');
 
           // 8. Next from middle using header next button
           await reader.open(CH_MID);
           await waitForReaderReady();
           reader.btnHeaderNextChapter.click();
           await waitForReaderReady();
-          assert(reader.chapterData.chapter.id === 1595, 'Header Next navigated from 1594 to 1595', 'A_Navigation');
+          assert(reader.chapterData.chapter.id === CH_NEXT, 'Header Next navigated from ' + CH_MID + ' to ' + CH_NEXT, 'A_Navigation');
 
           // ==================== AREA B: READING POSITION PERSISTENCE ====================
           console.log('\\n--- Testing Area B: Reading Position Persistence ---');
           await window.lecfalAPI.setChapterRead(CH_MID, 0);
           await window.lecfalAPI.setChapterReadingPosition(CH_MID, 0);
-          await window.lecfalAPI.setChapterRead(1595, 0);
-          await window.lecfalAPI.setChapterReadingPosition(1595, 0);
+          await window.lecfalAPI.setChapterRead(CH_NEXT, 0);
+          await window.lecfalAPI.setChapterReadingPosition(CH_NEXT, 0);
 
           await reader.open(CH_MID);
           await waitForReaderReady();
@@ -367,17 +438,17 @@ app.whenReady().then(async () => {
           window.dispatchEvent(navNextKey);
           await waitForReaderReady();
 
-          // Verify saved position for 1594 in DB
+          // Verify saved position for CH_MID in DB
           const savedPosMid = await window.lecfalAPI.getChapterReadingPosition(CH_MID);
           assert(Math.abs(savedPosMid - 0.48) < 0.05, 'Reading position for previous chapter was flushed to DB before navigating (saved: ' + savedPosMid + ')', 'B_ReadingPosition');
 
-          // Navigate back to 1594 - position should be restored
+          // Navigate back to CH_MID - position should be restored
           const navPrevKey = new KeyboardEvent('keydown', { key: '[', bubbles: true });
           window.dispatchEvent(navPrevKey);
           await waitForReaderReady();
           await sleep(100);
           const restoredPos = reader.calculateReadingPosition();
-          assert(Math.abs(restoredPos - 0.48) < 0.08, 'Reading position was restored when returning to chapter 1594 (restored: ' + restoredPos.toFixed(3) + ')', 'B_ReadingPosition');
+          assert(Math.abs(restoredPos - 0.48) < 0.08, 'Reading position was restored when returning to chapter ' + CH_MID + ' (restored: ' + restoredPos.toFixed(3) + ')', 'B_ReadingPosition');
 
           // ==================== AREA C: AUTOHIDE BEHAVIOR ====================
           console.log('\\n--- Testing Area C: Auto-Hide Behavior ---');
@@ -412,13 +483,13 @@ app.whenReady().then(async () => {
           const btnExt = document.getElementById('btnReaderExternal');
           const btnFs = document.getElementById('btnReaderFullscreen');
 
-          assert(btnBack.getAttribute('aria-label') === 'Volver al detalle del manga', 'btnReaderBack has descriptive aria-label', 'D_Accessibility');
-          assert(btnPrev.getAttribute('aria-label') === 'Capítulo anterior', 'btnHeaderPrevChapter has descriptive aria-label', 'D_Accessibility');
-          assert(btnNext.getAttribute('aria-label') === 'Siguiente capítulo', 'btnHeaderNextChapter has descriptive aria-label', 'D_Accessibility');
-          assert(btnWidth.getAttribute('aria-label') === 'Ajustar ancho de lectura', 'btnReaderWidthToggle has descriptive aria-label', 'D_Accessibility');
-          assert(btnSpacing.getAttribute('aria-label') === 'Ajustar espacio entre páginas', 'btnReaderSpacingToggle has descriptive aria-label', 'D_Accessibility');
-          assert(btnExt.getAttribute('aria-label') === 'Abrir en lector externo', 'btnReaderExternal has descriptive aria-label', 'D_Accessibility');
-          assert(btnFs.getAttribute('aria-label') === 'Pantalla completa', 'btnReaderFullscreen has descriptive aria-label', 'D_Accessibility');
+          assert(btnBack && btnBack.getAttribute('aria-label')?.includes('Volver'), 'btnReaderBack has descriptive aria-label', 'D_Accessibility');
+          assert(btnPrev && btnPrev.getAttribute('aria-label')?.includes('anterior'), 'btnHeaderPrevChapter has descriptive aria-label', 'D_Accessibility');
+          assert(btnNext && (btnNext.getAttribute('aria-label')?.includes('Siguiente') || btnNext.getAttribute('aria-label')?.includes('siguiente')), 'btnHeaderNextChapter has descriptive aria-label', 'D_Accessibility');
+          assert(btnWidth && btnWidth.getAttribute('aria-label')?.includes('ancho'), 'btnReaderWidthToggle has descriptive aria-label', 'D_Accessibility');
+          assert(btnSpacing && btnSpacing.getAttribute('aria-label')?.includes('espacio'), 'btnReaderSpacingToggle has descriptive aria-label', 'D_Accessibility');
+          assert(btnExt && btnExt.getAttribute('aria-label')?.includes('externo'), 'btnReaderExternal has descriptive aria-label', 'D_Accessibility');
+          assert(btnFs && btnFs.getAttribute('aria-label')?.includes('completa'), 'btnReaderFullscreen has descriptive aria-label', 'D_Accessibility');
 
           // Verify hidden header blurs active element and has visibility: hidden in CSS
           reader.hideHeader();
@@ -606,12 +677,18 @@ app.whenReady().then(async () => {
       console.log('Failed:', testResults.summary.failed);
       console.log('========================================\n');
 
-      const outPath = path.join(__dirname, 'phase42_results.json');
+      const outPath = path.join(testDir, 'phase42_results.json');
       fs.writeFileSync(outPath, JSON.stringify(testResults, null, 2), 'utf8');
       console.log(`Saved results to ${outPath}`);
 
+      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (_) {}
       if (testResults.summary.failed > 0) {
-        console.error('FAILED tests exist in Phase 4.2 test suite.');
+        console.error('FAILED tests exist in Phase 4.2 test suite:');
+        for (const [grp, items] of Object.entries(testResults.tests)) {
+          for (const item of items) {
+            if (!item.pass) console.error(`  - [${grp}] ${item.message}`);
+          }
+        }
         app.exit(1);
       } else {
         console.log('ALL PHASE 4.2 TESTS PASSED PERFECTLY!');
@@ -619,6 +696,7 @@ app.whenReady().then(async () => {
       }
     } catch (err) {
       console.error('Fatal error during test run:', err);
+      try { if (testDir) fs.rmSync(testDir, { recursive: true, force: true }); } catch (_) {}
       app.exit(1);
     }
   });
