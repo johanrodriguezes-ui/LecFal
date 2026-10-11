@@ -683,6 +683,20 @@ body[data-theme="light"] .chip-favorite.active {
   margin-top: 2px;
 }
 
+.series-card-author {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 65%;
+  text-align: right;
+}
+
+.series-card-author.is-fallback-group {
+  color: var(--text-dim, #94a3b8);
+  font-style: italic;
+  opacity: 0.95;
+}
+
 /* Quick hover play overlay */
 .card-quick-overlay {
   position: absolute;

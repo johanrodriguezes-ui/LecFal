@@ -10,6 +10,7 @@
 
 import { escapeHtml } from '../utils/ui-utils.js';
 import { t, getLanguage, setLanguage, onLanguageChange } from '../utils/i18n.js';
+import { setFallbackAuthorToGroup } from '../library/library.js';
 
 // ==================== DOM ELEMENTS CACHE ====================
 const elements = {
@@ -18,6 +19,7 @@ const elements = {
   themeOptLight: null,
   langOptEs: null,
   langOptEn: null,
+  chkShowGroupFallback: null,
 
   // Libraries
   settingsLibrariesList: null,
@@ -281,6 +283,18 @@ export async function renderSettingsLibraries() {
     elements.settingsLibrariesList.appendChild(fragment);
   } catch (err) {
     console.error('Error rendering settings libraries:', err);
+  }
+}
+
+// ==================== LIBRARY DISPLAY SETTINGS ====================
+async function loadFallbackGroupSetting() {
+  if (!elements.chkShowGroupFallback) return;
+  try {
+    const isEnabled = await window.lecfalAPI.getSetting('fallback_author_to_group', false);
+    elements.chkShowGroupFallback.checked = Boolean(isEnabled);
+  } catch (err) {
+    console.error('Error loading fallback_author_to_group setting:', err);
+    elements.chkShowGroupFallback.checked = false;
   }
 }
 
@@ -647,6 +661,8 @@ export function switchSettingsSection(sectionId) {
     renderSettingsFolders();
   } else if (finalSectionId === 'sectionIgnoredAuthors') {
     renderSettingsIgnoredAuthors();
+  } else if (finalSectionId === 'sectionAppearance') {
+    loadFallbackGroupSetting();
   }
 
   // 4. Reset scroll of content area to top
@@ -742,6 +758,25 @@ export function initSettings(options = {}) {
   // Language listeners
   elements.langOptEs?.addEventListener('click', () => applyLanguage('es'));
   elements.langOptEn?.addEventListener('click', () => applyLanguage('en'));
+
+  // Library display settings listener
+  elements.chkShowGroupFallback = document.getElementById('chkShowGroupFallback');
+  loadFallbackGroupSetting();
+  elements.chkShowGroupFallback?.addEventListener('change', async (e) => {
+    const checked = e.target.checked;
+    try {
+      await window.lecfalAPI.setSetting('fallback_author_to_group', checked);
+      setFallbackAuthorToGroup(checked);
+      callbacks.refreshSeries();
+      callbacks.showToast(checked
+        ? t('settings.fallbackGroupEnabled')
+        : t('settings.fallbackGroupDisabled')
+      );
+    } catch (err) {
+      console.error('Error saving fallback_author_to_group setting:', err);
+      callbacks.showToast(t('settings.saveError') || 'Error al guardar la preferencia');
+    }
+  });
 
 
   // Library buttons & modal listeners

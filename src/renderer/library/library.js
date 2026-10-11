@@ -31,6 +31,7 @@ let currentSort = 'title_asc';
 let gridVirtualizer = null;
 let thumbnailPrefetcher = null;
 let isAdvSearchWaiting = false;
+let fallbackAuthorToGroup = false;
 
 // Throttled and concurrency-safe grid refreshing with generation ID
 let currentRefreshRequestId = 0;
@@ -150,11 +151,51 @@ export function createSeriesCard(series) {
         </span>
       </div>
     </div>
+  `;
+
+  // Fallback to circle/group if author is missing and user preference is enabled
+  const rawAuthor = (series.author || '').trim();
+  const authorLower = rawAuthor.toLowerCase();
+  const isAuthorMissing = !rawAuthor || authorLower === 'desconocido' || authorLower === 'unknown';
+
+  let authorText = series.author || '';
+  let isGroupFallback = false;
+
+  if (fallbackAuthorToGroup && isAuthorMissing) {
+    const groupName = (series.group_name || series.group || '').trim();
+    if (groupName) {
+      authorText = groupName;
+      isGroupFallback = true;
+    }
+  }
+
+  const groupLabel = t('library.groupPrefix') || (isEn ? 'Group' : 'Grupo');
+  const authorTooltip = isGroupFallback
+    ? `${groupLabel}: ${authorText}`
+    : authorText;
+
+  card.innerHTML = `
+    <div class="card-cover-container">
+      <button class="btn-card-fav ${series.favorite ? 'active' : ''}" data-id="${series.id}" title="${series.favorite ? (t('library.unmarkFav') || 'Quitar de favoritos') : (t('library.markFav') || 'Marcar como favorito')}">
+        <svg viewBox="0 0 24 24" fill="${series.favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+        </svg>
+      </button>
+      ${coverHtml}
+      <div class="card-quick-overlay">
+        <span class="quick-action-text">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          ${isEn ? 'View manga' : 'Ver manga'}
+        </span>
+      </div>
+    </div>
     <div class="card-details">
       <div class="card-title" title="${escapeHtml(series.title)}">${escapeHtml(series.title)}</div>
       <div class="card-meta-row">
         <span class="series-caps-count">${capsLabel}</span>
-        <span>${escapeHtml(series.author || '')}</span>
+        <span class="series-card-author ${isGroupFallback ? 'is-fallback-group' : ''}" title="${escapeHtml(authorTooltip)}">${escapeHtml(authorText)}</span>
       </div>
     </div>
   `;
@@ -884,7 +925,25 @@ export async function loadLibraryPreferences() {
     const savedSort = await window.lecfalAPI.getSetting('sort_order', 'title_asc');
     currentSort = savedSort;
     if (elements.sortSelect) elements.sortSelect.value = savedSort;
+
+    fallbackAuthorToGroup = await window.lecfalAPI.getSetting('fallback_author_to_group', false);
   } catch (err) {
     console.warn('Could not load library grid preferences:', err);
   }
+}
+
+/**
+ * Update the fallbackAuthorToGroup state dynamically.
+ * @param {boolean} enabled
+ */
+export function setFallbackAuthorToGroup(enabled) {
+  fallbackAuthorToGroup = Boolean(enabled);
+}
+
+/**
+ * Get current fallbackAuthorToGroup state.
+ * @returns {boolean}
+ */
+export function getFallbackAuthorToGroup() {
+  return fallbackAuthorToGroup;
 }
